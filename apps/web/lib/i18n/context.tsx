@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Locale, TranslationDictionary } from "./types";
 import { translations } from "./translations";
 
@@ -8,6 +15,7 @@ interface LanguageContextValue {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   t: TranslationDictionary;
+  hydrated: boolean;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -17,12 +25,13 @@ const COOKIE_NAME = "hct_lang";
 
 export function LanguageProvider({
   children,
-  initialLocale = "vi"
+  initialLocale = "vi",
 }: {
   children: ReactNode;
   initialLocale?: Locale;
 }) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     // Read persisted choice if available, otherwise keep default 'vi'
@@ -39,6 +48,7 @@ export function LanguageProvider({
     } catch {
       // Fallback in environments without localStorage
     }
+    setHydrated(true);
   }, []);
 
   const setLocale = (nextLocale: Locale) => {
@@ -52,13 +62,21 @@ export function LanguageProvider({
     }
   };
 
-  const value = useMemo<LanguageContextValue>(() => ({
-    locale,
-    setLocale,
-    t: translations[locale]
-  }), [locale]);
+  const value = useMemo<LanguageContextValue>(
+    () => ({
+      locale,
+      setLocale,
+      t: translations[locale],
+      hydrated,
+    }),
+    [locale, hydrated],
+  );
 
-  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+  return (
+    <LanguageContext.Provider value={value}>
+      {children}
+    </LanguageContext.Provider>
+  );
 }
 
 export function useLanguage() {
@@ -68,7 +86,8 @@ export function useLanguage() {
     return {
       locale: "vi" as Locale,
       setLocale: () => {},
-      t: translations.vi
+      t: translations.vi,
+      hydrated: true,
     };
   }
   return context;

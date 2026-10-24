@@ -6,25 +6,42 @@ import { BadgeCheck } from "lucide-react";
 import { formatVnd } from "@/lib/format";
 import type { ProductCard as Product } from "@/lib/demo-data";
 import { useLanguage } from "@/lib/i18n/context";
+import { FavoriteButton } from "@/components/favorite-button";
 
 export function ProductCard({ product }: { product: Product }) {
   const { locale, t } = useLanguage();
 
-  const title = locale === "en" && product.nameEn ? product.nameEn : product.name;
-  const village = locale === "en" && product.villageEn ? product.villageEn : product.village;
+  const title =
+    locale === "en" && product.nameEn ? product.nameEn : product.name;
+  const village =
+    locale === "en" && product.villageEn ? product.villageEn : product.village;
   const tierLabel = t.passport.tierLabels[product.tier] ?? product.tier;
 
   return (
     <article className="card">
-      <Link href={`/products/${product.slug}`}>
-        <div className="card-image">
+      <div className="card-image">
+        <Link href={`/products/${product.slug}`} aria-label={title}>
           <Image
             src={product.image}
             alt={title}
             fill
             sizes="(max-width: 700px) 100vw, 33vw"
           />
-        </div>
+          <Image
+            className="card-image-detail"
+            src={product.image}
+            alt=""
+            fill
+            sizes="(max-width: 700px) 100vw, 33vw"
+            aria-hidden="true"
+          />
+          <span className="material-peek">
+            {locale === "vi" ? "Soi chất liệu" : "Texture view"}
+          </span>
+        </Link>
+        <FavoriteButton productId={product.id} productName={title} />
+      </div>
+      <Link href={`/products/${product.slug}`}>
         <div className="card-body">
           <div className="card-meta">
             <span>{village}</span>
@@ -34,11 +51,17 @@ export function ProductCard({ product }: { product: Product }) {
             </span>
           </div>
           <h3>{title}</h3>
-          <p>{locale === "vi" ? `Nghệ nhân: ${product.artisan}` : `By ${product.artisan}`}</p>
+          <p>
+            {locale === "vi"
+              ? `Nghệ nhân: ${product.artisan}`
+              : `By ${product.artisan}`}
+          </p>
           <div className="card-bottom">
             <span className="price">{formatVnd(product.priceVnd)}</span>
             <span aria-label={`${product.stock} ${t.product.inStock}`}>
-              {locale === "vi" ? `Còn ${product.stock} tác phẩm` : `${product.stock} available`}
+              {locale === "vi"
+                ? `Còn ${product.stock} tác phẩm`
+                : `${product.stock} available`}
             </span>
           </div>
         </div>

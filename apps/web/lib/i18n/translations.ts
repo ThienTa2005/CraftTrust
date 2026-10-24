@@ -3,20 +3,22 @@ import type { Locale, TranslationDictionary } from "./types";
 export const translations: Record<Locale, TranslationDictionary> = {
   vi: {
     common: {
-      siteTitle: "Hanoi Craft-Trust",
-      siteDescription: "Nền tảng thương mại di sản và xác thực thủ công truyền thống Hà Nội",
-      demoNotice: "DỮ LIỆU THỬ NGHIỆM · Hệ thống đang hoạt động ở chế độ demo minh họa.",
+      siteTitle: "Bát Tràng Craft",
+      siteDescription:
+        "Không gian triển lãm và cửa hàng gốm Bát Tràng có hộ chiếu nguồn gốc",
+      demoNotice:
+        "DỮ LIỆU THỬ NGHIỆM · Hệ thống đang hoạt động ở chế độ demo minh họa.",
       demoBadge: "DEMO DATA",
       errorTitle: "Đã xảy ra lỗi",
       loading: "Đang tải dữ liệu…",
       empty: "Chưa có dữ liệu nào.",
       tryAgain: "Thử lại",
       backHome: "Về trang chủ",
-      viewDetails: "Xem chi tiết"
+      viewDetails: "Xem chi tiết",
     },
     nav: {
-      marketplace: "Chợ thủ công",
-      villages: "Làng nghề",
+      marketplace: "Bộ sưu tập",
+      villages: "Chuyện Bát Tràng",
       passport: "Xác thực hộ chiếu",
       assistant: "Trợ lý di sản",
       signIn: "Đăng nhập",
@@ -24,53 +26,61 @@ export const translations: Record<Locale, TranslationDictionary> = {
       cart: "Giỏ hàng",
       menu: "Danh mục",
       language: "Ngôn ngữ",
-      rewards: "Tích điểm & Đổi quà",
-      map: "Bản đồ làng nghề"
+      rewards: "Đặc quyền thành viên",
+      map: "Đường về làng gốm",
     },
     hero: {
-      eyebrow: "Di sản sống · Minh chứng tận tâm",
-      title: "Mỗi tác phẩm thủ công mang một câu chuyện. Biết rõ nơi khởi nguồn.",
-      subtitle: "Gặp gỡ nghệ nhân Hà Nội, khám phá truyền thống làng nghề và sở hữu những tác phẩm có hồ sơ nguồn gốc cùng bằng chứng chế tác rõ ràng.",
-      exploreMarketplace: "Khám phá chợ thủ công",
-      visitVillages: "Tham quan làng nghề",
-      goldPassport: "Hộ chiếu thủ công Vàng",
+      eyebrow: "Đất · Nước · Lửa · Bát Tràng",
+      title: "Chạm vào đất. Ngắm men kể chuyện.",
+      subtitle:
+        "Một không gian triển lãm gốm Bát Tràng đương đại—nơi mỗi dáng gốm, lớp men và dấu tay nghệ nhân đi cùng hồ sơ nguồn gốc minh bạch.",
+      exploreMarketplace: "Khám phá bộ sưu tập",
+      visitVillages: "Bước vào chuyện làng gốm",
+      goldPassport: "Hộ chiếu gốm hạng Vàng",
       evidenceReviewed: "Đã kiểm duyệt bằng chứng",
-      proofDesc: "Nguồn gốc, nghệ nhân, chất liệu, quy trình và chứng thực kiểm định đều được lưu vết minh bạch.",
+      proofDesc:
+        "Nguồn gốc, nghệ nhân, chất liệu, quy trình và chứng thực kiểm định đều được lưu vết minh bạch.",
       trustOrigin: "Nguồn gốc minh bạch",
-      trustOriginSub: "Định danh làng nghề và nghệ nhân",
+      trustOriginSub: "Bát Tràng và nghệ nhân chế tác",
       trustTiers: "Cấp độ bằng chứng",
       trustTiersSub: "Đồng, Bạc và Vàng",
       trustQr: "Mã định danh độc bản",
       trustQrSub: "Mã QR và liên kết NFC bảo mật",
       trustSources: "Tư liệu di sản chuẩn",
-      trustSourcesSub: "Trích dẫn tài liệu chính thống"
+      trustSourcesSub: "Tư liệu gốm Bát Tràng đã duyệt",
     },
     homeSections: {
-      villagesEyebrow: "Bắt đầu từ vùng đất",
-      villagesTitle: "Những làng nghề đắp nặn bởi thời gian",
-      villagesDesc: "Khám phá con người, nguyên liệu và nét tinh hoa ăn sâu vào đời sống từng cộng đồng—không chỉ là một sản phẩm đơn thuần.",
-      followTrail: "Khám phá hành trình làng nghề →",
+      villagesEyebrow: "Từ đất thành gốm",
+      villagesTitle: "Một tác phẩm đi qua đất, men và lửa",
+      villagesDesc:
+        "Theo dõi những lớp kỹ nghệ tạo nên gốm Bát Tràng—từ cốt đất trên bàn xoay đến nét lam và biến chuyển trong lò nung.",
+      followTrail: "Khám phá công đoạn →",
       noVillages: "Chưa có làng nghề nào được công bố.",
-      craftEyebrow: "Chế tác thủ công",
-      craftTitle: "Tác phẩm với quá khứ có thể xác thực",
-      seeAllCraft: "Xem toàn bộ sản phẩm",
+      craftEyebrow: "Tuyển chọn từ lò",
+      craftTitle: "Gốm độc bản cho nhịp sống hôm nay",
+      seeAllCraft: "Xem toàn bộ bộ sưu tập",
       noProducts: "Hiện chưa có sản phẩm nào hoạt động.",
-      trustMethodEyebrow: "Phương pháp xác thực",
-      trustMethodTitle: "Xác thực là một chuỗi bằng chứng — không phải danh hiệu tự phong.",
-      trustMethodDesc: "Mỗi hạng hộ chiếu được tính toán dựa trên các hồ sơ nộp đã duyệt. Hội đồng thẩm định xem xét nguồn gốc, lịch sử quyết định và vết kiểm toán trước khi nâng hạng tác phẩm.",
+      trustMethodEyebrow: "Hộ chiếu cho từng dáng gốm",
+      trustMethodTitle:
+        "Từ bàn tay nghệ nhân đến chiếc kệ nhà bạn—mọi dấu vết đều có thể truy nguyên.",
+      trustMethodDesc:
+        "Mỗi hạng hộ chiếu dựa trên hồ sơ nguồn gốc, chất liệu, quy trình tạo hình, men và mẻ nung đã được duyệt—không phải danh hiệu tự phong.",
       step1Title: "1. Ghi nhận nguồn gốc",
-      step1Desc: "Định danh nghệ nhân và sự gắn kết truyền thống với làng nghề.",
+      step1Desc:
+        "Định danh nghệ nhân và sự gắn kết truyền thống với làng nghề.",
       step2Title: "2. Minh chứng quy trình",
-      step2Desc: "Bằng chứng về vật liệu bản địa và các công đoạn chế tác bằng tay.",
+      step2Desc: "Bằng chứng về cốt đất, tạo hình, vẽ tay, phủ men và mẻ nung.",
       step3Title: "3. Thẩm định & Trích dẫn",
-      step3Desc: "Chứng thực độc lập từ chuyên gia và đối chiếu kho tri thức di sản đã phê chuẩn.",
-      samplePassport: "Xem hộ chiếu mẫu"
+      step3Desc:
+        "Chứng thực độc lập từ chuyên gia và đối chiếu kho tri thức di sản đã phê chuẩn.",
+      samplePassport: "Xem hộ chiếu mẫu",
     },
     marketplace: {
-      eyebrow: "Chợ thủ công có xác thực",
-      title: "Tác phẩm thủ công đính kèm nguồn gốc",
-      subtitle: "Mỗi tác phẩm liên kết với một hồ sơ làng nghề, danh tính nghệ nhân và chuỗi bằng chứng hộ chiếu số.",
-      searchPlaceholder: "Tìm kiếm tác phẩm, nghệ nhân, làng nghề…",
+      eyebrow: "Bộ sưu tập gốm có nguồn gốc",
+      title: "Tìm một dáng gốm dành cho bạn",
+      subtitle:
+        "Ấm trà, bình hoa và vật phẩm gốm Bát Tràng được tuyển chọn theo nghệ nhân, dòng men và hồ sơ hộ chiếu số.",
+      searchPlaceholder: "Tìm theo dáng gốm, dòng men, nghệ nhân…",
       filterAllVillages: "Tất cả làng nghề",
       filterAllCrafts: "Tất cả nghề thủ công",
       noResults: "Không tìm thấy tác phẩm thủ công nào phù hợp.",
@@ -78,17 +88,18 @@ export const translations: Record<Locale, TranslationDictionary> = {
       outOfStock: "Hết hàng",
       price: "Giá",
       viewProduct: "Xem chi tiết",
-      verifyPassport: "Xem hộ chiếu"
+      verifyPassport: "Xem hộ chiếu",
     },
     villages: {
       eyebrow: "Bản đồ di sản làng nghề",
       title: "Làng nghề thủ công truyền thống Hà Nội",
-      subtitle: "Những cái nôi văn hóa lưu giữ hồn cốt thủ công qua hàng trăm năm lịch sử của đất Thăng Long.",
+      subtitle:
+        "Những cái nôi văn hóa lưu giữ hồn cốt thủ công qua hàng trăm năm lịch sử của đất Thăng Long.",
       craftTrail: "Xem câu chuyện làng nghề →",
       district: "Khu vực",
       craft: "Nghề truyền thống",
       artisansCount: "Nghệ nhân",
-      productsCount: "Sản phẩm"
+      productsCount: "Sản phẩm",
     },
     product: {
       artisan: "Nghệ nhân chế tác",
@@ -98,17 +109,19 @@ export const translations: Record<Locale, TranslationDictionary> = {
       viewPassport: "Mở xem hộ chiếu số",
       interactive3d: "Mô hình 3D tương tác",
       viewAr: "Xem thực tế tăng cường (AR)",
-      arNotice: "Tính năng AR khả dụng trên điện thoại di động hỗ trợ WebXR hoặc Apple QuickLook.",
+      arNotice:
+        "Tính năng AR khả dụng trên điện thoại di động hỗ trợ WebXR hoặc Apple QuickLook.",
       qty: "Số lượng",
       addToCart: "Thêm vào giỏ hàng",
       adding: "Đang thêm…",
       addedNotice: "Đã thêm tác phẩm vào giỏ hàng thành công!",
       buyNow: "Mua ngay",
-      testNotice: "Thanh toán thử nghiệm (Test mode) — không phát sinh giao dịch tiền tệ thực tế.",
+      testNotice:
+        "Thanh toán thử nghiệm (Test mode) — không phát sinh giao dịch tiền tệ thực tế.",
       price: "Đơn giá",
       inStock: "Còn hàng",
       outOfStock: "Tạm hết hàng",
-      description: "Mô tả tác phẩm"
+      description: "Mô tả tác phẩm",
     },
     cart: {
       eyebrow: "Giỏ hàng",
@@ -121,12 +134,14 @@ export const translations: Record<Locale, TranslationDictionary> = {
       total: "Tổng cộng",
       proceedCheckout: "Tiếp tục thanh toán thử",
       clearCart: "Làm trống giỏ hàng",
-      demoNote: "Chế độ trải nghiệm thử nghiệm: Bạn có thể chọn sản phẩm và thực hiện kiểm thử quy trình mua hàng đầy đủ."
+      demoNote:
+        "Chế độ trải nghiệm thử nghiệm: Bạn có thể chọn sản phẩm và thực hiện kiểm thử quy trình mua hàng đầy đủ.",
     },
     checkout: {
       title: "Thanh toán thử nghiệm",
       testModeBanner: "CHẾ ĐỘ THỬ NGHIỆM (TEST MODE)",
-      testModeDesc: "Hệ thống không trừ tiền thật. Đơn hàng và biên lai thử nghiệm sẽ được tạo để xác thực luồng mua hàng.",
+      testModeDesc:
+        "Hệ thống không trừ tiền thật. Đơn hàng và biên lai thử nghiệm sẽ được tạo để xác thực luồng mua hàng.",
       recipient: "Họ và tên người nhận",
       recipientPlaceholder: "Nguyễn Văn A",
       phone: "Số điện thoại liên hệ",
@@ -140,7 +155,7 @@ export const translations: Record<Locale, TranslationDictionary> = {
       orderSuccess: "Đặt đơn thử nghiệm thành công!",
       orderSuccessDetail: "Mã đơn hàng của bạn là",
       viewOrders: "Xem danh sách đơn hàng",
-      orderSummary: "Thông tin thanh toán"
+      orderSummary: "Thông tin thanh toán",
     },
     orders: {
       title: "Đơn hàng của bạn",
@@ -150,19 +165,20 @@ export const translations: Record<Locale, TranslationDictionary> = {
       date: "Ngày tạo",
       status: "Trạng thái",
       total: "Tổng tiền",
-      items: "Sản phẩm"
+      items: "Sản phẩm",
     },
     passport: {
       eyebrow: "Hộ chiếu số di sản thủ công",
       title: "Hồ sơ xác thực di sản",
-      sampleNotice: "HỘ CHIẾU MẪU MINH HỌA · Dữ liệu dùng cho mục đích kiểm thử và giới thiệu nền tảng.",
+      sampleNotice:
+        "HỘ CHIẾU MẪU MINH HỌA · Dữ liệu dùng cho mục đích kiểm thử và giới thiệu nền tảng.",
       status: "Trạng thái sổ đăng ký",
       tier: "Hạng xác thực",
       tierLabels: {
         gold: "Hạng Vàng (Gold)",
         silver: "Hạng Bạc (Silver)",
         bronze: "Hạng Đồng (Bronze)",
-        unverified: "Chưa xác minh"
+        unverified: "Chưa xác minh",
       },
       objectName: "Tên tác phẩm",
       maker: "Nghệ nhân thực hiện",
@@ -173,14 +189,17 @@ export const translations: Record<Locale, TranslationDictionary> = {
       evidence: "Hồ sơ bằng chứng đã phê duyệt",
       qrIdentifier: "Mã QR định danh độc bản",
       nfcMapping: "Ánh xạ thẻ chip NFC",
-      disclaimer: "Hộ chiếu số ghi nhận bằng chứng chế tác thực tế, không thay thế cho giấy chứng nhận bảo hộ thương mại độc quyền.",
+      disclaimer:
+        "Hộ chiếu số ghi nhận bằng chứng chế tác thực tế, không thay thế cho giấy chứng nhận bảo hộ thương mại độc quyền.",
       copyLink: "Sao chép liên kết",
-      linkCopied: "Đã sao chép liên kết!"
+      linkCopied: "Đã sao chép liên kết!",
     },
     assistant: {
       title: "Trợ lý Di sản Thủ công Hà Nội",
-      subtitle: "Hệ thống AI được đối chiếu và kiểm chứng nghiêm ngặt từ kho tư liệu di sản làng nghề đã phê chuẩn.",
-      placeholder: "Hỏi về kỹ thuật men rạn Bát Tràng, lụa Vạn Phúc, hộ chiếu số…",
+      subtitle:
+        "Hệ thống AI được đối chiếu và kiểm chứng nghiêm ngặt từ kho tư liệu di sản làng nghề đã phê chuẩn.",
+      placeholder:
+        "Hỏi về kỹ thuật men rạn Bát Tràng, lụa Vạn Phúc, hộ chiếu số…",
       send: "Gửi",
       thinking: "Đang tra cứu tư liệu di sản…",
       suggestedTitle: "Gợi ý câu hỏi:",
@@ -188,42 +207,50 @@ export const translations: Record<Locale, TranslationDictionary> = {
         "Kỹ thuật men rạn và men tro Bát Tràng có gì đặc biệt?",
         "Lụa tơ tằm Vạn Phúc được dệt thủ công theo quy trình nào?",
         "Hộ chiếu số hạng Vàng đòi hỏi những bằng chứng gì?",
-        "Làm thế nào để phân biệt mộc Chàng Sơn truyền thống?"
+        "Làm thế nào để phân biệt mộc Chàng Sơn truyền thống?",
       ],
-      decline: "Tôi không có đủ bằng chứng di sản được phê duyệt trong hệ thống để trả lời câu hỏi này.",
-      sourcesTitle: "Tư liệu di sản được trích dẫn:"
+      decline:
+        "Tôi không có đủ bằng chứng di sản được phê duyệt trong hệ thống để trả lời câu hỏi này.",
+      sourcesTitle: "Tư liệu di sản được trích dẫn:",
     },
     seller: {
       title: "Xưởng Nghệ nhân & Người bán",
-      subtitle: "Khu vực dành cho nghệ nhân quản lý tác phẩm, gửi hồ sơ bằng chứng và phát hành mã hộ chiếu.",
+      subtitle:
+        "Khu vực dành cho nghệ nhân quản lý tác phẩm, gửi hồ sơ bằng chứng và phát hành mã hộ chiếu.",
       myProducts: "Tác phẩm của tôi",
       submissions: "Hồ sơ bằng chứng đang chờ",
       newProduct: "Đăng tải tác phẩm mới",
-      noBackend: "Chưa cấu hình Supabase. Vui lòng kết nối cơ sở dữ liệu để truy cập xưởng người bán."
+      noBackend:
+        "Chưa cấu hình Supabase. Vui lòng kết nối cơ sở dữ liệu để truy cập xưởng người bán.",
     },
     admin: {
       title: "Bàn Thẩm định & Kiểm duyệt Di sản",
-      subtitle: "Khu vực chuyên trách đánh giá hồ sơ bằng chứng, kiểm toán quyết định và xác nhận cấp độ hộ chiếu.",
+      subtitle:
+        "Khu vực chuyên trách đánh giá hồ sơ bằng chứng, kiểm toán quyết định và xác nhận cấp độ hộ chiếu.",
       pendingReviews: "Hồ sơ chờ thẩm định",
       auditLogs: "Nhật ký kiểm toán hệ thống",
       approve: "Chấp thuận & Nâng hạng",
       reject: "Yêu cầu bổ sung bằng chứng",
-      noBackend: "Chưa cấu hình Supabase. Vui lòng kết nối cơ sở dữ liệu để thực hiện nghiệp vụ kiểm duyệt."
+      noBackend:
+        "Chưa cấu hình Supabase. Vui lòng kết nối cơ sở dữ liệu để thực hiện nghiệp vụ kiểm duyệt.",
     },
     auth: {
       title: "Tài khoản Craft-Trust",
-      subtitle: "Đăng nhập để lưu trữ giỏ hàng cá nhân, theo dõi đơn hàng và tham gia quy trình chứng thực.",
+      subtitle:
+        "Đăng nhập để lưu trữ giỏ hàng cá nhân, theo dõi đơn hàng và tham gia quy trình chứng thực.",
       email: "Địa chỉ email",
       password: "Mật khẩu",
       signIn: "Đăng nhập",
       signUp: "Tạo tài khoản mới",
       magicLink: "Đăng nhập bằng Magic Link",
       sending: "Đang gửi yêu cầu…",
-      statusBackendNotice: "Kết nối Supabase Auth để sử dụng tính năng bảo mật tài khoản."
+      statusBackendNotice:
+        "Kết nối Supabase Auth để sử dụng tính năng bảo mật tài khoản.",
     },
     glazeCustomizer: {
       title: "Chất liệu & Men gốm Bát Tràng",
-      subtitle: "Thay đổi chất liệu men theo thời gian thực trực tiếp trên mô hình 3D",
+      subtitle:
+        "Thay đổi chất liệu men theo thời gian thực trực tiếp trên mô hình 3D",
       swatchLabel: "Chọn dòng men thủ công:",
       currentGlaze: "Dòng men đang chọn:",
       technique: "Kỹ nghệ chế tác:",
@@ -232,28 +259,33 @@ export const translations: Record<Locale, TranslationDictionary> = {
         "hoa-bien": {
           name: "Men hỏa biến",
           desc: "Hiệu ứng lửa biến ảo đa sắc tím thẫm ánh đồng, nhiệt độ 1280°C nung củi độc bản.",
-          history: "Dòng men đỉnh cao nung ở nhiệt độ biến thiên, màu sắc tự nhiên do lửa tạo tác, không chiếc nào giống chiếc nào."
+          history:
+            "Dòng men đỉnh cao nung ở nhiệt độ biến thiên, màu sắc tự nhiên do lửa tạo tác, không chiếc nào giống chiếc nào.",
         },
         "ran-co": {
           name: "Men rạn cổ",
           desc: "Đặc trưng cốt gốm rạn chân chim hình tam giác, tứ giác hoài cổ thời Lê - Nguyễn.",
-          history: "Xuất hiện từ thế kỷ 16 tại Bát Tràng, tạo nên các đường rạn tự nhiên nhờ độ co ngót khác nhau giữa men và xương gốm."
+          history:
+            "Xuất hiện từ thế kỷ 16 tại Bát Tràng, tạo nên các đường rạn tự nhiên nhờ độ co ngót khác nhau giữa men và xương gốm.",
         },
         "men-lam": {
           name: "Men lam Bát Tràng",
           desc: "Sắc xanh coban trang nhã vẽ tay trên cốt sứ trắng ngà truyền thống.",
-          history: "Dòng men cổ kinh điển từ thế kỷ 14, hoa văn vẽ tay thủ công bằng bút lông chim trước khi phủ men bóng và nung."
+          history:
+            "Dòng men cổ kinh điển từ thế kỷ 14, hoa văn vẽ tay thủ công bằng bút lông chim trước khi phủ men bóng và nung.",
         },
         "men-ngoc": {
           name: "Men ngọc truyền thống",
           desc: "Màu xanh ngọc bích bán trong suốt, bóng dịu như ngọc thạch cung đình.",
-          history: "Kỹ thuật men quý có từ thời Lý - Trần, sử dụng tro trấu và khoáng thạch tự nhiên tạo độ sâu mướt."
-        }
-      }
+          history:
+            "Kỹ thuật men quý có từ thời Lý - Trần, sử dụng tro trấu và khoáng thạch tự nhiên tạo độ sâu mướt.",
+        },
+      },
     },
     engraving: {
       title: "Khắc chữ & Cá nhân hóa Tác phẩm",
-      subtitle: "Khắc thông điệp tặng quà tân gia, đối tác trực tiếp lên thân bình 3D",
+      subtitle:
+        "Khắc thông điệp tặng quà tân gia, đối tác trực tiếp lên thân bình 3D",
       placeholder: "VD: Chúc mừng Kỷ niệm 10 năm thành lập Công ty X",
       fontStyle: "Kiểu chữ:",
       placement: "Vị trí khắc:",
@@ -264,36 +296,40 @@ export const translations: Record<Locale, TranslationDictionary> = {
       fonts: {
         calligraphy: "Thư pháp Việt cổ truyền",
         serif: "Chữ Serif Hoàng gia sang trọng",
-        modern: "Chữ Sans-serif Hiện đại thanh lịch"
+        modern: "Chữ Sans-serif Hiện đại thanh lịch",
       },
       placements: {
         front: "Chính diện thân bình",
         neck: "Vòng cung cổ bình",
-        base: "Đáy bình (Kèm triện nghệ nhân)"
+        base: "Đáy bình (Kèm triện nghệ nhân)",
       },
       finishes: {
         clay: "Khắc chìm mộc nguyên bản",
         gold: "Dát vàng kim 24K cao cấp",
-        cobalt: "Viết men lam Bát Tràng vẽ tay"
-      }
+        cobalt: "Viết men lam Bát Tràng vẽ tay",
+      },
     },
     arRoom: {
       tabSingle: "Xem đơn lẻ",
       tabRoom: "Phối cảnh Phòng khách AR",
       title: "Phối cảnh không gian đa sản phẩm",
-      subtitle: "Ướm thử combo trang trí phòng khách theo đúng tỉ lệ thực tế bằng công nghệ AR",
+      subtitle:
+        "Ướm thử combo trang trí phòng khách theo đúng tỉ lệ thực tế bằng công nghệ AR",
       itemsIncluded: "Bộ sản phẩm phối cảnh gồm:",
-      scaleNotice: "Mọi sản phẩm được tái lập theo đúng kích thước thực tế (1:1)",
+      scaleNotice:
+        "Mọi sản phẩm được tái lập theo đúng kích thước thực tế (1:1)",
       comboDiscount: "Ưu đãi mua theo Combo: Tiết kiệm 10%",
       launchRoomAr: "Ướm thử trong phòng với AR",
       toggleItem: "Bật / Tắt sản phẩm trong bộ:",
-      totalBundlePrice: "Tổng giá trị Combo:"
+      totalBundlePrice: "Tổng giá trị Combo:",
     },
     timelineOcop: {
       timelineTitle: "Dải thời gian & Quy trình chế tác",
-      timelineSubtitle: "Hành trình từ phù sa sông Hồng đến tác phẩm hoàn thiện trao tay khách hàng",
+      timelineSubtitle:
+        "Hành trình từ phù sa sông Hồng đến tác phẩm hoàn thiện trao tay khách hàng",
       ocopTitle: "Chứng nhận OCOP Quốc gia",
-      ocopAuthority: "Cơ quan thẩm định: UBND TP Hà Nội & Sở Nông nghiệp & PTNT",
+      ocopAuthority:
+        "Cơ quan thẩm định: UBND TP Hà Nội & Sở Nông nghiệp & PTNT",
       certificateNo: "Mã số chứng nhận:",
       videoStoriesTitle: "Thước phim tư liệu di sản",
       videoStory1: "Lịch sử & Câu chuyện 500 năm làng gốm Bát Tràng",
@@ -301,11 +337,12 @@ export const translations: Record<Locale, TranslationDictionary> = {
       watchVideo: "Xem phim tư liệu",
       artisanStoryTitle: "Lời nhắn gửi từ Nghệ nhân Ưu tú",
       securityProofTitle: "Chứng thực chuỗi khối & Bằng chứng kiểm toán",
-      dynamicNfcTitle: "Xác thực chip Dynamic NFC thời gian thực"
+      dynamicNfcTitle: "Xác thực chip Dynamic NFC thời gian thực",
     },
     rewards: {
       title: "Hội viên Di sản & Điểm thưởng CraftPoints",
-      subtitle: "Tích điểm khi mua hàng, quét mã hộ chiếu và quy đổi những trải nghiệm làng nghề vô giá",
+      subtitle:
+        "Tích điểm khi mua hàng, quét mã hộ chiếu và quy đổi những trải nghiệm làng nghề vô giá",
       cardTier: "Hạng hội viên:",
       pointsBalance: "Số điểm khả dụng",
       pointsUnit: "CraftPoints",
@@ -317,11 +354,13 @@ export const translations: Record<Locale, TranslationDictionary> = {
       notEnoughPoints: "Bạn cần tích thêm điểm để đổi phần quà này.",
       myTicketsTitle: "Vé trải nghiệm & Voucher của bạn",
       noTickets: "Chưa có vé trải nghiệm nào. Hãy tích điểm để đổi quà nhé!",
-      scanCheckinNotice: "Xuất trình mã QR này tại xưởng làng nghề để nghệ nhân đón tiếp và hướng dẫn."
+      scanCheckinNotice:
+        "Xuất trình mã QR này tại xưởng làng nghề để nghệ nhân đón tiếp và hướng dẫn.",
     },
     craftMap: {
       title: "Bản đồ Khám phá Làng nghề & Du lịch Hà Nội",
-      subtitle: "Tìm hiểu vị trí các làng nghề truyền thống và các điểm du lịch văn hóa lân cận theo tour",
+      subtitle:
+        "Tìm hiểu vị trí các làng nghề truyền thống và các điểm du lịch văn hóa lân cận theo tour",
       filterAll: "Tất cả địa điểm",
       filterVillages: "Làng nghề truyền thống",
       filterAttractions: "Điểm tham quan & Di tích",
@@ -334,13 +373,14 @@ export const translations: Record<Locale, TranslationDictionary> = {
       itineraryDetails: "Lộ trình chi tiết:",
       highlights: "Trải nghiệm đặc sắc:",
       openHours: "Giờ mở cửa đón khách:",
-      hotline: "Hotline hỗ trợ nghệ nhân:"
+      hotline: "Hotline hỗ trợ nghệ nhân:",
     },
     footer: {
-      brandTagline: "Kết nối di sản sống, nguồn gốc minh bạch và thương mại thủ công cẩn trọng tại các làng nghề Hà Nội.",
+      brandTagline:
+        "Không gian triển lãm gốm Bát Tràng—nơi đất, men, lửa và câu chuyện nghệ nhân được lưu dấu minh bạch.",
       explore: "Khám phá",
-      marketplace: "Chợ thủ công",
-      villages: "Làng nghề",
+      marketplace: "Bộ sưu tập gốm",
+      villages: "Chuyện Bát Tràng",
       heritageGuide: "Trợ lý di sản",
       partners: "Dành cho đối tác",
       sellerStudio: "Xưởng người bán",
@@ -350,26 +390,27 @@ export const translations: Record<Locale, TranslationDictionary> = {
       digitalPassports: "Hộ chiếu số",
       evidencePolicy: "Chính sách bằng chứng",
       testOnlyNote: "Thanh toán thử nghiệm (Test only)",
-      copyright: "© 2026 Hanoi Craft-Trust.",
-      mission: "Kiến tạo vì thương mại di sản minh bạch và bền vững."
-    }
+      copyright: "© 2026 Bát Tràng Craft.",
+      mission: "Gìn giữ dáng gốm Việt trong nhịp sống đương đại.",
+    },
   },
   en: {
     common: {
-      siteTitle: "Hanoi Craft-Trust",
-      siteDescription: "Living heritage, verified provenance, and careful craft commerce in Hanoi",
-      demoNotice: "DEMO DATA · The platform is running with illustrative sample records.",
+      siteTitle: "Bat Trang Craft",
+      siteDescription: "A gallery and shop for traceable Bat Trang ceramics",
+      demoNotice:
+        "DEMO DATA · The platform is running with illustrative sample records.",
       demoBadge: "DEMO DATA",
       errorTitle: "An error occurred",
       loading: "Loading data…",
       empty: "No records found.",
       tryAgain: "Try again",
       backHome: "Back to home",
-      viewDetails: "View details"
+      viewDetails: "View details",
     },
     nav: {
-      marketplace: "Marketplace",
-      villages: "Craft villages",
+      marketplace: "Collection",
+      villages: "Bat Trang story",
       passport: "Verify passport",
       assistant: "Heritage guide",
       signIn: "Sign in",
@@ -377,53 +418,59 @@ export const translations: Record<Locale, TranslationDictionary> = {
       cart: "Cart",
       menu: "Menu",
       language: "Language",
-      rewards: "CraftPoints & Rewards",
-      map: "Craft Map"
+      rewards: "Member privileges",
+      map: "Visit Bat Trang",
     },
     hero: {
-      eyebrow: "Living heritage · Proven with care",
-      title: "Craft carries a story. Know where it begins.",
-      subtitle: "Meet Hanoi's artisans, explore village traditions, and buy work whose origin and making evidence travel with it.",
-      exploreMarketplace: "Explore the marketplace",
-      visitVillages: "Visit craft villages",
-      goldPassport: "Gold craft passport",
+      eyebrow: "Earth · Water · Fire · Bat Trang",
+      title: "Touch the clay. Watch the glaze tell its story.",
+      subtitle:
+        "A contemporary Bat Trang ceramics gallery where every form, glaze and maker's mark travels with traceable provenance.",
+      exploreMarketplace: "Explore the collection",
+      visitVillages: "Enter the village story",
+      goldPassport: "Gold ceramic passport",
       evidenceReviewed: "Evidence reviewed",
-      proofDesc: "Origin, maker, material, process, heritage source, and verifier attestation recorded.",
+      proofDesc:
+        "Origin, maker, material, process, heritage source, and verifier attestation recorded.",
       trustOrigin: "Traceable origin",
-      trustOriginSub: "Village and maker identity",
+      trustOriginSub: "Bat Trang and maker identity",
       trustTiers: "Evidence-based tiers",
       trustTiersSub: "Bronze, silver, and gold",
       trustQr: "Unique identifiers",
       trustQrSub: "Revocable QR and NFC mapping",
       trustSources: "Approved sources",
-      trustSourcesSub: "Cited heritage knowledge"
+      trustSourcesSub: "Reviewed Bat Trang references",
     },
     homeSections: {
-      villagesEyebrow: "Begin with place",
-      villagesTitle: "Villages shaped by making",
-      villagesDesc: "Discover the people, materials, and practices rooted in each community—not just the finished object.",
-      followTrail: "Follow the craft trail →",
+      villagesEyebrow: "From earth to ceramic",
+      villagesTitle: "One piece, shaped by clay, glaze and fire",
+      villagesDesc:
+        "Follow the layers of Bat Trang craft—from the wheel-thrown body to cobalt brushwork and kiln transformation.",
+      followTrail: "Explore the process →",
       noVillages: "No published villages are available yet.",
-      craftEyebrow: "Made by hand",
-      craftTitle: "Objects with a verifiable past",
-      seeAllCraft: "See all craft",
+      craftEyebrow: "Selected from the kiln",
+      craftTitle: "Singular ceramics for contemporary rituals",
+      seeAllCraft: "See the full collection",
       noProducts: "No active products are available yet.",
-      trustMethodEyebrow: "The trust method",
-      trustMethodTitle: "Verification is a trail of evidence—not a badge we invent.",
-      trustMethodDesc: "Every passport tier is calculated from approved submissions. Reviewers see the source, decision history, and audit trail before an object can move up.",
+      trustMethodEyebrow: "A passport for every form",
+      trustMethodTitle:
+        "From the maker's hands to your shelf—every trace can be followed.",
+      trustMethodDesc:
+        "Each passport tier reflects approved evidence for origin, clay, forming, glaze and firing—not a badge we invent.",
       step1Title: "1. Document origin",
       step1Desc: "Maker identity and village connection.",
       step2Title: "2. Show the making",
-      step2Desc: "Material and process evidence.",
+      step2Desc: "Clay, forming, brushwork, glaze and firing evidence.",
       step3Title: "3. Review and cite",
       step3Desc: "Independent attestation and approved heritage sources.",
-      samplePassport: "Open a sample passport"
+      samplePassport: "Open a sample passport",
     },
     marketplace: {
-      eyebrow: "Verified craft marketplace",
-      title: "Craft chosen with context",
-      subtitle: "Every piece links to a village profile, maker identity, and passport evidence record.",
-      searchPlaceholder: "Search crafts, makers, villages…",
+      eyebrow: "Ceramics with provenance",
+      title: "Find a ceramic form made for you",
+      subtitle:
+        "Tea ware, vases and Bat Trang objects selected by maker, glaze family and digital passport record.",
+      searchPlaceholder: "Search forms, glazes, makers…",
       filterAllVillages: "All villages",
       filterAllCrafts: "All crafts",
       noResults: "No matching craft products found.",
@@ -431,17 +478,18 @@ export const translations: Record<Locale, TranslationDictionary> = {
       outOfStock: "Out of stock",
       price: "Price",
       viewProduct: "View product",
-      verifyPassport: "View passport"
+      verifyPassport: "View passport",
     },
     villages: {
       eyebrow: "Heritage village map",
       title: "Traditional craft villages of Hanoi",
-      subtitle: "Centuries of making rooted in communities along the Red River and historical guilds.",
+      subtitle:
+        "Centuries of making rooted in communities along the Red River and historical guilds.",
       craftTrail: "Follow the craft trail →",
       district: "District",
       craft: "Traditional craft",
       artisansCount: "Artisans",
-      productsCount: "Products"
+      productsCount: "Products",
     },
     product: {
       artisan: "Artisan maker",
@@ -451,17 +499,19 @@ export const translations: Record<Locale, TranslationDictionary> = {
       viewPassport: "Open digital passport",
       interactive3d: "Interactive 3D model",
       viewAr: "View in Augmented Reality (AR)",
-      arNotice: "AR feature is available on mobile devices supporting WebXR or Apple QuickLook.",
+      arNotice:
+        "AR feature is available on mobile devices supporting WebXR or Apple QuickLook.",
       qty: "Quantity",
       addToCart: "Add to cart",
       adding: "Adding…",
       addedNotice: "Added to your cart successfully!",
       buyNow: "Buy now",
-      testNotice: "Test mode checkout — no actual monetary transaction takes place.",
+      testNotice:
+        "Test mode checkout — no actual monetary transaction takes place.",
       price: "Price",
       inStock: "In stock",
       outOfStock: "Out of stock",
-      description: "Description"
+      description: "Description",
     },
     cart: {
       eyebrow: "Cart",
@@ -474,12 +524,14 @@ export const translations: Record<Locale, TranslationDictionary> = {
       total: "Total",
       proceedCheckout: "Continue to test checkout",
       clearCart: "Clear cart",
-      demoNote: "Interactive test mode: You can select craft items and complete a full checkout simulation."
+      demoNote:
+        "Interactive test mode: You can select craft items and complete a full checkout simulation.",
     },
     checkout: {
       title: "Test mode checkout",
       testModeBanner: "TEST MODE",
-      testModeDesc: "No money will be charged. This creates an order and a test payment-attempt record only.",
+      testModeDesc:
+        "No money will be charged. This creates an order and a test payment-attempt record only.",
       recipient: "Recipient name",
       recipientPlaceholder: "Alex Nguyen",
       phone: "Phone number",
@@ -493,7 +545,7 @@ export const translations: Record<Locale, TranslationDictionary> = {
       orderSuccess: "Test order created successfully!",
       orderSuccessDetail: "Your order confirmation number is",
       viewOrders: "View orders",
-      orderSummary: "Order summary"
+      orderSummary: "Order summary",
     },
     orders: {
       title: "Your orders",
@@ -503,19 +555,20 @@ export const translations: Record<Locale, TranslationDictionary> = {
       date: "Date",
       status: "Status",
       total: "Total",
-      items: "Items"
+      items: "Items",
     },
     passport: {
       eyebrow: "Craft digital heritage passport",
       title: "Heritage verification record",
-      sampleNotice: "SAMPLE PASSPORT · Illustrative data for platform evaluation and demonstration.",
+      sampleNotice:
+        "SAMPLE PASSPORT · Illustrative data for platform evaluation and demonstration.",
       status: "Registry status",
       tier: "Verification tier",
       tierLabels: {
         gold: "Gold tier",
         silver: "Silver tier",
         bronze: "Bronze tier",
-        unverified: "Unverified"
+        unverified: "Unverified",
       },
       objectName: "Object name",
       maker: "Master artisan",
@@ -526,13 +579,15 @@ export const translations: Record<Locale, TranslationDictionary> = {
       evidence: "Approved evidence submissions",
       qrIdentifier: "Unique QR identifier",
       nfcMapping: "NFC chip mapping",
-      disclaimer: "Digital passports record verified physical craft evidence; they do not replace official commercial trademark certificates.",
+      disclaimer:
+        "Digital passports record verified physical craft evidence; they do not replace official commercial trademark certificates.",
       copyLink: "Copy link",
-      linkCopied: "Link copied to clipboard!"
+      linkCopied: "Link copied to clipboard!",
     },
     assistant: {
       title: "Hanoi Craft-Trust Heritage Guide",
-      subtitle: "AI grounded strictly in approved heritage sources, village histories, and verified maker records.",
+      subtitle:
+        "AI grounded strictly in approved heritage sources, village histories, and verified maker records.",
       placeholder: "Ask about ceramic glaze, silk weaving, digital passports…",
       send: "Send",
       thinking: "Searching heritage archives…",
@@ -541,42 +596,50 @@ export const translations: Record<Locale, TranslationDictionary> = {
         "What makes Bát Tràng crackle and ash glaze special?",
         "How is Vạn Phúc natural mulberry silk hand-woven?",
         "What evidence is required for a Gold craft passport?",
-        "How do you identify authentic Chàng Sơn woodwork?"
+        "How do you identify authentic Chàng Sơn woodwork?",
       ],
-      decline: "I don’t have enough approved heritage evidence to answer that question.",
-      sourcesTitle: "Cited heritage sources:"
+      decline:
+        "I don’t have enough approved heritage evidence to answer that question.",
+      sourcesTitle: "Cited heritage sources:",
     },
     seller: {
       title: "Seller & Artisan Studio",
-      subtitle: "Manage craft objects, submit making evidence, and track digital passport records.",
+      subtitle:
+        "Manage craft objects, submit making evidence, and track digital passport records.",
       myProducts: "My craft catalog",
       submissions: "Pending evidence submissions",
       newProduct: "Publish new craft",
-      noBackend: "Supabase is not configured. Please connect the database to use the seller studio."
+      noBackend:
+        "Supabase is not configured. Please connect the database to use the seller studio.",
     },
     admin: {
       title: "Heritage Verification Desk",
-      subtitle: "Review evidence submissions, audit verifier actions, and certify passport tiers.",
+      subtitle:
+        "Review evidence submissions, audit verifier actions, and certify passport tiers.",
       pendingReviews: "Pending evidence reviews",
       auditLogs: "System audit logs",
       approve: "Approve & Promote tier",
       reject: "Request additional evidence",
-      noBackend: "Supabase is not configured. Please connect the database to use the verification desk."
+      noBackend:
+        "Supabase is not configured. Please connect the database to use the verification desk.",
     },
     auth: {
       title: "Craft-Trust Account",
-      subtitle: "Sign in to access persistent carts, order history, and verification privileges.",
+      subtitle:
+        "Sign in to access persistent carts, order history, and verification privileges.",
       email: "Email address",
       password: "Password",
       signIn: "Sign in",
       signUp: "Create account",
       magicLink: "Send Magic Link",
       sending: "Sending request…",
-      statusBackendNotice: "Connect Supabase Auth to enable persistent account authentication."
+      statusBackendNotice:
+        "Connect Supabase Auth to enable persistent account authentication.",
     },
     glazeCustomizer: {
       title: "Bat Trang Pottery Glazes & Materials",
-      subtitle: "Switch glaze and surface material in real-time on the 3D model",
+      subtitle:
+        "Switch glaze and surface material in real-time on the 3D model",
       swatchLabel: "Select handmade glaze:",
       currentGlaze: "Current glaze finish:",
       technique: "Artisan technique:",
@@ -585,28 +648,33 @@ export const translations: Record<Locale, TranslationDictionary> = {
         "hoa-bien": {
           name: "Flambé reactive glaze",
           desc: "Dynamic fire transmutation with deep plum and copper bronze undertones, wood kiln at 1280°C.",
-          history: "Master-level reactive glaze formed by temperature variations; flame creates naturally unique color gradations."
+          history:
+            "Master-level reactive glaze formed by temperature variations; flame creates naturally unique color gradations.",
         },
         "ran-co": {
           name: "Antique crackle glaze",
           desc: "Characteristic polygonal crackle veins reminiscent of 16th-century royal ceramic ware.",
-          history: "Originated in 16th-century Bat Trang; distinct crackle veins arise naturally from clay-glaze thermal contraction."
+          history:
+            "Originated in 16th-century Bat Trang; distinct crackle veins arise naturally from clay-glaze thermal contraction.",
         },
         "men-lam": {
           name: "Cobalt blue porcelain",
           desc: "Graceful blue motifs hand-brushed onto ivory porcelain body.",
-          history: "Classic 14th-century Bat Trang glaze; intricate motifs hand-painted with feather brushes before transparent glazing."
+          history:
+            "Classic 14th-century Bat Trang glaze; intricate motifs hand-painted with feather brushes before transparent glazing.",
         },
         "men-ngoc": {
           name: "Traditional celadon jade",
           desc: "Translucent celadon jade hue with imperial satin glow.",
-          history: "Precious glaze lineage tracing back to the Ly-Tran dynasties, formulated from rice husk ash and river minerals."
-        }
-      }
+          history:
+            "Precious glaze lineage tracing back to the Ly-Tran dynasties, formulated from rice husk ash and river minerals.",
+        },
+      },
     },
     engraving: {
       title: "Real-time 3D Engraving & Personalization",
-      subtitle: "Engrave housewarming or corporate gift messages directly onto the 3D vase",
+      subtitle:
+        "Engrave housewarming or corporate gift messages directly onto the 3D vase",
       placeholder: "e.g., Celebrating the 10th Anniversary of Company X",
       fontStyle: "Typography style:",
       placement: "Engraving placement:",
@@ -617,36 +685,39 @@ export const translations: Record<Locale, TranslationDictionary> = {
       fonts: {
         calligraphy: "Traditional Vietnamese Calligraphy",
         serif: "Royal Classic Serif",
-        modern: "Elegant Modern Sans-serif"
+        modern: "Elegant Modern Sans-serif",
       },
       placements: {
         front: "Center body front",
         neck: "Upper neck curve",
-        base: "Vase bottom (With artisan stamp)"
+        base: "Vase bottom (With artisan stamp)",
       },
       finishes: {
         clay: "Natural engraved clay indent",
         gold: "24K Gold leaf inlay",
-        cobalt: "Hand-brushed cobalt blue"
-      }
+        cobalt: "Hand-brushed cobalt blue",
+      },
     },
     arRoom: {
       tabSingle: "Single item",
       tabRoom: "AR Living Room Scene",
       title: "Multi-product Space Staging",
-      subtitle: "Preview a living room decor combo in true physical scale (1:1) with AR technology",
+      subtitle:
+        "Preview a living room decor combo in true physical scale (1:1) with AR technology",
       itemsIncluded: "Living room combo includes:",
       scaleNotice: "Every object is rendered at genuine physical scale (1:1)",
       comboDiscount: "Bundle perk: 10% combo discount",
       launchRoomAr: "Preview in your room with AR",
       toggleItem: "Toggle item in combo:",
-      totalBundlePrice: "Total bundle value:"
+      totalBundlePrice: "Total bundle value:",
     },
     timelineOcop: {
       timelineTitle: "Making Timeline & Provenance Trail",
-      timelineSubtitle: "The journey from Red River silt to finished certified masterwork",
+      timelineSubtitle:
+        "The journey from Red River silt to finished certified masterwork",
       ocopTitle: "National OCOP Certified",
-      ocopAuthority: "Certification body: Hanoi People's Committee & Dept. of Agriculture & RD",
+      ocopAuthority:
+        "Certification body: Hanoi People's Committee & Dept. of Agriculture & RD",
       certificateNo: "Certificate No:",
       videoStoriesTitle: "Living Heritage Documentaries",
       videoStory1: "500-Year Heritage of Bat Trang Pottery Village",
@@ -654,11 +725,12 @@ export const translations: Record<Locale, TranslationDictionary> = {
       watchVideo: "Watch documentary",
       artisanStoryTitle: "Word from the Master Artisan",
       securityProofTitle: "Blockchain Attestation & Verifier Audit Trail",
-      dynamicNfcTitle: "Dynamic NFC cryptographic verification"
+      dynamicNfcTitle: "Dynamic NFC cryptographic verification",
     },
     rewards: {
       title: "Heritage Membership & CraftPoints Rewards",
-      subtitle: "Earn points with purchases & passport scans, redeem unforgettable craft village experiences",
+      subtitle:
+        "Earn points with purchases & passport scans, redeem unforgettable craft village experiences",
       cardTier: "Membership tier:",
       pointsBalance: "Available balance",
       pointsUnit: "CraftPoints",
@@ -670,11 +742,13 @@ export const translations: Record<Locale, TranslationDictionary> = {
       notEnoughPoints: "You need more points to redeem this reward.",
       myTicketsTitle: "Your Tickets & Redeemed Vouchers",
       noTickets: "No active tickets yet. Earn points to redeem rewards!",
-      scanCheckinNotice: "Present this QR pass upon arrival at the village workshop for master greeting."
+      scanCheckinNotice:
+        "Present this QR pass upon arrival at the village workshop for master greeting.",
     },
     craftMap: {
       title: "Interactive Hanoi Craft & Tourism Map",
-      subtitle: "Discover craft village locations and nearby cultural attractions along curated day-tours",
+      subtitle:
+        "Discover craft village locations and nearby cultural attractions along curated day-tours",
       filterAll: "All destinations",
       filterVillages: "Traditional craft villages",
       filterAttractions: "Cultural landmarks & Temples",
@@ -687,13 +761,14 @@ export const translations: Record<Locale, TranslationDictionary> = {
       itineraryDetails: "Detailed itinerary:",
       highlights: "Key experiences:",
       openHours: "Visitor opening hours:",
-      hotline: "Artisan contact hotline:"
+      hotline: "Artisan contact hotline:",
     },
     footer: {
-      brandTagline: "Connecting living heritage, verified provenance, and careful commerce across Hanoi's craft villages.",
+      brandTagline:
+        "A Bat Trang ceramic gallery where clay, glaze, fire and maker stories remain traceable.",
       explore: "Explore",
-      marketplace: "Marketplace",
-      villages: "Villages",
+      marketplace: "Ceramic collection",
+      villages: "Bat Trang story",
       heritageGuide: "Heritage guide",
       partners: "For partners",
       sellerStudio: "Seller studio",
@@ -703,8 +778,9 @@ export const translations: Record<Locale, TranslationDictionary> = {
       digitalPassports: "Digital passports",
       evidencePolicy: "Evidence policy",
       testOnlyNote: "Test checkout only",
-      copyright: "© 2026 Hanoi Craft-Trust.",
-      mission: "Built for transparent, sustainable heritage commerce."
-    }
-  }
+      copyright: "© 2026 Bat Trang Craft.",
+      mission:
+        "Keeping Vietnamese ceramic forms alive in contemporary rituals.",
+    },
+  },
 };

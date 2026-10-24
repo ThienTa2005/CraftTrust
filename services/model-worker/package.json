@@ -1,0 +1,14 @@
+{
+  "name": "@craft-trust/model-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env.local --watch worker.mjs",
+    "start": "node --env-file-if-exists=../../.env.local worker.mjs",
+    "once": "node --env-file-if-exists=../../.env.local worker.mjs --once"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.81.1"
+  }
+}

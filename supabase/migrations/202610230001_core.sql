@@ -758,7 +758,7 @@ create or replace function public.search_approved_heritage(p_query text, p_limit
 returns table(chunk_id uuid, content text, source_id uuid, source_title text, publisher text, source_url text, rank real)
 language sql stable security definer set search_path = '' as $$
   select kc.id, kc.content, hs.id, hs.title, hs.publisher, hs.source_url,
-    ts_rank(to_tsvector('simple', kc.content || ' ' || hs.title), plainto_tsquery('simple', p_query))::real
+    ts_rank(to_tsvector('simple', kc.content || ' ' || hs.title), plainto_tsquery('simple', p_query))::real as rank
   from public.knowledge_chunks kc join public.heritage_sources hs on hs.id = kc.source_id
   where kc.approval_status = 'approved' and hs.approval_status = 'approved'
     and length(trim(p_query)) > 0

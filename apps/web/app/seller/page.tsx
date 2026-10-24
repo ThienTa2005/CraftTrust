@@ -1,12 +1,58 @@
 import Link from "next/link";
-import { AlertTriangle, Boxes, FileCheck2, ShoppingBasket } from "lucide-react";
+import {
+  Seller3DStudio,
+  type SellerProduct,
+} from "@/components/seller-3d-studio";
 import { getAuthorizedUser } from "@/lib/authz";
-import { formatVnd } from "@/lib/data";
 
 export default async function SellerPage() {
-  const auth=await getAuthorizedUser(["artisan","seller","admin"]);
-  if(auth.reason) return <section className="shell page-hero"><span className="eyebrow">Seller studio</span><h1>Protected workspace</h1><div className="error-banner">{auth.reason}</div><Link className="button" href="/auth" style={{marginTop:20}}>Sign in</Link></section>;
-  const {data:products,error}=await auth.supabase!.from("products").select("id,name,status,price_vnd,stock_quantity,passport_records(tier,status)").order("created_at",{ascending:false});
-  const active=(products??[]).filter((p:any)=>p.status==="active"); const low=active.filter((p:any)=>p.stock_quantity<5);
-  return <section className="shell page-hero"><div className="section-head"><div><span className="eyebrow">Seller studio</span><h1>Inventory and trust</h1></div><span className="badge">{auth.roles.join(" · ")}</span></div><div className="dashboard-grid"><aside className="sidebar"><a>Overview</a><a>Products</a><a>Evidence</a><a>Orders</a></aside><div>{error?<div className="error-banner">{error.message}</div>:<><div className="metric-grid"><div className="metric"><Boxes/><strong>{active.length}</strong><span>Active products</span></div><div className="metric"><AlertTriangle/><strong>{low.length}</strong><span>Low-stock products</span></div><div className="metric"><FileCheck2/><strong>{(products??[]).filter((p:any)=>p.passport_records?.length).length}</strong><span>Passport records</span></div></div><div className="panel"><div className="card-bottom"><h3>Product inventory</h3><ShoppingBasket/></div>{products?.length?<table className="table"><thead><tr><th>Product</th><th>Status</th><th>Stock</th><th>Price</th><th>Passport</th></tr></thead><tbody>{products.map((p:any)=><tr key={p.id}><td>{p.name}</td><td>{p.status}</td><td>{p.stock_quantity}</td><td>{formatVnd(p.price_vnd)}</td><td>{p.passport_records?.[0]?.tier??"pending"}</td></tr>)}</tbody></table>:<div className="empty">No products assigned to this seller. RLS limits this view to owned artisan records.</div>}</div></>}</div></div></section>;
+  const auth = await getAuthorizedUser(["artisan", "seller", "admin"]);
+  if (auth.reason || !auth.supabase || !auth.user) {
+    return (
+      <section className="shell page-hero">
+        <span className="eyebrow">Xưởng số nghệ nhân</span>
+        <h1>Không gian quản lý được bảo vệ</h1>
+        <div className="error-banner">{auth.reason}</div>
+        <Link className="button seller-sign-in" href="/auth">
+          Đăng nhập
+        </Link>
+      </section>
+    );
+  }
+
+  const { data: artisan, error: artisanError } = await auth.supabase
+    .from("artisans")
+    .select("id,name")
+    .eq("owner_id", auth.user.id)
+    .maybeSingle();
+
+  if (artisanError || !artisan) {
+    return (
+      <section className="shell page-hero">
+        <span className="eyebrow">Xưởng số nghệ nhân</span>
+        <h1>Chưa có hồ sơ nghệ nhân</h1>
+        <div className="error-banner">
+          {artisanError?.message ??
+            "Tài khoản này chưa được liên kết với hồ sơ nghệ nhân Bát Tràng."}
+        </div>
+      </section>
+    );
+  }
+
+  const { data: products, error } = await auth.supabase
+    .from("products")
+    .select(
+      "id,slug,name,description,price_vnd,stock_quantity,status,poster_url,model_url,ar_url,height_cm,width_cm,dimensions_verified,shape_mode,back_texture,model_status,model_report,model_error,created_at",
+    )
+    .eq("artisan_id", artisan.id)
+    .order("created_at", { ascending: false });
+
+  return (
+    <Seller3DStudio
+      artisanName={artisan.name}
+      roles={auth.roles}
+      initialProducts={(products ?? []) as SellerProduct[]}
+      initialError={error?.message}
+    />
+  );
 }

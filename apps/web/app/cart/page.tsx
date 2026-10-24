@@ -14,12 +14,19 @@ export default async function CartPage() {
 
   const { data: carts } = await supabase
     .from("carts")
-    .select("id,cart_items(id,quantity,unit_price_vnd,products(name,slug,poster_url))")
+    .select(
+      "id,cart_items(product_id,quantity,unit_price_vnd,products(name,slug,poster_url))",
+    )
     .eq("user_id", auth.user.id)
     .eq("status", "active")
     .limit(1);
 
-  const items = (carts?.[0]?.cart_items ?? []) as any[];
+  const items = (carts?.[0]?.cart_items ?? []).map((item) => ({
+    product_id: item.product_id,
+    quantity: item.quantity,
+    unit_price_vnd: item.unit_price_vnd,
+    products: Array.isArray(item.products) ? item.products[0] : item.products,
+  }));
 
   return <CartView hasBackend={true} initialBackendItems={items} />;
 }

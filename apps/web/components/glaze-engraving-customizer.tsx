@@ -11,15 +11,12 @@ import {
   RotateCw,
   ShoppingBag,
   Sparkles,
-  Smartphone
+  Smartphone,
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/context";
 import { formatVnd } from "@/lib/format";
 import { useCartStore } from "@/lib/cart-store";
-import {
-  GLAZE_DEFINITIONS,
-  LIVING_ROOM_COMBO
-} from "@/lib/glazes-data";
+import { GLAZE_DEFINITIONS, LIVING_ROOM_COMBO } from "@/lib/glazes-data";
 import type { EngravingConfig, GlazeType } from "@craft-trust/contracts";
 
 interface Props {
@@ -44,16 +41,21 @@ export function GlazeEngravingCustomizer({ product }: Props) {
   const [activeTab, setActiveTab] = useState<"single" | "room">("single");
   const [selectedGlaze, setSelectedGlaze] = useState<GlazeType>("hoa-bien");
   const [engravingText, setEngravingText] = useState("");
-  const [fontStyle, setFontStyle] = useState<EngravingConfig["fontStyle"]>("calligraphy");
-  const [placement, setPlacement] = useState<EngravingConfig["placement"]>("front");
-  const [finishStyle, setFinishStyle] = useState<EngravingConfig["finishStyle"]>("gilded-gold");
+  const [fontStyle, setFontStyle] =
+    useState<EngravingConfig["fontStyle"]>("calligraphy");
+  const [placement, setPlacement] =
+    useState<EngravingConfig["placement"]>("front");
+  const [finishStyle, setFinishStyle] =
+    useState<EngravingConfig["finishStyle"]>("gilded-gold");
   const [addedNotice, setAddedNotice] = useState(false);
 
   // Multi-product room combo items toggle
-  const [activeComboItems, setActiveComboItems] = useState<Record<string, boolean>>({
+  const [activeComboItems, setActiveComboItems] = useState<
+    Record<string, boolean>
+  >({
     "item-1-binh-gom": true,
     "item-2-dia-trung-bay": true,
-    "item-3-khay-may-tre": true
+    "item-3-khay-may-tre": true,
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -79,7 +81,11 @@ export function GlazeEngravingCustomizer({ product }: Props) {
 
     const applyMaterial = () => {
       try {
-        if (!viewer.model || !viewer.model.materials || viewer.model.materials.length === 0) {
+        if (
+          !viewer.model ||
+          !viewer.model.materials ||
+          viewer.model.materials.length === 0
+        ) {
           return;
         }
         const material = viewer.model.materials[0];
@@ -114,12 +120,16 @@ export function GlazeEngravingCustomizer({ product }: Props) {
       locale === "vi" ? currentGlazeDef.nameVi : currentGlazeDef.nameEn;
     const engravingNote = engravingText.trim()
       ? `${locale === "vi" ? "Khắc" : "Engraved"}: "${engravingText.trim()}" (${
-          locale === "vi"
-            ? t.engraving.fonts[fontStyle]
-            : fontStyle
+          locale === "vi" ? t.engraving.fonts[fontStyle] : fontStyle
         } · ${
           locale === "vi"
-            ? t.engraving.finishes[finishStyle === "gilded-gold" ? "gold" : finishStyle === "cobalt-brush" ? "cobalt" : "clay"]
+            ? t.engraving.finishes[
+                finishStyle === "gilded-gold"
+                  ? "gold"
+                  : finishStyle === "cobalt-brush"
+                    ? "cobalt"
+                    : "clay"
+              ]
             : finishStyle
         })`
       : undefined;
@@ -131,7 +141,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
       image: product.image,
       artisan: product.artisan,
       village: product.village,
-      customNote: engravingNote
+      customNote: engravingNote,
     });
 
     setAddedNotice(true);
@@ -140,14 +150,14 @@ export function GlazeEngravingCustomizer({ product }: Props) {
 
   // Combo calculation
   const selectedComboItemsList = LIVING_ROOM_COMBO.items.filter(
-    (item) => activeComboItems[item.id]
+    (item) => activeComboItems[item.id],
   );
   const rawComboTotal = selectedComboItemsList.reduce(
     (sum, item) => sum + item.priceVnd,
-    0
+    0,
   );
   const discountedComboTotal = Math.round(
-    rawComboTotal * (1 - LIVING_ROOM_COMBO.totalDiscountPercent / 100)
+    rawComboTotal * (1 - LIVING_ROOM_COMBO.totalDiscountPercent / 100),
   );
 
   const handleAddComboToCart = () => {
@@ -156,12 +166,12 @@ export function GlazeEngravingCustomizer({ product }: Props) {
         productId: `${product.id}-${item.id}`,
         name: locale === "vi" ? item.nameVi : item.nameEn,
         priceVnd: Math.round(
-          item.priceVnd * (1 - LIVING_ROOM_COMBO.totalDiscountPercent / 100)
+          item.priceVnd * (1 - LIVING_ROOM_COMBO.totalDiscountPercent / 100),
         ),
         image: item.image,
         artisan: "Nghệ nhân liên minh làng nghề Hà Nội",
         village: item.village,
-        customNote: "Combo Trang trí Phòng khách Tràng An (Giảm 10%)"
+        customNote: "Combo Trang trí Phòng khách Tràng An (Giảm 10%)",
       });
     });
     setAddedNotice(true);
@@ -178,7 +188,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
           padding: 4,
           borderRadius: 14,
           border: "1px solid var(--line)",
-          marginBottom: 16
+          marginBottom: 16,
         }}
       >
         <button
@@ -197,7 +207,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
             alignItems: "center",
             justifyContent: "center",
             gap: 6,
-            transition: "all .2s ease"
+            transition: "all .2s ease",
           }}
         >
           <Box size={16} />
@@ -219,7 +229,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
             alignItems: "center",
             justifyContent: "center",
             gap: 6,
-            transition: "all .2s ease"
+            transition: "all .2s ease",
           }}
         >
           <Layers size={16} />
@@ -236,12 +246,14 @@ export function GlazeEngravingCustomizer({ product }: Props) {
               position: "relative",
               borderRadius: 18,
               overflow: "hidden",
-              background: "radial-gradient(circle at center, #f4efe4 0%, #e5ddcc 100%)",
-              border: "1px solid var(--line)"
+              background:
+                "radial-gradient(circle at center, #f4efe4 0%, #e5ddcc 100%)",
+              border: "1px solid var(--line)",
             }}
           >
             {/* Header Toolbar */}
             <div
+              className="glaze-options-grid"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -250,7 +262,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 background: "rgba(255, 255, 255, 0.8)",
                 backdropFilter: "blur(8px)",
                 borderBottom: "1px solid var(--line)",
-                fontSize: "0.82rem"
+                fontSize: "0.82rem",
               }}
             >
               <span
@@ -259,11 +271,14 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                   alignItems: "center",
                   gap: 6,
                   fontWeight: 600,
-                  color: "var(--leaf)"
+                  color: "var(--leaf)",
                 }}
               >
                 <Sparkles size={15} />
-                {t.glazeCustomizer.realtimeBadge}: {locale === "vi" ? currentGlazeDef.nameVi : currentGlazeDef.nameEn}
+                {t.glazeCustomizer.realtimeBadge}:{" "}
+                {locale === "vi"
+                  ? currentGlazeDef.nameVi
+                  : currentGlazeDef.nameEn}
               </span>
               <span
                 style={{
@@ -271,7 +286,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                   alignItems: "center",
                   gap: 4,
                   color: "var(--muted)",
-                  fontSize: "0.76rem"
+                  fontSize: "0.76rem",
                 }}
               >
                 <RotateCw size={13} />
@@ -280,7 +295,10 @@ export function GlazeEngravingCustomizer({ product }: Props) {
             </div>
 
             {/* The 3D model-viewer element */}
-            <div ref={containerRef} style={{ position: "relative", width: "100%", height: 380 }}>
+            <div
+              ref={containerRef}
+              style={{ position: "relative", width: "100%", height: 380 }}
+            >
               {product.modelUrl && modelLoaded ? (
                 createElement("model-viewer", {
                   src: product.modelUrl,
@@ -290,11 +308,13 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                   "auto-rotate": true,
                   "shadow-intensity": "1.2",
                   "touch-action": "pan-y",
-                  style: { width: "100%", height: "100%", display: "block" }
+                  style: { width: "100%", height: "100%", display: "block" },
                 })
               ) : (
                 <div className="viewer-message">
-                  {locale === "vi" ? "Đang tải mô hình 3D..." : "Loading 3D model..."}
+                  {locale === "vi"
+                    ? "Đang tải mô hình 3D..."
+                    : "Loading 3D model..."}
                 </div>
               )}
 
@@ -308,8 +328,8 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     ...(placement === "neck"
                       ? { top: "22%" }
                       : placement === "base"
-                      ? { bottom: "16%" }
-                      : { top: "52%" }),
+                        ? { bottom: "16%" }
+                        : { top: "52%" }),
                     pointerEvents: "none",
                     maxWidth: "80%",
                     textAlign: "center",
@@ -324,7 +344,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                       finishStyle === "gilded-gold"
                         ? "1px dashed #d4af37"
                         : "1px dashed rgba(255, 255, 255, 0.3)",
-                    transition: "all .3s ease"
+                    transition: "all .3s ease",
                   }}
                 >
                   <span
@@ -336,24 +356,25 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                         fontStyle === "calligraphy"
                           ? '"Fraunces", Georgia, serif'
                           : fontStyle === "serif"
-                          ? 'Georgia, "Times New Roman", serif'
-                          : '"DM Sans", system-ui, sans-serif',
+                            ? 'Georgia, "Times New Roman", serif'
+                            : '"DM Sans", system-ui, sans-serif',
                       fontStyle:
                         fontStyle === "calligraphy" ? "italic" : "normal",
                       fontWeight: 700,
-                      letterSpacing: fontStyle === "modern" ? "0.08em" : "0.02em",
+                      letterSpacing:
+                        fontStyle === "modern" ? "0.08em" : "0.02em",
                       color:
                         finishStyle === "gilded-gold"
                           ? "#fff"
                           : finishStyle === "cobalt-brush"
-                          ? "#0c2b54"
-                          : "#3a2e28",
+                            ? "#0c2b54"
+                            : "#3a2e28",
                       textShadow:
                         finishStyle === "gilded-gold"
                           ? "0 1px 3px rgba(0,0,0,0.8), 0 0 10px rgba(255,215,0,0.8)"
                           : finishStyle === "cobalt-brush"
-                          ? "0 1px 2px rgba(255,255,255,0.8)"
-                          : "1px 1px 0px rgba(255,255,255,0.4), -1px -1px 0px rgba(0,0,0,0.4)"
+                            ? "0 1px 2px rgba(255,255,255,0.8)"
+                            : "1px 1px 0px rgba(255,255,255,0.4), -1px -1px 0px rgba(0,0,0,0.4)",
                     }}
                   >
                     {engravingText}
@@ -364,8 +385,11 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                       fontSize: "0.68rem",
                       textTransform: "uppercase",
                       letterSpacing: "0.06em",
-                      color: finishStyle === "gilded-gold" ? "#ffd700" : "var(--muted)",
-                      marginTop: 2
+                      color:
+                        finishStyle === "gilded-gold"
+                          ? "#ffd700"
+                          : "var(--muted)",
+                      marginTop: 2,
                     }}
                   >
                     ✦ {t.engraving.previewBadge} ✦
@@ -382,15 +406,16 @@ export function GlazeEngravingCustomizer({ product }: Props) {
               padding: "16px 18px",
               background: "var(--surface)",
               borderRadius: 16,
-              border: "1px solid var(--line)"
+              border: "1px solid var(--line)",
             }}
           >
             <div
+              className="engraving-controls-grid"
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: 12
+                marginBottom: 12,
               }}
             >
               <strong style={{ fontSize: "0.9rem", color: "var(--ink)" }}>
@@ -400,7 +425,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 style={{
                   fontSize: "0.78rem",
                   color: "var(--terracotta)",
-                  fontWeight: 600
+                  fontWeight: 600,
                 }}
               >
                 {currentGlazeDef.firingTemp}
@@ -411,62 +436,64 @@ export function GlazeEngravingCustomizer({ product }: Props) {
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(4, 1fr)",
-                gap: 10
+                gap: 10,
               }}
             >
-              {(Object.keys(GLAZE_DEFINITIONS) as GlazeType[]).map((glazeKey) => {
-                const def = GLAZE_DEFINITIONS[glazeKey];
-                const isSelected = selectedGlaze === glazeKey;
-                return (
-                  <button
-                    key={glazeKey}
-                    type="button"
-                    onClick={() => setSelectedGlaze(glazeKey)}
-                    style={{
-                      padding: "10px 8px",
-                      borderRadius: 12,
-                      border: isSelected
-                        ? "2px solid var(--leaf)"
-                        : "1px solid var(--line)",
-                      background: isSelected
-                        ? "rgba(35, 92, 67, 0.06)"
-                        : "var(--surface)",
-                      textAlign: "center",
-                      cursor: "pointer",
-                      transition: "all .2s ease"
-                    }}
-                  >
-                    <div
+              {(Object.keys(GLAZE_DEFINITIONS) as GlazeType[]).map(
+                (glazeKey) => {
+                  const def = GLAZE_DEFINITIONS[glazeKey];
+                  const isSelected = selectedGlaze === glazeKey;
+                  return (
+                    <button
+                      key={glazeKey}
+                      type="button"
+                      onClick={() => setSelectedGlaze(glazeKey)}
                       style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: "50%",
-                        margin: "0 auto 8px",
-                        background: def.swatchGradient,
-                        boxShadow: isSelected
-                          ? "0 0 0 3px rgba(35, 92, 67, 0.25), 0 4px 10px rgba(0,0,0,0.15)"
-                          : "0 2px 6px rgba(0,0,0,0.1)",
-                        display: "grid",
-                        placeItems: "center",
-                        color: "#fff"
+                        padding: "10px 8px",
+                        borderRadius: 12,
+                        border: isSelected
+                          ? "2px solid var(--leaf)"
+                          : "1px solid var(--line)",
+                        background: isSelected
+                          ? "rgba(35, 92, 67, 0.06)"
+                          : "var(--surface)",
+                        textAlign: "center",
+                        cursor: "pointer",
+                        transition: "all .2s ease",
                       }}
                     >
-                      {isSelected && <Check size={18} strokeWidth={3} />}
-                    </div>
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: "0.76rem",
-                        fontWeight: isSelected ? 700 : 500,
-                        color: isSelected ? "var(--leaf)" : "var(--ink)",
-                        lineHeight: 1.25
-                      }}
-                    >
-                      {locale === "vi" ? def.nameVi : def.nameEn}
-                    </span>
-                  </button>
-                );
-              })}
+                      <div
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: "50%",
+                          margin: "0 auto 8px",
+                          background: def.swatchGradient,
+                          boxShadow: isSelected
+                            ? "0 0 0 3px rgba(35, 92, 67, 0.25), 0 4px 10px rgba(0,0,0,0.15)"
+                            : "0 2px 6px rgba(0,0,0,0.1)",
+                          display: "grid",
+                          placeItems: "center",
+                          color: "#fff",
+                        }}
+                      >
+                        {isSelected && <Check size={18} strokeWidth={3} />}
+                      </div>
+                      <span
+                        style={{
+                          display: "block",
+                          fontSize: "0.76rem",
+                          fontWeight: isSelected ? 700 : 500,
+                          color: isSelected ? "var(--leaf)" : "var(--ink)",
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        {locale === "vi" ? def.nameVi : def.nameEn}
+                      </span>
+                    </button>
+                  );
+                },
+              )}
             </div>
 
             {/* Glaze Details Note */}
@@ -478,14 +505,18 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 borderRadius: 10,
                 fontSize: "0.8rem",
                 color: "var(--muted)",
-                lineHeight: 1.45
+                lineHeight: 1.45,
               }}
             >
               <strong style={{ color: "var(--leaf)" }}>
-                {locale === "vi" ? currentGlazeDef.taglineVi : currentGlazeDef.taglineEn}
+                {locale === "vi"
+                  ? currentGlazeDef.taglineVi
+                  : currentGlazeDef.taglineEn}
               </strong>
               <div style={{ marginTop: 4 }}>
-                {locale === "vi" ? currentGlazeDef.historyVi : currentGlazeDef.historyEn}
+                {locale === "vi"
+                  ? currentGlazeDef.historyVi
+                  : currentGlazeDef.historyEn}
               </div>
             </div>
           </div>
@@ -497,7 +528,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
               padding: "18px",
               background: "var(--surface)",
               borderRadius: 16,
-              border: "1px solid var(--line)"
+              border: "1px solid var(--line)",
             }}
           >
             <div
@@ -505,7 +536,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                marginBottom: 6
+                marginBottom: 6,
               }}
             >
               <PenTool size={18} style={{ color: "var(--terracotta)" }} />
@@ -513,7 +544,13 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 {t.engraving.title}
               </strong>
             </div>
-            <p style={{ margin: "0 0 12px", fontSize: "0.82rem", color: "var(--muted)" }}>
+            <p
+              style={{
+                margin: "0 0 12px",
+                fontSize: "0.82rem",
+                color: "var(--muted)",
+              }}
+            >
               {t.engraving.subtitle}
             </p>
 
@@ -530,7 +567,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                   borderRadius: 10,
                   border: "1px solid var(--line)",
                   fontSize: "0.88rem",
-                  background: "#fff"
+                  background: "#fff",
                 }}
               />
               <div
@@ -539,10 +576,14 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                   justifyContent: "space-between",
                   fontSize: "0.72rem",
                   color: "var(--muted)",
-                  marginTop: 4
+                  marginTop: 4,
                 }}
               >
-                <span>{locale === "vi" ? "Chữ khắc nổi/chìm theo phối cảnh 3D" : "Simulated 3D relief on ceramic"}</span>
+                <span>
+                  {locale === "vi"
+                    ? "Chữ khắc nổi/chìm theo phối cảnh 3D"
+                    : "Simulated 3D relief on ceramic"}
+                </span>
                 <span>{engravingText.length}/75</span>
               </div>
             </div>
@@ -553,7 +594,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 display: "grid",
                 gridTemplateColumns: "repeat(3, 1fr)",
                 gap: 8,
-                marginBottom: 14
+                marginBottom: 14,
               }}
             >
               <div>
@@ -563,7 +604,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     fontSize: "0.74rem",
                     fontWeight: 700,
                     marginBottom: 4,
-                    color: "var(--muted)"
+                    color: "var(--muted)",
                   }}
                 >
                   {t.engraving.fontStyle}
@@ -576,10 +617,12 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     padding: "7px 10px",
                     borderRadius: 8,
                     border: "1px solid var(--line)",
-                    fontSize: "0.78rem"
+                    fontSize: "0.78rem",
                   }}
                 >
-                  <option value="calligraphy">{t.engraving.fonts.calligraphy}</option>
+                  <option value="calligraphy">
+                    {t.engraving.fonts.calligraphy}
+                  </option>
                   <option value="serif">{t.engraving.fonts.serif}</option>
                   <option value="modern">{t.engraving.fonts.modern}</option>
                 </select>
@@ -592,7 +635,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     fontSize: "0.74rem",
                     fontWeight: 700,
                     marginBottom: 4,
-                    color: "var(--muted)"
+                    color: "var(--muted)",
                   }}
                 >
                   {t.engraving.placement}
@@ -605,7 +648,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     padding: "7px 10px",
                     borderRadius: 8,
                     border: "1px solid var(--line)",
-                    fontSize: "0.78rem"
+                    fontSize: "0.78rem",
                   }}
                 >
                   <option value="front">{t.engraving.placements.front}</option>
@@ -621,7 +664,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     fontSize: "0.74rem",
                     fontWeight: 700,
                     marginBottom: 4,
-                    color: "var(--muted)"
+                    color: "var(--muted)",
                   }}
                 >
                   {t.engraving.finishStyle}
@@ -634,7 +677,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     padding: "7px 10px",
                     borderRadius: 8,
                     border: "1px solid var(--line)",
-                    fontSize: "0.78rem"
+                    fontSize: "0.78rem",
                   }}
                 >
                   <option value="gold">{t.engraving.finishes.gold}</option>
@@ -654,7 +697,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 8,
-                padding: "13px 20px"
+                padding: "13px 20px",
               }}
             >
               <ShoppingBag size={18} />
@@ -662,8 +705,8 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 {engravingText.trim()
                   ? t.engraving.submitToArtisan
                   : locale === "vi"
-                  ? `Chọn mua men ${currentGlazeDef.nameVi}`
-                  : `Order with ${currentGlazeDef.nameEn}`}
+                    ? `Chọn mua men ${currentGlazeDef.nameVi}`
+                    : `Order with ${currentGlazeDef.nameEn}`}
               </span>
             </button>
             {addedNotice && (
@@ -673,7 +716,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                   fontSize: "0.82rem",
                   color: "var(--leaf)",
                   textAlign: "center",
-                  fontWeight: 600
+                  fontWeight: 600,
                 }}
               >
                 ✓ {t.engraving.addedToCartWithEngraving}
@@ -688,7 +731,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
             padding: 20,
             background: "var(--surface)",
             borderRadius: 18,
-            border: "1px solid var(--line)"
+            border: "1px solid var(--line)",
           }}
         >
           <div style={{ marginBottom: 16 }}>
@@ -698,16 +741,28 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 textTransform: "uppercase",
                 letterSpacing: "0.06em",
                 color: "var(--terracotta)",
-                fontWeight: 700
+                fontWeight: 700,
               }}
             >
               AR Multi-product Staging (1:1 Scale)
             </span>
-            <h3 style={{ margin: "6px 0", fontSize: "1.2rem", fontFamily: "Fraunces" }}>
-              {locale === "vi" ? LIVING_ROOM_COMBO.titleVi : LIVING_ROOM_COMBO.titleEn}
+            <h3
+              style={{
+                margin: "6px 0",
+                fontSize: "1.2rem",
+                fontFamily: "Fraunces",
+              }}
+            >
+              {locale === "vi"
+                ? LIVING_ROOM_COMBO.titleVi
+                : LIVING_ROOM_COMBO.titleEn}
             </h3>
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--muted)" }}>
-              {locale === "vi" ? LIVING_ROOM_COMBO.descriptionVi : LIVING_ROOM_COMBO.descriptionEn}
+            <p
+              style={{ margin: 0, fontSize: "0.85rem", color: "var(--muted)" }}
+            >
+              {locale === "vi"
+                ? LIVING_ROOM_COMBO.descriptionVi
+                : LIVING_ROOM_COMBO.descriptionEn}
             </p>
           </div>
 
@@ -725,7 +780,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
               justifyContent: "center",
               gap: 16,
               paddingBottom: 24,
-              border: "1px solid var(--line)"
+              border: "1px solid var(--line)",
             }}
           >
             {/* Table surface line */}
@@ -738,7 +793,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 height: 50,
                 background: "#7d5a44",
                 borderTop: "6px solid #5a3c2a",
-                boxShadow: "0 -8px 20px rgba(0,0,0,0.15)"
+                boxShadow: "0 -8px 20px rgba(0,0,0,0.15)",
               }}
             />
 
@@ -750,7 +805,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                   zIndex: 2,
                   width: 130,
                   textAlign: "center",
-                  transition: "all .3s ease"
+                  transition: "all .3s ease",
                 }}
               >
                 <div
@@ -761,7 +816,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     margin: "0 auto",
                     borderRadius: 10,
                     overflow: "hidden",
-                    boxShadow: "0 12px 24px rgba(0,0,0,0.2)"
+                    boxShadow: "0 12px 24px rgba(0,0,0,0.2)",
                   }}
                 >
                   <Image
@@ -779,7 +834,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     fontWeight: 600,
                     background: "rgba(255,255,255,0.9)",
                     padding: "2px 6px",
-                    borderRadius: 6
+                    borderRadius: 6,
                   }}
                 >
                   Khay mây Phú Vinh (55cm)
@@ -795,7 +850,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                   zIndex: 3,
                   width: 110,
                   textAlign: "center",
-                  transition: "all .3s ease"
+                  transition: "all .3s ease",
                 }}
               >
                 <div
@@ -806,7 +861,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     margin: "0 auto",
                     borderRadius: 14,
                     overflow: "hidden",
-                    boxShadow: "0 16px 30px rgba(0,0,0,0.25)"
+                    boxShadow: "0 16px 30px rgba(0,0,0,0.25)",
                   }}
                 >
                   <Image
@@ -825,7 +880,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     color: "var(--leaf)",
                     background: "rgba(255,255,255,0.95)",
                     padding: "2px 8px",
-                    borderRadius: 6
+                    borderRadius: 6,
                   }}
                 >
                   Bình gốm Bát Tràng (42cm)
@@ -841,7 +896,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                   zIndex: 2,
                   width: 110,
                   textAlign: "center",
-                  transition: "all .3s ease"
+                  transition: "all .3s ease",
                 }}
               >
                 <div
@@ -852,7 +907,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     margin: "0 auto",
                     borderRadius: "50%",
                     overflow: "hidden",
-                    boxShadow: "0 12px 24px rgba(0,0,0,0.2)"
+                    boxShadow: "0 12px 24px rgba(0,0,0,0.2)",
                   }}
                 >
                   <Image
@@ -870,7 +925,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     fontWeight: 600,
                     background: "rgba(255,255,255,0.9)",
                     padding: "2px 6px",
-                    borderRadius: 6
+                    borderRadius: 6,
                   }}
                 >
                   Đĩa sen gốm sứ (32cm)
@@ -888,12 +943,25 @@ export function GlazeEngravingCustomizer({ product }: Props) {
               marginBottom: 16,
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between"
+              justifyContent: "space-between",
             }}
           >
             <div>
-              <strong style={{ display: "block", fontSize: "0.85rem", color: "var(--leaf)" }}>
-                <Smartphone size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />
+              <strong
+                style={{
+                  display: "block",
+                  fontSize: "0.85rem",
+                  color: "var(--leaf)",
+                }}
+              >
+                <Smartphone
+                  size={16}
+                  style={{
+                    display: "inline",
+                    verticalAlign: "middle",
+                    marginRight: 6,
+                  }}
+                />
                 {t.arRoom.launchRoomAr}
               </strong>
               <span style={{ fontSize: "0.76rem", color: "var(--muted)" }}>
@@ -902,8 +970,8 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     ? "Camera AR sẽ chiếu đồng thời cả bộ 3 sản phẩm vào phòng khách của bạn."
                     : "AR camera will place all 3 products into your room simultaneously."
                   : locale === "vi"
-                  ? "Chế độ AR khả dụng trực tiếp trên iPhone / điện thoại Android WebXR."
-                  : "AR room preview available on iOS / Android WebXR devices."}
+                    ? "Chế độ AR khả dụng trực tiếp trên iPhone / điện thoại Android WebXR."
+                    : "AR room preview available on iOS / Android WebXR devices."}
               </span>
             </div>
             <button
@@ -913,7 +981,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 alert(
                   locale === "vi"
                     ? "Khởi chạy AR: Đang mở phiên WebXR không gian phòng khách để đặt 3 tác phẩm theo tỉ lệ thực tế 1:1."
-                    : "Launching AR: Opening WebXR room session to place all 3 craft pieces at 1:1 scale."
+                    : "Launching AR: Opening WebXR room session to place all 3 craft pieces at 1:1 scale.",
                 );
               }}
             >
@@ -924,7 +992,14 @@ export function GlazeEngravingCustomizer({ product }: Props) {
 
           {/* Combo Items Toggle List */}
           <div style={{ marginBottom: 16 }}>
-            <span style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, marginBottom: 8 }}>
+            <span
+              style={{
+                display: "block",
+                fontSize: "0.82rem",
+                fontWeight: 700,
+                marginBottom: 8,
+              }}
+            >
               {t.arRoom.toggleItem}
             </span>
             <div style={{ display: "grid", gap: 8 }}>
@@ -936,7 +1011,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     onClick={() =>
                       setActiveComboItems((prev) => ({
                         ...prev,
-                        [item.id]: !prev[item.id]
+                        [item.id]: !prev[item.id],
                       }))
                     }
                     style={{
@@ -945,13 +1020,17 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                       justifyContent: "space-between",
                       padding: "8px 12px",
                       borderRadius: 10,
-                      border: isActive ? "1px solid var(--leaf)" : "1px solid var(--line)",
+                      border: isActive
+                        ? "1px solid var(--leaf)"
+                        : "1px solid var(--line)",
                       background: isActive ? "rgba(35, 92, 67, 0.04)" : "#fff",
                       cursor: "pointer",
-                      fontSize: "0.82rem"
+                      fontSize: "0.82rem",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 10 }}
+                    >
                       <div
                         style={{
                           width: 18,
@@ -961,14 +1040,22 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                           background: isActive ? "var(--leaf)" : "transparent",
                           display: "grid",
                           placeItems: "center",
-                          color: "#fff"
+                          color: "#fff",
                         }}
                       >
                         {isActive && <Check size={13} strokeWidth={3} />}
                       </div>
                       <div>
-                        <strong>{locale === "vi" ? item.nameVi : item.nameEn}</strong>
-                        <span style={{ display: "block", fontSize: "0.74rem", color: "var(--muted)" }}>
+                        <strong>
+                          {locale === "vi" ? item.nameVi : item.nameEn}
+                        </strong>
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: "0.74rem",
+                            color: "var(--muted)",
+                          }}
+                        >
                           {item.village} · {item.scaleLabel}
                         </span>
                       </div>
@@ -987,11 +1074,17 @@ export function GlazeEngravingCustomizer({ product }: Props) {
               borderTop: "1px solid var(--line)",
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between"
+              justifyContent: "space-between",
             }}
           >
             <div>
-              <span style={{ fontSize: "0.78rem", color: "var(--terracotta)", fontWeight: 700 }}>
+              <span
+                style={{
+                  fontSize: "0.78rem",
+                  color: "var(--terracotta)",
+                  fontWeight: 700,
+                }}
+              >
                 {t.arRoom.comboDiscount}
               </span>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -999,7 +1092,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                   style={{
                     fontSize: "0.85rem",
                     textDecoration: "line-through",
-                    color: "var(--muted)"
+                    color: "var(--muted)",
                   }}
                 >
                   {formatVnd(rawComboTotal)}
@@ -1018,7 +1111,9 @@ export function GlazeEngravingCustomizer({ product }: Props) {
               style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
             >
               <ShoppingBag size={17} />
-              <span>{locale === "vi" ? "Mua trọn bộ Combo" : "Add Combo to Cart"}</span>
+              <span>
+                {locale === "vi" ? "Mua trọn bộ Combo" : "Add Combo to Cart"}
+              </span>
             </button>
           </div>
           {addedNotice && (
@@ -1028,10 +1123,13 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 fontSize: "0.82rem",
                 color: "var(--leaf)",
                 textAlign: "center",
-                fontWeight: 600
+                fontWeight: 600,
               }}
             >
-              ✓ {locale === "vi" ? "Đã thêm bộ Combo vào giỏ hàng!" : "Added combo to cart!"}
+              ✓{" "}
+              {locale === "vi"
+                ? "Đã thêm bộ Combo vào giỏ hàng!"
+                : "Added combo to cart!"}
             </p>
           )}
         </div>

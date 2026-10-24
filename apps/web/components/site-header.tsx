@@ -5,17 +5,23 @@ import { Leaf, Menu, ShoppingBag, X } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import { LanguageSwitcher } from "./language-switcher";
+import { AccountActions } from "./account-actions";
 
 export function SiteHeader() {
-  const { t } = useLanguage();
+  const { t, hydrated } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <header className="site-header">
       <div className="shell nav">
-        <Link href="/" className="brand" aria-label="Hanoi Craft-Trust home">
-          <span className="brand-mark"><Leaf size={18} /></span>
-          <span>Hanoi Craft-Trust</span>
+        <Link href="/" className="brand" aria-label="Bát Tràng Craft home">
+          <span className="brand-mark">
+            <Leaf size={18} />
+          </span>
+          <span className="brand-wordmark">
+            <strong>Bát Tràng Craft</strong>
+            <small>Gốm Việt · Hộ chiếu số</small>
+          </span>
         </Link>
 
         <nav className="nav-links" aria-label="Primary navigation">
@@ -29,49 +35,50 @@ export function SiteHeader() {
 
         <div className="nav-actions">
           <LanguageSwitcher />
-          <Link href="/auth" className="button secondary small">{t.nav.signIn}</Link>
+          <AccountActions />
           <Link href="/cart" className="button small" aria-label={t.nav.cart}>
             <ShoppingBag size={16} />
             <span>{t.nav.cart}</span>
           </Link>
           <button
             type="button"
-            className="mobile-nav-toggle mobile-nav"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle navigation"
-            style={{
-              background: "none",
-              border: "none",
-              padding: 6,
-              borderRadius: 8,
-              display: "grid",
-              placeItems: "center",
-              transition: "transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast) ease"
-            }}
+            aria-expanded={mobileOpen}
+            className="mobile-nav-toggle mobile-nav"
+            disabled={!hydrated}
           >
-            {mobileOpen ? <X size={24} style={{ animation: "fade-scale-in 0.2s var(--ease-spring)" }} /> : <Menu size={24} />}
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
 
       {mobileOpen && (
-        <div className="mobile-drawer" style={{
-          padding: "16px 20px 24px",
-          borderTop: "1px solid var(--line)",
-          background: "var(--paper)",
-          display: "flex",
-          flexDirection: "column",
-          gap: 16
-        }}>
-          <Link href="/marketplace" onClick={() => setMobileOpen(false)}>{t.nav.marketplace}</Link>
-          <Link href="/villages" onClick={() => setMobileOpen(false)}>{t.nav.villages}</Link>
-          <Link href="/map" onClick={() => setMobileOpen(false)}>{t.nav.map}</Link>
-          <Link href="/rewards" onClick={() => setMobileOpen(false)}>{t.nav.rewards}</Link>
-          <Link href="/passport/HCT-DEMO-BT-001" onClick={() => setMobileOpen(false)}>{t.nav.passport}</Link>
-          <Link href="/assistant" onClick={() => setMobileOpen(false)}>{t.nav.assistant}</Link>
-          <div style={{ paddingTop: 8, borderTop: "1px solid var(--line)", display: "flex", gap: 12, alignItems: "center" }}>
-            <LanguageSwitcher />
-            <Link href="/auth" className="button secondary small" onClick={() => setMobileOpen(false)}>{t.nav.signIn}</Link>
+        <div className="mobile-drawer">
+          <Link href="/marketplace" onClick={() => setMobileOpen(false)}>
+            {t.nav.marketplace}
+          </Link>
+          <Link href="/villages" onClick={() => setMobileOpen(false)}>
+            {t.nav.villages}
+          </Link>
+          <Link href="/map" onClick={() => setMobileOpen(false)}>
+            {t.nav.map}
+          </Link>
+          <Link href="/rewards" onClick={() => setMobileOpen(false)}>
+            {t.nav.rewards}
+          </Link>
+          <Link
+            href="/passport/HCT-DEMO-BT-001"
+            onClick={() => setMobileOpen(false)}
+          >
+            {t.nav.passport}
+          </Link>
+          <Link href="/assistant" onClick={() => setMobileOpen(false)}>
+            {t.nav.assistant}
+          </Link>
+          <div className="mobile-drawer-actions">
+            <LanguageSwitcher onChange={() => setMobileOpen(false)} />
+            <AccountActions mobile onNavigate={() => setMobileOpen(false)} />
           </div>
         </div>
       )}

@@ -13,8 +13,10 @@ export function SiteFooter() {
         <div className="footer-grid">
           <div>
             <div className="brand">
-              <span className="brand-mark"><Leaf size={18} /></span>
-              <span>Hanoi Craft-Trust</span>
+              <span className="brand-mark">
+                <Leaf size={18} />
+              </span>
+              <span>Bát Tràng Craft</span>
             </div>
             <p>{t.footer.brandTagline}</p>
           </div>
@@ -34,7 +36,9 @@ export function SiteFooter() {
           </div>
           <div className="footer-col">
             <strong>{t.footer.trust}</strong>
-            <Link href="/passport/HCT-DEMO-BT-001">{t.footer.digitalPassports}</Link>
+            <Link href="/passport/HCT-DEMO-BT-001">
+              {t.footer.digitalPassports}
+            </Link>
             <Link href="/docs">{t.footer.evidencePolicy}</Link>
             <span>{t.footer.testOnlyNote}</span>
           </div>

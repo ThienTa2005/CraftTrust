@@ -10,14 +10,14 @@ import {
   Sparkles,
   Ticket,
   Trophy,
-  Zap
+  Zap,
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/context";
 import {
   getRewardsProfile,
   getRedeemedTickets,
   redeemRewardItem,
-  type RewardsProfile
+  type RewardsProfile,
 } from "@/lib/rewards-store";
 import { MEMBER_TIERS_INFO, REWARD_ITEMS } from "@/lib/rewards-data";
 import type { RedeemedVoucher } from "@craft-trust/contracts";
@@ -26,8 +26,13 @@ export function RewardsView() {
   const { locale, t } = useLanguage();
   const [profile, setProfile] = useState<RewardsProfile>(getRewardsProfile());
   const [tickets, setTickets] = useState<RedeemedVoucher[]>([]);
-  const [filterType, setFilterType] = useState<"all" | "vouchers" | "workshops">("all");
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [filterType, setFilterType] = useState<
+    "all" | "vouchers" | "workshops"
+  >("all");
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     setProfile(getRewardsProfile());
@@ -39,7 +44,8 @@ export function RewardsView() {
     };
 
     window.addEventListener("hct_rewards_updated", handleUpdate);
-    return () => window.removeEventListener("hct_rewards_updated", handleUpdate);
+    return () =>
+      window.removeEventListener("hct_rewards_updated", handleUpdate);
   }, []);
 
   const handleRedeem = (rewardId: string) => {
@@ -47,20 +53,21 @@ export function RewardsView() {
     if (res.success) {
       setFeedback({
         type: "success",
-        message: t.rewards.redeemedNotice
+        message: t.rewards.redeemedNotice,
       });
       setTimeout(() => setFeedback(null), 4000);
     } else {
       setFeedback({
         type: "error",
-        message: res.error ?? t.rewards.notEnoughPoints
+        message: res.error ?? t.rewards.notEnoughPoints,
       });
       setTimeout(() => setFeedback(null), 4000);
     }
   };
 
   const currentTierInfo =
-    MEMBER_TIERS_INFO.find((t) => t.id === profile.tier) ?? MEMBER_TIERS_INFO[1]!;
+    MEMBER_TIERS_INFO.find((t) => t.id === profile.tier) ??
+    MEMBER_TIERS_INFO[1]!;
 
   const filteredRewards = REWARD_ITEMS.filter((item) => {
     if (filterType === "vouchers") return item.type === "discount_voucher";
@@ -69,25 +76,36 @@ export function RewardsView() {
   });
 
   return (
-    <div className="shell" style={{ margin: "36px auto 90px" }}>
+    <div className="shell rewards-shell" style={{ margin: "36px auto 90px" }}>
       {/* Page Header */}
-      <div style={{ maxWidth: 760, marginBottom: 36 }}>
+      <div className="page-intro" style={{ maxWidth: 760, marginBottom: 36 }}>
         <span
           className="eyebrow"
           style={{
             color: "var(--terracotta)",
             display: "inline-flex",
             alignItems: "center",
-            gap: 6
+            gap: 6,
           }}
         >
           <Trophy size={16} />
-          {locale === "vi" ? "Đặc quyền Hội viên Thủ công" : "Heritage Loyalty Program"}
+          {locale === "vi"
+            ? "Đặc quyền Hội viên Thủ công"
+            : "Heritage Loyalty Program"}
         </span>
-        <h1 style={{ fontSize: "clamp(2rem, 5vw, 3.4rem)", margin: "8px 0 12px" }}>
+        <h1
+          style={{ fontSize: "clamp(2rem, 5vw, 3.4rem)", margin: "8px 0 12px" }}
+        >
           {t.rewards.title}
         </h1>
-        <p style={{ fontSize: "1.05rem", color: "var(--muted)", margin: 0, lineHeight: 1.6 }}>
+        <p
+          style={{
+            fontSize: "1.05rem",
+            color: "var(--muted)",
+            margin: 0,
+            lineHeight: 1.6,
+          }}
+        >
           {t.rewards.subtitle}
         </p>
       </div>
@@ -106,7 +124,7 @@ export function RewardsView() {
             fontSize: "0.9rem",
             display: "flex",
             alignItems: "center",
-            gap: 8
+            gap: 8,
           }}
         >
           {feedback.type === "success" ? <CheckCircle2 size={18} /> : null}
@@ -116,17 +134,20 @@ export function RewardsView() {
 
       {/* Grid: Digital Membership Card + Earning Rules */}
       <div
+        className="rewards-overview-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "1.2fr 1fr",
           gap: 24,
-          marginBottom: 44
+          marginBottom: 44,
         }}
       >
         {/* Digital Membership Pass Card */}
         <div
+          className="rewards-catalog-grid"
           style={{
-            background: "linear-gradient(135deg, #172820 0%, #235c43 60%, #133d2b 100%)",
+            background:
+              "linear-gradient(135deg, #172820 0%, #235c43 60%, #133d2b 100%)",
             color: "#fff",
             borderRadius: 24,
             padding: "32px 30px",
@@ -136,11 +157,17 @@ export function RewardsView() {
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            minHeight: 260
+            minHeight: 260,
           }}
         >
           {/* Card Top */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
             <div>
               <span
                 style={{
@@ -148,15 +175,23 @@ export function RewardsView() {
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
                   color: "#9fe1c1",
-                  fontWeight: 700
+                  fontWeight: 700,
                 }}
               >
                 HANOI CRAFT-TRUST HERITAGE PASS
               </span>
-              <h2 style={{ margin: "4px 0 0", fontSize: "1.6rem", fontFamily: "Fraunces" }}>
+              <h2
+                style={{
+                  margin: "4px 0 0",
+                  fontSize: "1.6rem",
+                  fontFamily: "Fraunces",
+                }}
+              >
                 {profile.memberName}
               </h2>
-              <span style={{ fontSize: "0.82rem", color: "#d1e7dd" }}>ID: {profile.memberId}</span>
+              <span style={{ fontSize: "0.82rem", color: "#d1e7dd" }}>
+                ID: {profile.memberId}
+              </span>
             </div>
 
             {/* QR on Card */}
@@ -165,7 +200,7 @@ export function RewardsView() {
                 background: "#fff",
                 padding: 6,
                 borderRadius: 10,
-                boxShadow: "0 4px 10px rgba(0,0,0,0.2)"
+                boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
               }}
             >
               <QRCodeSVG value={`hct-member:${profile.memberId}`} size={64} />
@@ -173,16 +208,41 @@ export function RewardsView() {
           </div>
 
           {/* Card Bottom: Points & Tier */}
-          <div style={{ marginTop: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div
+            style={{
+              marginTop: 28,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+            }}
+          >
             <div>
-              <span style={{ fontSize: "0.78rem", color: "#b8d9c9", textTransform: "uppercase" }}>
+              <span
+                style={{
+                  fontSize: "0.78rem",
+                  color: "#b8d9c9",
+                  textTransform: "uppercase",
+                }}
+              >
                 {t.rewards.pointsBalance}
               </span>
               <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                <strong style={{ fontSize: "2.4rem", fontFamily: "Fraunces", lineHeight: 1 }}>
+                <strong
+                  style={{
+                    fontSize: "2.4rem",
+                    fontFamily: "Fraunces",
+                    lineHeight: 1,
+                  }}
+                >
                   {profile.points}
                 </strong>
-                <span style={{ fontSize: "0.9rem", color: "#efb083", fontWeight: 700 }}>
+                <span
+                  style={{
+                    fontSize: "0.9rem",
+                    color: "#efb083",
+                    fontWeight: 700,
+                  }}
+                >
                   CraftPoints
                 </span>
               </div>
@@ -200,11 +260,13 @@ export function RewardsView() {
                 fontSize: "0.84rem",
                 fontWeight: 700,
                 color: "#ffd700",
-                border: "1px solid rgba(255, 215, 0, 0.3)"
+                border: "1px solid rgba(255, 215, 0, 0.3)",
               }}
             >
               <Sparkles size={14} />
-              {locale === "vi" ? currentTierInfo.nameVi : currentTierInfo.nameEn}
+              {locale === "vi"
+                ? currentTierInfo.nameVi
+                : currentTierInfo.nameEn}
             </span>
           </div>
         </div>
@@ -218,38 +280,101 @@ export function RewardsView() {
             padding: 26,
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between"
+            justifyContent: "space-between",
           }}
         >
           <div>
-            <strong style={{ display: "block", fontSize: "1.05rem", fontFamily: "Fraunces", marginBottom: 12 }}>
-              <Zap size={18} style={{ display: "inline", verticalAlign: "middle", marginRight: 6, color: "var(--terracotta)" }} />
+            <strong
+              style={{
+                display: "block",
+                fontSize: "1.05rem",
+                fontFamily: "Fraunces",
+                marginBottom: 12,
+              }}
+            >
+              <Zap
+                size={18}
+                style={{
+                  display: "inline",
+                  verticalAlign: "middle",
+                  marginRight: 6,
+                  color: "var(--terracotta)",
+                }}
+              />
               {t.rewards.howToEarnTitle}
             </strong>
             <div style={{ display: "grid", gap: 10, fontSize: "0.85rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ background: "rgba(35, 92, 67, 0.1)", color: "var(--leaf)", padding: "2px 8px", borderRadius: 6, fontWeight: 700 }}>
+                <span
+                  style={{
+                    background: "rgba(35, 92, 67, 0.1)",
+                    color: "var(--leaf)",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    fontWeight: 700,
+                  }}
+                >
                   +10 pts
                 </span>
-                <span>{locale === "vi" ? "Mỗi 100.000 ₫ mua sản phẩm thủ công" : "Every 100,000 VND spent on crafts"}</span>
+                <span>
+                  {locale === "vi"
+                    ? "Mỗi 100.000 ₫ mua sản phẩm thủ công"
+                    : "Every 100,000 VND spent on crafts"}
+                </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ background: "rgba(200, 157, 67, 0.15)", color: "var(--gold)", padding: "2px 8px", borderRadius: 6, fontWeight: 700 }}>
+                <span
+                  style={{
+                    background: "rgba(200, 157, 67, 0.15)",
+                    color: "var(--gold)",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    fontWeight: 700,
+                  }}
+                >
                   +50 pts
                 </span>
-                <span>{locale === "vi" ? "Quét chip Dynamic NFC / mã QR trên sản phẩm thật" : "Scan dynamic NFC/QR on real products"}</span>
+                <span>
+                  {locale === "vi"
+                    ? "Quét chip Dynamic NFC / mã QR trên sản phẩm thật"
+                    : "Scan dynamic NFC/QR on real products"}
+                </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ background: "rgba(198, 94, 61, 0.1)", color: "var(--terracotta)", padding: "2px 8px", borderRadius: 6, fontWeight: 700 }}>
+                <span
+                  style={{
+                    background: "rgba(198, 94, 61, 0.1)",
+                    color: "var(--terracotta)",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    fontWeight: 700,
+                  }}
+                >
                   +30 pts
                 </span>
-                <span>{locale === "vi" ? "Đánh giá tác phẩm kèm hình ảnh thực tế" : "Submit product review with photo"}</span>
+                <span>
+                  {locale === "vi"
+                    ? "Đánh giá tác phẩm kèm hình ảnh thực tế"
+                    : "Submit product review with photo"}
+                </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ background: "rgba(35, 92, 67, 0.1)", color: "var(--leaf)", padding: "2px 8px", borderRadius: 6, fontWeight: 700 }}>
+                <span
+                  style={{
+                    background: "rgba(35, 92, 67, 0.1)",
+                    color: "var(--leaf)",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    fontWeight: 700,
+                  }}
+                >
                   +150 pts
                 </span>
-                <span>{locale === "vi" ? "Tham quan và check-in tại làng nghề Hà Nội" : "Check-in during village tours"}</span>
+                <span>
+                  {locale === "vi"
+                    ? "Tham quan và check-in tại làng nghề Hà Nội"
+                    : "Check-in during village tours"}
+                </span>
               </div>
             </div>
           </div>
@@ -261,7 +386,7 @@ export function RewardsView() {
               background: "rgba(35, 92, 67, 0.05)",
               borderRadius: 12,
               fontSize: "0.8rem",
-              color: "var(--muted)"
+              color: "var(--muted)",
             }}
           >
             {locale === "vi"
@@ -280,14 +405,24 @@ export function RewardsView() {
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: 16,
-            marginBottom: 20
+            marginBottom: 20,
           }}
         >
           <div>
-            <h2 style={{ margin: 0, fontSize: "1.6rem", fontFamily: "Fraunces" }}>
-              {locale === "vi" ? "Danh mục Quà tặng & Trải nghiệm Làng nghề" : "Rewards & Experience Catalog"}
+            <h2
+              style={{ margin: 0, fontSize: "1.6rem", fontFamily: "Fraunces" }}
+            >
+              {locale === "vi"
+                ? "Danh mục Quà tặng & Trải nghiệm Làng nghề"
+                : "Rewards & Experience Catalog"}
             </h2>
-            <p style={{ margin: "4px 0 0", fontSize: "0.88rem", color: "var(--muted)" }}>
+            <p
+              style={{
+                margin: "4px 0 0",
+                fontSize: "0.88rem",
+                color: "var(--muted)",
+              }}
+            >
               {locale === "vi"
                 ? "Dùng điểm tích lũy để đổi voucher giảm giá hoặc tham gia workshop cùng nghệ nhân"
                 : "Use your points to redeem shopping vouchers or exclusive artisan workshops"}
@@ -302,12 +437,15 @@ export function RewardsView() {
               style={{
                 padding: "8px 16px",
                 borderRadius: 999,
-                border: filterType === "all" ? "1px solid var(--leaf)" : "1px solid var(--line)",
+                border:
+                  filterType === "all"
+                    ? "1px solid var(--leaf)"
+                    : "1px solid var(--line)",
                 background: filterType === "all" ? "var(--leaf)" : "#fff",
                 color: filterType === "all" ? "#fff" : "var(--ink)",
                 fontSize: "0.84rem",
                 fontWeight: 600,
-                cursor: "pointer"
+                cursor: "pointer",
               }}
             >
               {locale === "vi" ? "Tất cả quà tặng" : "All rewards"}
@@ -318,15 +456,20 @@ export function RewardsView() {
               style={{
                 padding: "8px 16px",
                 borderRadius: 999,
-                border: filterType === "workshops" ? "1px solid var(--leaf)" : "1px solid var(--line)",
+                border:
+                  filterType === "workshops"
+                    ? "1px solid var(--leaf)"
+                    : "1px solid var(--line)",
                 background: filterType === "workshops" ? "var(--leaf)" : "#fff",
                 color: filterType === "workshops" ? "#fff" : "var(--ink)",
                 fontSize: "0.84rem",
                 fontWeight: 600,
-                cursor: "pointer"
+                cursor: "pointer",
               }}
             >
-              {locale === "vi" ? "Trải nghiệm cùng Nghệ nhân" : "Artisan Workshops"}
+              {locale === "vi"
+                ? "Trải nghiệm cùng Nghệ nhân"
+                : "Artisan Workshops"}
             </button>
             <button
               type="button"
@@ -334,12 +477,15 @@ export function RewardsView() {
               style={{
                 padding: "8px 16px",
                 borderRadius: 999,
-                border: filterType === "vouchers" ? "1px solid var(--leaf)" : "1px solid var(--line)",
+                border:
+                  filterType === "vouchers"
+                    ? "1px solid var(--leaf)"
+                    : "1px solid var(--line)",
                 background: filterType === "vouchers" ? "var(--leaf)" : "#fff",
                 color: filterType === "vouchers" ? "#fff" : "var(--ink)",
                 fontSize: "0.84rem",
                 fontWeight: 600,
-                cursor: "pointer"
+                cursor: "pointer",
               }}
             >
               {locale === "vi" ? "Voucher giảm giá" : "Discount Vouchers"}
@@ -352,7 +498,7 @@ export function RewardsView() {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: 20
+            gap: 20,
           }}
         >
           {filteredRewards.map((reward) => {
@@ -368,11 +514,13 @@ export function RewardsView() {
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
-                  boxShadow: "0 4px 14px rgba(0,0,0,0.04)"
+                  boxShadow: "0 4px 14px rgba(0,0,0,0.04)",
                 }}
               >
                 <div>
-                  <div style={{ position: "relative", width: "100%", height: 180 }}>
+                  <div
+                    style={{ position: "relative", width: "100%", height: 180 }}
+                  >
                     <Image
                       src={reward.image}
                       alt={reward.titleVi}
@@ -391,7 +539,7 @@ export function RewardsView() {
                         borderRadius: 6,
                         fontSize: "0.72rem",
                         fontWeight: 700,
-                        letterSpacing: "0.06em"
+                        letterSpacing: "0.06em",
                       }}
                     >
                       {locale === "vi" ? reward.badgeVi : reward.badgeEn}
@@ -400,16 +548,46 @@ export function RewardsView() {
 
                   <div style={{ padding: 18 }}>
                     {reward.village && (
-                      <span style={{ fontSize: "0.78rem", color: "var(--leaf)", fontWeight: 600, display: "block", marginBottom: 4 }}>
-                        <MapPin size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
+                      <span
+                        style={{
+                          fontSize: "0.78rem",
+                          color: "var(--leaf)",
+                          fontWeight: 600,
+                          display: "block",
+                          marginBottom: 4,
+                        }}
+                      >
+                        <MapPin
+                          size={13}
+                          style={{
+                            display: "inline",
+                            verticalAlign: "middle",
+                            marginRight: 4,
+                          }}
+                        />
                         {reward.village}
                       </span>
                     )}
-                    <h3 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontFamily: "Fraunces" }}>
+                    <h3
+                      style={{
+                        margin: "0 0 8px",
+                        fontSize: "1.1rem",
+                        fontFamily: "Fraunces",
+                      }}
+                    >
                       {locale === "vi" ? reward.titleVi : reward.titleEn}
                     </h3>
-                    <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--muted)", lineHeight: 1.5 }}>
-                      {locale === "vi" ? reward.descriptionVi : reward.descriptionEn}
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "0.82rem",
+                        color: "var(--muted)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {locale === "vi"
+                        ? reward.descriptionVi
+                        : reward.descriptionEn}
                     </p>
                   </div>
                 </div>
@@ -421,14 +599,25 @@ export function RewardsView() {
                     background: "var(--surface)",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between"
+                    justifyContent: "space-between",
                   }}
                 >
                   <div>
-                    <span style={{ display: "block", fontSize: "0.72rem", color: "var(--muted)" }}>
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: "0.72rem",
+                        color: "var(--muted)",
+                      }}
+                    >
                       {locale === "vi" ? "Cần tích lũy:" : "Required:"}
                     </span>
-                    <strong style={{ fontSize: "1.15rem", color: "var(--terracotta)" }}>
+                    <strong
+                      style={{
+                        fontSize: "1.15rem",
+                        color: "var(--terracotta)",
+                      }}
+                    >
                       {reward.pointsRequired} pts
                     </strong>
                   </div>
@@ -440,7 +629,7 @@ export function RewardsView() {
                     disabled={!canAfford}
                     style={{
                       opacity: canAfford ? 1 : 0.5,
-                      cursor: canAfford ? "pointer" : "not-allowed"
+                      cursor: canAfford ? "pointer" : "not-allowed",
                     }}
                   >
                     <Gift size={15} />
@@ -457,10 +646,24 @@ export function RewardsView() {
       <div>
         <div style={{ marginBottom: 18 }}>
           <h2 style={{ margin: 0, fontSize: "1.5rem", fontFamily: "Fraunces" }}>
-            <Ticket size={22} style={{ display: "inline", verticalAlign: "middle", marginRight: 8, color: "var(--leaf)" }} />
+            <Ticket
+              size={22}
+              style={{
+                display: "inline",
+                verticalAlign: "middle",
+                marginRight: 8,
+                color: "var(--leaf)",
+              }}
+            />
             {t.rewards.myTicketsTitle}
           </h2>
-          <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "var(--muted)" }}>
+          <p
+            style={{
+              margin: "4px 0 0",
+              fontSize: "0.85rem",
+              color: "var(--muted)",
+            }}
+          >
             {t.rewards.scanCheckinNotice}
           </p>
         </div>
@@ -473,14 +676,21 @@ export function RewardsView() {
               borderRadius: 18,
               border: "1px dashed var(--line)",
               textAlign: "center",
-              color: "var(--muted)"
+              color: "var(--muted)",
             }}
           >
             <Ticket size={34} style={{ margin: "0 auto 10px", opacity: 0.4 }} />
             <p style={{ margin: 0 }}>{t.rewards.noTickets}</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 18 }}>
+          <div
+            className="reward-tickets-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+              gap: 18,
+            }}
+          >
             {tickets.map((ticket) => (
               <div
                 key={ticket.id}
@@ -492,7 +702,7 @@ export function RewardsView() {
                   boxShadow: "0 6px 18px rgba(0,0,0,0.05)",
                   display: "flex",
                   gap: 16,
-                  alignItems: "center"
+                  alignItems: "center",
                 }}
               >
                 {/* QR Code for Check-in */}
@@ -502,7 +712,7 @@ export function RewardsView() {
                     padding: 8,
                     borderRadius: 12,
                     border: "1px solid var(--line)",
-                    textAlign: "center"
+                    textAlign: "center",
                   }}
                 >
                   <QRCodeSVG value={ticket.qrCodeUrl} size={90} />
@@ -512,7 +722,7 @@ export function RewardsView() {
                       fontSize: "0.65rem",
                       fontWeight: 700,
                       marginTop: 4,
-                      color: "var(--leaf)"
+                      color: "var(--leaf)",
                     }}
                   >
                     SCAN CHECK-IN
@@ -530,25 +740,62 @@ export function RewardsView() {
                       background: "#e6f4ea",
                       padding: "2px 8px",
                       borderRadius: 6,
-                      marginBottom: 4
+                      marginBottom: 4,
                     }}
                   >
                     VÉ HỢP LỆ · ACTIVE
                   </span>
-                  <strong style={{ display: "block", fontSize: "0.95rem", lineHeight: 1.3 }}>
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: "0.95rem",
+                      lineHeight: 1.3,
+                    }}
+                  >
                     {locale === "vi" ? ticket.titleVi : ticket.titleEn}
                   </strong>
-                  <div style={{ fontSize: "0.76rem", color: "var(--muted)", marginTop: 4 }}>
-                    Mã số: <code style={{ fontWeight: 700, color: "var(--ink)" }}>{ticket.code}</code>
+                  <div
+                    style={{
+                      fontSize: "0.76rem",
+                      color: "var(--muted)",
+                      marginTop: 4,
+                    }}
+                  >
+                    Mã số:{" "}
+                    <code style={{ fontWeight: 700, color: "var(--ink)" }}>
+                      {ticket.code}
+                    </code>
                   </div>
                   {ticket.village && (
-                    <div style={{ fontSize: "0.76rem", color: "var(--leaf)", marginTop: 2 }}>
-                      <MapPin size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />
+                    <div
+                      style={{
+                        fontSize: "0.76rem",
+                        color: "var(--leaf)",
+                        marginTop: 2,
+                      }}
+                    >
+                      <MapPin
+                        size={12}
+                        style={{
+                          display: "inline",
+                          verticalAlign: "middle",
+                          marginRight: 3,
+                        }}
+                      />
                       {ticket.village}
                     </div>
                   )}
-                  <div style={{ fontSize: "0.72rem", color: "var(--muted)", marginTop: 4 }}>
-                    Đổi ngày: {new Date(ticket.redeemedAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")}
+                  <div
+                    style={{
+                      fontSize: "0.72rem",
+                      color: "var(--muted)",
+                      marginTop: 4,
+                    }}
+                  >
+                    Đổi ngày:{" "}
+                    {new Date(ticket.redeemedAt).toLocaleDateString(
+                      locale === "vi" ? "vi-VN" : "en-US",
+                    )}
                   </div>
                 </div>
               </div>

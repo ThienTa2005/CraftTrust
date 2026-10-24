@@ -12,20 +12,20 @@ import {
   Sparkles,
   Route,
   CheckCircle2,
-  Calendar
+  Calendar,
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/context";
-import {
-  CRAFT_MAP_LOCATIONS,
-  TOUR_ITINERARIES
-} from "@/lib/map-data";
+import { CRAFT_MAP_LOCATIONS, TOUR_ITINERARIES } from "@/lib/map-data";
 import type { CraftMapLocation } from "@craft-trust/contracts";
 
 export function CraftMapView() {
   const { locale, t } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState<"all" | "villages" | "attractions" | "tours">("all");
-  const [selectedLocationId, setSelectedLocationId] = useState<string>("loc-bat-trang");
+  const [activeTab, setActiveTab] = useState<
+    "all" | "villages" | "attractions" | "tours"
+  >("all");
+  const [selectedLocationId, setSelectedLocationId] =
+    useState<string>("loc-bat-trang");
   const [selectedTourId, setSelectedTourId] = useState<string | null>(null);
 
   const selectedLocation =
@@ -33,7 +33,7 @@ export function CraftMapView() {
     CRAFT_MAP_LOCATIONS[0]!;
 
   const selectedTour = selectedTourId
-    ? TOUR_ITINERARIES.find((tr) => tr.id === selectedTourId) ?? null
+    ? (TOUR_ITINERARIES.find((tr) => tr.id === selectedTourId) ?? null)
     : null;
 
   // Filter locations
@@ -58,7 +58,7 @@ export function CraftMapView() {
   // Normalized coordinate projection for vector map rendering [0..100%]
   // Hanoi bounds roughly: lat 20.70..21.10, lng 105.55..105.95
   const getCoordinatesPct = (lat: number, lng: number) => {
-    const minLat = 20.70;
+    const minLat = 20.7;
     const maxLat = 21.08;
     const minLng = 105.52;
     const maxLng = 105.98;
@@ -69,25 +69,36 @@ export function CraftMapView() {
   };
 
   return (
-    <div className="shell" style={{ margin: "36px auto 90px" }}>
+    <div className="shell craft-map-shell" style={{ margin: "36px auto 90px" }}>
       {/* Header */}
-      <div style={{ maxWidth: 780, marginBottom: 28 }}>
+      <div className="page-intro" style={{ maxWidth: 780, marginBottom: 28 }}>
         <span
           className="eyebrow"
           style={{
             color: "var(--leaf)",
             display: "inline-flex",
             alignItems: "center",
-            gap: 6
+            gap: 6,
           }}
         >
           <Compass size={16} />
-          {locale === "vi" ? "Bản đồ Di sản & Tuyến Du lịch" : "Heritage Craft & Tourism Map"}
+          {locale === "vi"
+            ? "Bản đồ Di sản & Tuyến Du lịch"
+            : "Heritage Craft & Tourism Map"}
         </span>
-        <h1 style={{ fontSize: "clamp(2rem, 5vw, 3.4rem)", margin: "8px 0 10px" }}>
+        <h1
+          style={{ fontSize: "clamp(2rem, 5vw, 3.4rem)", margin: "8px 0 10px" }}
+        >
           {t.craftMap.title}
         </h1>
-        <p style={{ fontSize: "1.05rem", color: "var(--muted)", margin: 0, lineHeight: 1.6 }}>
+        <p
+          style={{
+            fontSize: "1.05rem",
+            color: "var(--muted)",
+            margin: 0,
+            lineHeight: 1.6,
+          }}
+        >
           {t.craftMap.subtitle}
         </p>
       </div>
@@ -98,7 +109,7 @@ export function CraftMapView() {
           display: "flex",
           gap: 10,
           flexWrap: "wrap",
-          marginBottom: 24
+          marginBottom: 24,
         }}
       >
         <button
@@ -110,12 +121,17 @@ export function CraftMapView() {
           style={{
             padding: "9px 18px",
             borderRadius: 999,
-            border: activeTab === "all" && !selectedTourId ? "1px solid var(--leaf)" : "1px solid var(--line)",
-            background: activeTab === "all" && !selectedTourId ? "var(--leaf)" : "#fff",
-            color: activeTab === "all" && !selectedTourId ? "#fff" : "var(--ink)",
+            border:
+              activeTab === "all" && !selectedTourId
+                ? "1px solid var(--leaf)"
+                : "1px solid var(--line)",
+            background:
+              activeTab === "all" && !selectedTourId ? "var(--leaf)" : "#fff",
+            color:
+              activeTab === "all" && !selectedTourId ? "#fff" : "var(--ink)",
             fontSize: "0.85rem",
             fontWeight: 600,
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         >
           {t.craftMap.filterAll} ({CRAFT_MAP_LOCATIONS.length})
@@ -129,12 +145,15 @@ export function CraftMapView() {
           style={{
             padding: "9px 18px",
             borderRadius: 999,
-            border: activeTab === "villages" ? "1px solid var(--leaf)" : "1px solid var(--line)",
+            border:
+              activeTab === "villages"
+                ? "1px solid var(--leaf)"
+                : "1px solid var(--line)",
             background: activeTab === "villages" ? "var(--leaf)" : "#fff",
             color: activeTab === "villages" ? "#fff" : "var(--ink)",
             fontSize: "0.85rem",
             fontWeight: 600,
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         >
           {t.craftMap.filterVillages} (6)
@@ -148,12 +167,15 @@ export function CraftMapView() {
           style={{
             padding: "9px 18px",
             borderRadius: 999,
-            border: activeTab === "attractions" ? "1px solid var(--leaf)" : "1px solid var(--line)",
+            border:
+              activeTab === "attractions"
+                ? "1px solid var(--leaf)"
+                : "1px solid var(--line)",
             background: activeTab === "attractions" ? "var(--leaf)" : "#fff",
             color: activeTab === "attractions" ? "#fff" : "var(--ink)",
             fontSize: "0.85rem",
             fontWeight: 600,
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         >
           {t.craftMap.filterAttractions} (4)
@@ -167,15 +189,29 @@ export function CraftMapView() {
           style={{
             padding: "9px 18px",
             borderRadius: 999,
-            border: activeTab === "tours" || selectedTourId ? "1px solid var(--terracotta)" : "1px solid var(--line)",
-            background: activeTab === "tours" || selectedTourId ? "var(--terracotta)" : "#fff",
-            color: activeTab === "tours" || selectedTourId ? "#fff" : "var(--ink)",
+            border:
+              activeTab === "tours" || selectedTourId
+                ? "1px solid var(--terracotta)"
+                : "1px solid var(--line)",
+            background:
+              activeTab === "tours" || selectedTourId
+                ? "var(--terracotta)"
+                : "#fff",
+            color:
+              activeTab === "tours" || selectedTourId ? "#fff" : "var(--ink)",
             fontSize: "0.85rem",
             fontWeight: 600,
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         >
-          <Route size={15} style={{ display: "inline", verticalAlign: "middle", marginRight: 5 }} />
+          <Route
+            size={15}
+            style={{
+              display: "inline",
+              verticalAlign: "middle",
+              marginRight: 5,
+            }}
+          />
           {t.craftMap.filterTours} (3)
         </button>
       </div>
@@ -183,6 +219,7 @@ export function CraftMapView() {
       {/* If Tour tab active, render Tour Selector bar */}
       {(activeTab === "tours" || selectedTourId) && (
         <div
+          className="tour-selector-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
@@ -191,7 +228,7 @@ export function CraftMapView() {
             padding: 16,
             background: "rgba(198, 94, 61, 0.06)",
             borderRadius: 16,
-            border: "1px solid rgba(198, 94, 61, 0.18)"
+            border: "1px solid rgba(198, 94, 61, 0.18)",
           }}
         >
           {TOUR_ITINERARIES.map((tour) => {
@@ -208,21 +245,53 @@ export function CraftMapView() {
                   textAlign: "left",
                   padding: "12px 16px",
                   borderRadius: 12,
-                  border: isTourSelected ? "2px solid var(--terracotta)" : "1px solid var(--line)",
-                  background: isTourSelected ? "#fff" : "rgba(255, 255, 255, 0.8)",
+                  border: isTourSelected
+                    ? "2px solid var(--terracotta)"
+                    : "1px solid var(--line)",
+                  background: isTourSelected
+                    ? "#fff"
+                    : "rgba(255, 255, 255, 0.8)",
                   cursor: "pointer",
-                  transition: "all .2s ease"
+                  transition: "all .2s ease",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <strong style={{ fontSize: "0.92rem", color: isTourSelected ? "var(--terracotta)" : "var(--ink)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <strong
+                    style={{
+                      fontSize: "0.92rem",
+                      color: isTourSelected
+                        ? "var(--terracotta)"
+                        : "var(--ink)",
+                    }}
+                  >
                     {locale === "vi" ? tour.titleVi : tour.titleEn}
                   </strong>
-                  <span style={{ fontSize: "0.72rem", color: "var(--muted)", fontWeight: 600 }}>
-                    {locale === "vi" ? tour.durationLabelVi : tour.durationLabelEn}
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      color: "var(--muted)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {locale === "vi"
+                      ? tour.durationLabelVi
+                      : tour.durationLabelEn}
                   </span>
                 </div>
-                <p style={{ margin: "4px 0 0", fontSize: "0.78rem", color: "var(--muted)", lineHeight: 1.4 }}>
+                <p
+                  style={{
+                    margin: "4px 0 0",
+                    fontSize: "0.78rem",
+                    color: "var(--muted)",
+                    lineHeight: 1.4,
+                  }}
+                >
                   {locale === "vi" ? tour.subtitleVi : tour.subtitleEn}
                 </p>
               </button>
@@ -233,36 +302,56 @@ export function CraftMapView() {
 
       {/* Main Grid: Visual Topographic Map Canvas + Detail Inspector Drawer */}
       <div
+        className="craft-map-layout"
         style={{
           display: "grid",
           gridTemplateColumns: "1.4fr 1fr",
           gap: 24,
           alignItems: "start",
-          marginBottom: 48
+          marginBottom: 48,
         }}
       >
         {/* Interactive Vector Map Canvas */}
         <div
+          className="craft-map-canvas"
           style={{
             position: "relative",
             minHeight: 560,
-            background: "radial-gradient(circle at 60% 40%, #f7f3ea 0%, #ece5d6 100%)",
+            background:
+              "radial-gradient(circle at 60% 40%, #f7f3ea 0%, #ece5d6 100%)",
             border: "1px solid var(--line)",
             borderRadius: 24,
             overflow: "hidden",
-            boxShadow: "0 14px 40px rgba(0,0,0,0.06)"
+            boxShadow: "0 14px 40px rgba(0,0,0,0.06)",
           }}
         >
           {/* Topographic Background SVG (Red River & Day River flow) */}
           <svg
-            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              pointerEvents: "none",
+            }}
             viewBox="0 0 1000 700"
             preserveAspectRatio="none"
           >
             {/* Grid coordinate guidelines */}
             <defs>
-              <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(35, 92, 67, 0.05)" strokeWidth="1" />
+              <pattern
+                id="grid"
+                width="60"
+                height="60"
+                patternUnits="userSpaceOnUse"
+              >
+                <path
+                  d="M 60 0 L 0 0 0 60"
+                  fill="none"
+                  stroke="rgba(35, 92, 67, 0.05)"
+                  strokeWidth="1"
+                />
               </pattern>
             </defs>
             <rect width="1000" height="700" fill="url(#grid)" />
@@ -284,7 +373,14 @@ export function CraftMapView() {
               strokeDasharray="6,4"
               opacity="0.6"
             />
-            <text x="790" y="320" fill="#719cb8" fontSize="13" fontWeight="700" letterSpacing="2">
+            <text
+              x="790"
+              y="320"
+              fill="#719cb8"
+              fontSize="13"
+              fontWeight="700"
+              letterSpacing="2"
+            >
               SÔNG HỒNG (RED RIVER)
             </text>
 
@@ -297,14 +393,27 @@ export function CraftMapView() {
               strokeLinecap="round"
               opacity="0.7"
             />
-            <text x="350" y="440" fill="#8dafb8" fontSize="11" fontWeight="600" letterSpacing="1">
+            <text
+              x="350"
+              y="440"
+              fill="#8dafb8"
+              fontSize="11"
+              fontWeight="600"
+              letterSpacing="1"
+            >
               SÔNG ĐÁY
             </text>
 
             {/* Hanoi Center Marker (Hoan Kiem Lake) */}
             <circle cx="680" cy="270" r="14" fill="rgba(198, 94, 61, 0.15)" />
             <circle cx="680" cy="270" r="6" fill="var(--terracotta)" />
-            <text x="702" y="275" fill="var(--ink)" fontSize="13" fontWeight="800">
+            <text
+              x="702"
+              y="275"
+              fill="var(--ink)"
+              fontSize="13"
+              fontWeight="800"
+            >
               TRUNG TÂM HÀ NỘI (HỒ GƯƠM)
             </text>
 
@@ -315,7 +424,10 @@ export function CraftMapView() {
                   .map((id) => {
                     const loc = CRAFT_MAP_LOCATIONS.find((l) => l.id === id);
                     if (!loc) return "0,0";
-                    const pt = getCoordinatesPct(loc.coordinates.lat, loc.coordinates.lng);
+                    const pt = getCoordinatesPct(
+                      loc.coordinates.lat,
+                      loc.coordinates.lng,
+                    );
                     return `${(pt.x / 100) * 1000},${(pt.y / 100) * 700}`;
                   })
                   .join(" ")}
@@ -330,7 +442,10 @@ export function CraftMapView() {
           {/* Interactive Pins on Map */}
           {filteredLocations.map((loc) => {
             const isSelected = selectedLocationId === loc.id;
-            const pt = getCoordinatesPct(loc.coordinates.lat, loc.coordinates.lng);
+            const pt = getCoordinatesPct(
+              loc.coordinates.lat,
+              loc.coordinates.lng,
+            );
             const icon = getPinIcon(loc);
 
             return (
@@ -347,7 +462,7 @@ export function CraftMapView() {
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
-                  transition: "all .2s ease"
+                  transition: "all .2s ease",
                 }}
               >
                 {/* Pin Circle */}
@@ -360,8 +475,8 @@ export function CraftMapView() {
                     background: isSelected
                       ? "var(--terracotta)"
                       : loc.type === "craft_village"
-                      ? "var(--leaf)"
-                      : "var(--gold)",
+                        ? "var(--leaf)"
+                        : "var(--gold)",
                     color: "#fff",
                     display: "grid",
                     placeItems: "center",
@@ -369,10 +484,15 @@ export function CraftMapView() {
                     boxShadow: isSelected
                       ? "0 0 0 4px rgba(198, 94, 61, 0.3), 0 10px 24px rgba(198, 94, 61, 0.4)"
                       : "0 3px 10px rgba(0,0,0,0.15)",
-                    transition: "all var(--dur-normal) var(--ease-spring)"
+                    transition: "all var(--dur-normal) var(--ease-spring)",
                   }}
                 >
-                  {isSelected && <div className="radar-pulse-ring" style={{ borderColor: "var(--terracotta)" }} />}
+                  {isSelected && (
+                    <div
+                      className="radar-pulse-ring"
+                      style={{ borderColor: "var(--terracotta)" }}
+                    />
+                  )}
                   {icon}
                 </div>
 
@@ -382,7 +502,9 @@ export function CraftMapView() {
                     marginTop: 4,
                     padding: "3px 8px",
                     borderRadius: 6,
-                    background: isSelected ? "var(--ink)" : "rgba(255, 255, 255, 0.95)",
+                    background: isSelected
+                      ? "var(--ink)"
+                      : "rgba(255, 255, 255, 0.95)",
                     color: isSelected ? "#fff" : "var(--ink)",
                     fontSize: "0.72rem",
                     fontWeight: isSelected ? 800 : 600,
@@ -390,7 +512,7 @@ export function CraftMapView() {
                     whiteSpace: "nowrap",
                     maxWidth: 130,
                     overflow: "hidden",
-                    textOverflow: "ellipsis"
+                    textOverflow: "ellipsis",
                   }}
                 >
                   {locale === "vi" ? loc.nameVi : loc.nameEn}
@@ -401,6 +523,7 @@ export function CraftMapView() {
 
           {/* Map Compass Legend */}
           <div
+            className="craft-map-legend"
             style={{
               position: "absolute",
               bottom: 16,
@@ -412,7 +535,7 @@ export function CraftMapView() {
               color: "var(--muted)",
               display: "flex",
               gap: 12,
-              alignItems: "center"
+              alignItems: "center",
             }}
           >
             <span>🏺 Làng nghề gốm / lụa / mộc</span>
@@ -423,12 +546,13 @@ export function CraftMapView() {
 
         {/* Selected Location Detail Inspector Drawer */}
         <div
+          className="craft-map-detail"
           style={{
             background: "var(--surface)",
             border: "1px solid var(--line)",
             borderRadius: 24,
             overflow: "hidden",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.06)"
+            boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
           }}
         >
           {/* Cover photo */}
@@ -449,31 +573,63 @@ export function CraftMapView() {
                 padding: "4px 10px",
                 borderRadius: 8,
                 fontSize: "0.74rem",
-                fontWeight: 700
+                fontWeight: 700,
               }}
             >
-              {locale === "vi" ? selectedLocation.categoryVi : selectedLocation.categoryEn}
+              {locale === "vi"
+                ? selectedLocation.categoryVi
+                : selectedLocation.categoryEn}
             </span>
           </div>
 
           <div style={{ padding: 22 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--muted)", fontSize: "0.8rem", marginBottom: 4 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                color: "var(--muted)",
+                fontSize: "0.8rem",
+                marginBottom: 4,
+              }}
+            >
               <MapPin size={14} style={{ color: "var(--terracotta)" }} />
               <span>{selectedLocation.district}</span>
               <span>•</span>
-              <strong>{selectedLocation.distanceKmFromCenter} km {locale === "vi" ? "từ Hồ Gươm" : "from center"}</strong>
+              <strong>
+                {selectedLocation.distanceKmFromCenter} km{" "}
+                {locale === "vi" ? "từ Hồ Gươm" : "from center"}
+              </strong>
             </div>
 
-            <h2 style={{ margin: "4px 0 10px", fontSize: "1.45rem", fontFamily: "Fraunces" }}>
-              {locale === "vi" ? selectedLocation.nameVi : selectedLocation.nameEn}
+            <h2
+              style={{
+                margin: "4px 0 10px",
+                fontSize: "1.45rem",
+                fontFamily: "Fraunces",
+              }}
+            >
+              {locale === "vi"
+                ? selectedLocation.nameVi
+                : selectedLocation.nameEn}
             </h2>
 
-            <p style={{ margin: "0 0 16px", fontSize: "0.85rem", color: "var(--muted)", lineHeight: 1.55 }}>
-              {locale === "vi" ? selectedLocation.summaryVi : selectedLocation.summaryEn}
+            <p
+              style={{
+                margin: "0 0 16px",
+                fontSize: "0.85rem",
+                color: "var(--muted)",
+                lineHeight: 1.55,
+              }}
+            >
+              {locale === "vi"
+                ? selectedLocation.summaryVi
+                : selectedLocation.summaryEn}
             </p>
 
             {/* Quick Metrics */}
             <div
+              className="craft-map-metrics"
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
@@ -483,34 +639,80 @@ export function CraftMapView() {
                 borderRadius: 12,
                 border: "1px solid var(--line)",
                 marginBottom: 16,
-                fontSize: "0.78rem"
+                fontSize: "0.78rem",
               }}
             >
               <div>
                 <span style={{ display: "block", color: "var(--muted)" }}>
-                  <Clock size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
+                  <Clock
+                    size={12}
+                    style={{
+                      display: "inline",
+                      verticalAlign: "middle",
+                      marginRight: 4,
+                    }}
+                  />
                   {t.craftMap.travelTime}
                 </span>
-                <strong>{selectedLocation.travelTimeMins} {locale === "vi" ? "phút đi xe" : "mins drive"}</strong>
+                <strong>
+                  {selectedLocation.travelTimeMins}{" "}
+                  {locale === "vi" ? "phút đi xe" : "mins drive"}
+                </strong>
               </div>
               <div>
                 <span style={{ display: "block", color: "var(--muted)" }}>
-                  <Calendar size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
+                  <Calendar
+                    size={12}
+                    style={{
+                      display: "inline",
+                      verticalAlign: "middle",
+                      marginRight: 4,
+                    }}
+                  />
                   {t.craftMap.openHours}
                 </span>
-                <strong>{locale === "vi" ? selectedLocation.openingHoursVi : selectedLocation.openingHoursEn}</strong>
+                <strong>
+                  {locale === "vi"
+                    ? selectedLocation.openingHoursVi
+                    : selectedLocation.openingHoursEn}
+                </strong>
               </div>
             </div>
 
             {/* Highlights List */}
             <div style={{ marginBottom: 20 }}>
-              <strong style={{ display: "block", fontSize: "0.84rem", marginBottom: 8, color: "var(--leaf)" }}>
+              <strong
+                style={{
+                  display: "block",
+                  fontSize: "0.84rem",
+                  marginBottom: 8,
+                  color: "var(--leaf)",
+                }}
+              >
                 ✦ {t.craftMap.highlights}
               </strong>
               <div style={{ display: "grid", gap: 6 }}>
-                {(locale === "vi" ? selectedLocation.highlightsVi : selectedLocation.highlightsEn).map((hl, idx) => (
-                  <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: "0.8rem" }}>
-                    <CheckCircle2 size={14} style={{ color: "var(--leaf)", flexShrink: 0, marginTop: 2 }} />
+                {(locale === "vi"
+                  ? selectedLocation.highlightsVi
+                  : selectedLocation.highlightsEn
+                ).map((hl, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 8,
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    <CheckCircle2
+                      size={14}
+                      style={{
+                        color: "var(--leaf)",
+                        flexShrink: 0,
+                        marginTop: 2,
+                      }}
+                    />
                     <span>{hl}</span>
                   </div>
                 ))}
@@ -524,7 +726,12 @@ export function CraftMapView() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="button full"
-                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
               >
                 <Navigation size={16} />
                 <span>{t.craftMap.viewDirections}</span>
@@ -535,7 +742,12 @@ export function CraftMapView() {
                 <Link
                   href={`/villages/${selectedLocation.villageSlug}`}
                   className="button secondary full"
-                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
                 >
                   <Sparkles size={16} />
                   <span>{t.craftMap.exploreCrafts}</span>
@@ -554,17 +766,40 @@ export function CraftMapView() {
             background: "linear-gradient(135deg, #fff9f0 0%, #fff 100%)",
             border: "2px solid #ecd8b5",
             borderRadius: 24,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.05)"
+            boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 8,
+            }}
+          >
             <Route size={22} style={{ color: "var(--terracotta)" }} />
-            <span style={{ fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, color: "var(--terracotta)" }}>
-              {locale === "vi" ? "Lộ trình Tour Chi tiết" : "Curated Day-Tour Itinerary"}
+            <span
+              style={{
+                fontSize: "0.82rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                fontWeight: 700,
+                color: "var(--terracotta)",
+              }}
+            >
+              {locale === "vi"
+                ? "Lộ trình Tour Chi tiết"
+                : "Curated Day-Tour Itinerary"}
             </span>
           </div>
 
-          <h2 style={{ margin: "4px 0 12px", fontSize: "1.6rem", fontFamily: "Fraunces" }}>
+          <h2
+            style={{
+              margin: "4px 0 12px",
+              fontSize: "1.6rem",
+              fontFamily: "Fraunces",
+            }}
+          >
             {locale === "vi" ? selectedTour.titleVi : selectedTour.titleEn}
           </h2>
 
@@ -576,18 +811,39 @@ export function CraftMapView() {
               border: "1px solid var(--line)",
               marginBottom: 18,
               fontSize: "0.86rem",
-              lineHeight: 1.6
+              lineHeight: 1.6,
             }}
           >
-            <strong>{locale === "vi" ? "Phương tiện khuyến nghị: " : "Recommended Transport: "}</strong>
-            {locale === "vi" ? selectedTour.recommendedTransportVi : selectedTour.recommendedTransportEn}
+            <strong>
+              {locale === "vi"
+                ? "Phương tiện khuyến nghị: "
+                : "Recommended Transport: "}
+            </strong>
+            {locale === "vi"
+              ? selectedTour.recommendedTransportVi
+              : selectedTour.recommendedTransportEn}
             <div style={{ marginTop: 8 }}>
-              {locale === "vi" ? selectedTour.descriptionVi : selectedTour.descriptionEn}
+              {locale === "vi"
+                ? selectedTour.descriptionVi
+                : selectedTour.descriptionEn}
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--muted)" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "0.82rem",
+                fontWeight: 700,
+                color: "var(--muted)",
+              }}
+            >
               {locale === "vi" ? "Các điểm dừng trong tour:" : "Tour stops:"}
             </span>
             {selectedTour.locationIds.map((locId, idx) => {
@@ -600,15 +856,24 @@ export function CraftMapView() {
                   style={{
                     padding: "6px 14px",
                     borderRadius: 999,
-                    border: selectedLocationId === locId ? "2px solid var(--leaf)" : "1px solid var(--line)",
-                    background: selectedLocationId === locId ? "rgba(35, 92, 67, 0.1)" : "#fff",
-                    color: selectedLocationId === locId ? "var(--leaf)" : "var(--ink)",
+                    border:
+                      selectedLocationId === locId
+                        ? "2px solid var(--leaf)"
+                        : "1px solid var(--line)",
+                    background:
+                      selectedLocationId === locId
+                        ? "rgba(35, 92, 67, 0.1)"
+                        : "#fff",
+                    color:
+                      selectedLocationId === locId
+                        ? "var(--leaf)"
+                        : "var(--ink)",
                     fontSize: "0.82rem",
                     fontWeight: 600,
                     cursor: "pointer",
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 6
+                    gap: 6,
                   }}
                 >
                   <span>{idx + 1}.</span>
