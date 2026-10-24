@@ -1243,9 +1243,9 @@ INSERT INTO auth.users (
   ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000010', 'authenticated', 'authenticated', 'admin@crafttrust.vn', extensions.crypt('12345678', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Quản Trị Viên & Thẩm Định"}', now(), now(), '', '', '', ''),
   ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000020', 'authenticated', 'authenticated', 'seller@crafttrust.vn', extensions.crypt('12345678', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Nghệ Nhân Bát Tràng"}', now(), now(), '', '', '', ''),
   ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000030', 'authenticated', 'authenticated', 'buyer@crafttrust.vn', extensions.crypt('12345678', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Khách Mua Hàng"}', now(), now(), '', '', '', ''),
-  ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'demo.seller@example.invalid', extensions.crypt('12345678', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"[DEMO] Seller"}', now(), now(), '', '', '', ''),
-  ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'demo.verifier@example.invalid', extensions.crypt('12345678', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"[DEMO] Verifier"}', now(), now(), '', '', '', ''),
-  ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'demo.customer@example.invalid', extensions.crypt('12345678', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"[DEMO] Customer"}', now(), now(), '', '', '', '')
+  ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'demo.seller@example.invalid', extensions.crypt('12345678', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Nghệ nhân Thăng Long"}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000002', 'authenticated', 'authenticated', 'demo.verifier@example.invalid', extensions.crypt('12345678', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Chuyên gia Giám định Di sản"}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '10000000-0000-0000-0000-000000000003', 'authenticated', 'authenticated', 'demo.customer@example.invalid', extensions.crypt('12345678', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"display_name":"Khách hàng CraftTrust"}', now(), now(), '', '', '', '')
 ON CONFLICT (id) DO UPDATE SET encrypted_password = extensions.crypt('12345678', extensions.gen_salt('bf'));
 
 -- 2. Profiles
@@ -1254,9 +1254,9 @@ VALUES
   ('10000000-0000-0000-0000-000000000010', 'Quản Trị Viên & Thẩm Định'),
   ('10000000-0000-0000-0000-000000000020', 'Nghệ Nhân Bát Tràng (Nguyễn An)'),
   ('10000000-0000-0000-0000-000000000030', 'Khách Mua Hàng'),
-  ('10000000-0000-0000-0000-000000000001', '[DEMO] Seller'),
-  ('10000000-0000-0000-0000-000000000002', '[DEMO] Verifier'),
-  ('10000000-0000-0000-0000-000000000003', '[DEMO] Customer')
+  ('10000000-0000-0000-0000-000000000001', 'Nghệ nhân Thăng Long'),
+  ('10000000-0000-0000-0000-000000000002', 'Chuyên gia Giám định Di sản'),
+  ('10000000-0000-0000-0000-000000000003', 'Khách hàng CraftTrust')
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. User Roles
@@ -1281,12 +1281,12 @@ ON CONFLICT DO NOTHING;
 -- 4. Villages
 INSERT INTO public.villages(id, slug, name, district, summary, story, coordinates, cover_image_url, is_published)
 VALUES
-  ('20000000-0000-0000-0000-000000000001', 'demo-bat-trang', '[DEMO] Bát Tràng', 'Gia Lâm',
+  ('20000000-0000-0000-0000-000000000001', 'demo-bat-trang', 'Làng gốm Bát Tràng', 'Gia Lâm',
    'Làng gốm cổ truyền ven sông Hồng với bề dày hơn 500 năm.',
    'Lịch sử hơn 5 thế kỷ của làng gốm Bát Tràng gắn liền với phù sa sông Hồng.',
    '{"latitude":20.976,"longitude":105.912}'::jsonb,
    'https://images.unsplash.com/photo-1610701596007-11502861dcfa', true),
-  ('20000000-0000-0000-0000-000000000002', 'demo-van-phuc', '[DEMO] Vạn Phúc', 'Hà Đông',
+  ('20000000-0000-0000-0000-000000000002', 'demo-van-phuc', 'Làng lụa Vạn Phúc', 'Hà Đông',
    'Tiếng thoi dệt lụa tơ tằm rộn vang khắp ngõ ngách, nổi danh với lụa vân mỏng nhẹ.',
    'Làng lụa Vạn Phúc có truyền thống hơn 1000 năm tuổi.',
    '{"latitude":20.980,"longitude":105.775}'::jsonb,

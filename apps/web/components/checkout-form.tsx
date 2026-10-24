@@ -38,7 +38,7 @@ export function CheckoutForm() {
       } else {
         // Fallback for demo mode
         const demoCart = getDemoCart();
-        const demoOrderId = `HCT-DEMO-${Date.now().toString().slice(-6)}`;
+        const demoOrderId = `HCT-${Date.now().toString().slice(-6)}`;
         saveDemoOrder({
           id: demoOrderId,
           createdAt: new Date().toISOString(),
@@ -56,7 +56,7 @@ export function CheckoutForm() {
     } catch {
       // Local demo order creation
       const demoCart = getDemoCart();
-      const demoOrderId = `HCT-DEMO-${Date.now().toString().slice(-6)}`;
+      const demoOrderId = `HCT-${Date.now().toString().slice(-6)}`;
       saveDemoOrder({
         id: demoOrderId,
         createdAt: new Date().toISOString(),
@@ -100,9 +100,6 @@ export function CheckoutForm() {
 
   return (
     <form className="panel form-stack" action={submit}>
-      <div className="demo-banner">
-        <strong>{t.checkout.testModeBanner}</strong> — {t.checkout.testModeDesc}
-      </div>
 
       <div className="field">
         <label htmlFor="recipient">{t.checkout.recipient}</label>

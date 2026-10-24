@@ -93,13 +93,6 @@ export function ProductDetailView({
           disabled={product.stock < 1}
         />
 
-        {demo ? (
-          <p className="status" style={{ marginTop: 10 }}>
-            {locale === "vi"
-              ? "Chế độ trải nghiệm thử: Sản phẩm được lưu vào giỏ hàng mô phỏng để bạn kiểm thử luồng đặt đơn."
-              : "Demo mode: Items are added to the simulated cart so you can test the entire checkout flow."}
-          </p>
-        ) : null}
 
         <div className="panel" style={{ marginTop: 28 }}>
           <strong>

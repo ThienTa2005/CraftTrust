@@ -89,7 +89,7 @@ export async function getProducts(): Promise<DataResult<ProductCard[]>> {
           image: row.poster_url ?? "/placeholder-product.svg",
           artisan: artisan?.name ?? "Nghệ nhân Hà Nội",
           village: village?.name ?? "Bát Tràng",
-          passportId: passport?.public_id ?? "HCT-DEMO-BT-001",
+          passportId: passport?.public_id ?? "HCT-VN-BT-001",
           tier: passport?.tier ?? "gold",
           modelUrl: row.model_url ?? undefined,
           arUrl: row.ar_url ?? undefined,

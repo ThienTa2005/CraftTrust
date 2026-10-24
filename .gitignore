@@ -20,4 +20,6 @@ outputs/
 .DS_Store
 supabase/.branches/
 supabase/.temp/
-
+__pycache__/
+*.pyc
+*.tsbuildinfo

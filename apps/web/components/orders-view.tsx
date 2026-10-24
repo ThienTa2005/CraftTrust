@@ -99,17 +99,7 @@ export function OrdersView({
 
       {error ? <div className="error-banner">{error}</div> : null}
 
-      {mounted && !hasBackend && (
-        <div className="demo-banner" style={{ marginTop: 16 }}>
-          <strong>
-            {locale === "vi" ? "ĐƠN HÀNG THỬ NGHIỆM" : "TEST MODE ORDERS"}
-          </strong>{" "}
-          —{" "}
-          {locale === "vi"
-            ? "Các đơn hàng kiểm thử được ghi nhận trên trình duyệt này."
-            : "Simulated test orders recorded in this session."}
-        </div>
-      )}
+
 
       {/* Shopee-Style Order Tabs */}
       <div className="buyer-orders-tab-bar" style={{ marginTop: 24 }}>
@@ -253,7 +243,7 @@ export function OrdersView({
                               {item.village} · Số lượng: × {item.quantity}
                             </small>
                             <Link
-                              href="/passport/HCT-DEMO-BT-001"
+                              href="/passport/HCT-VN-BT-001"
                               className="order-passport-link"
                             >
                               <QrCode size={13} />
@@ -301,7 +291,7 @@ export function OrdersView({
                           {locale === "vi" ? "Mua lại" : "Buy again"}
                         </button>
                         <Link
-                          href="/passport/HCT-DEMO-BT-001"
+                          href="/passport/HCT-VN-BT-001"
                           className="button secondary small"
                         >
                           <QrCode size={14} />

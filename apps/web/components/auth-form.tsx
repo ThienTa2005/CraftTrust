@@ -236,7 +236,9 @@ export function AuthForm() {
               autoComplete={
                 mode === "sign-in" ? "current-password" : "new-password"
               }
-              placeholder="Tối thiểu 8 ký tự"
+              placeholder={
+                locale === "vi" ? "Tối thiểu 8 ký tự" : "At least 8 characters"
+              }
             />
             <button
               type="button"

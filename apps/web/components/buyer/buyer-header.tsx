@@ -506,8 +506,8 @@ export function BuyerHeader() {
             <Link href="/orders" onClick={() => setMobileOpen(false)}>
               {locale === "vi" ? "Đơn mua của tôi" : "My Orders"}
             </Link>
-            <Link href="/passport/HCT-DEMO-BT-001" onClick={() => setMobileOpen(false)}>
-              {locale === "vi" ? "Hộ chiếu số mẫu" : "Demo Digital Passport"}
+            <Link href="/passport/HCT-VN-BT-001" onClick={() => setMobileOpen(false)}>
+              {locale === "vi" ? "Hộ chiếu số di sản" : "Digital Passport"}
             </Link>
             <Link href="/assistant" onClick={() => setMobileOpen(false)}>
               {locale === "vi" ? "Trợ lý nghệ nhân AI" : "Heritage AI Guide"}
@@ -553,7 +553,7 @@ export function BuyerHeader() {
                 type="text"
                 value={passportQuery}
                 onChange={(e) => setPassportQuery(e.target.value)}
-                placeholder="VD: HCT-DEMO-BT-001"
+                placeholder="VD: HCT-VN-BT-001"
                 required
                 style={{
                   padding: "12px 14px",
@@ -568,10 +568,10 @@ export function BuyerHeader() {
                   type="button"
                   className="button secondary small"
                   onClick={() => {
-                    setPassportQuery("HCT-DEMO-BT-001");
+                    setPassportQuery("HCT-VN-BT-001");
                   }}
                 >
-                  {locale === "vi" ? "Dùng mã mẫu" : "Use sample ID"}
+                  {locale === "vi" ? "Mã gợi ý" : "Suggested ID"}
                 </button>
                 <button type="submit" className="button terracotta small">
                   {locale === "vi" ? "Tra cứu ngay" : "Lookup"}

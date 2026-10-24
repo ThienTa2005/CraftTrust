@@ -114,7 +114,9 @@ export function PassportView({
                 }}
               />
               <Radio size={14} />
-              NFC Dynamic Verified · {passport.verificationCount} scans
+              {locale === "vi"
+                ? `Xác thực chip NFC · ${passport.verificationCount} lượt quét`
+                : `NFC Dynamic Verified · ${passport.verificationCount} scans`}
             </span>
           </div>
         </div>

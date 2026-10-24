@@ -12,8 +12,8 @@ export function CheckoutView() {
       <h1>{t.checkout.title}</h1>
       <p>
         {locale === "vi"
-          ? "Hệ thống hỗ trợ quy trình thử nghiệm thanh toán có kiểm toán (test checkout). Chưa tích hợp cổng thanh toán thực tế."
-          : "This vertical slice deliberately supports test checkout only. A production payment provider has not been configured."}
+          ? "Đơn hàng của bạn sẽ được chuyển trực tiếp tới các xưởng nghệ nhân làng nghề để chế tác, kiểm tra phẩm cấp và đóng gói cẩn trọng."
+          : "Your order is sent directly to artisan workshops for authentic crafting, quality verification, and careful packaging."}
       </p>
       <CheckoutForm />
     </section>

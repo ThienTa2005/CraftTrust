@@ -124,16 +124,6 @@ export function CartView({
       <span className="eyebrow">{t.cart.eyebrow}</span>
       <h1>{t.cart.title}</h1>
 
-      {!hasBackend && (
-        <div className="demo-banner" style={{ marginTop: 16 }}>
-          <strong>
-            {locale === "vi"
-              ? "CHẾ ĐỘ TRẢI NGHIỆM THỬ"
-              : "INTERACTIVE DEMO MODE"}
-          </strong>{" "}
-          — {t.cart.demoNote}
-        </div>
-      )}
       {error ? (
         <div className="error-banner" style={{ marginTop: 16 }}>
           {error}

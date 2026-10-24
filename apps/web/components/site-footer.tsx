@@ -36,7 +36,7 @@ export function SiteFooter() {
           </div>
           <div className="footer-col">
             <strong>{t.footer.trust}</strong>
-            <Link href="/passport/HCT-DEMO-BT-001">
+            <Link href="/passport/HCT-VN-BT-001">
               {t.footer.digitalPassports}
             </Link>
             <Link href="/docs">{t.footer.evidencePolicy}</Link>

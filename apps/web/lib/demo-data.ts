@@ -91,7 +91,7 @@ export const demoProducts: ProductCard[] = [
     artisan: "Nguyễn Thu Hà",
     village: "Bát Tràng",
     villageEn: "Bat Trang",
-    passportId: "HCT-DEMO-BT-001",
+    passportId: "HCT-VN-BT-001",
     tier: "gold",
     modelUrl: "/models/craft-pottery.glb",
     arUrl: "/models/craft-pottery.glb",
@@ -112,7 +112,7 @@ export const demoProducts: ProductCard[] = [
     artisan: "Trần Ngọc Mai",
     village: "Bát Tràng",
     villageEn: "Bat Trang",
-    passportId: "HCT-DEMO-VP-001",
+    passportId: "HCT-VN-BT-002",
     tier: "silver",
   },
   {
@@ -131,7 +131,7 @@ export const demoProducts: ProductCard[] = [
     artisan: "Lê Minh Đức",
     village: "Bát Tràng",
     villageEn: "Bat Trang",
-    passportId: "HCT-DEMO-CS-001",
+    passportId: "HCT-VN-BT-003",
     tier: "bronze",
   },
 ];

@@ -106,7 +106,7 @@ export const DEMO_TIMELINE: PassportTimelineStep[] = [
     stageNameEn: "Digital Passport Issuance",
     titleVi: "Gắn thẻ Dynamic NFC chống giả & lưu vết chuỗi khối",
     titleEn: "Dynamic NFC Cryptographic Tagging & Handover",
-    descriptionVi: "Gắn chip cảm ứng Dynamic NFC dưới đáy bình, sinh mã định danh duy nhất HCT-DEMO-BT-001 chống sao chép và trao tận tay khách hàng.",
+    descriptionVi: "Gắn chip cảm ứng Dynamic NFC dưới đáy bình, sinh mã định danh duy nhất HCT-VN-BT-001 chống sao chép và trao tận tay khách hàng.",
     descriptionEn: "Embedded Dynamic NFC chip under the base, generating a tamper-proof cryptographic passport token.",
     timestampLabelVi: "Tháng 10, 2026 · Nền tảng Hanoi Craft-Trust",
     timestampLabelEn: "October 2026 · Hanoi Craft-Trust Platform",
@@ -154,9 +154,14 @@ export async function getPassport(
 ): Promise<{ data: PassportView | null; demo: boolean; error?: string }> {
   const supabase = createPublicSupabase();
 
+  const defaultProduct = demoProducts[0]!;
+  const normalizedMatch = (item: (typeof demoProducts)[0]) =>
+    item.passportId === publicId ||
+    item.passportId === publicId.replace("HCT-VN-", "HCT-DEMO-") ||
+    item.passportId === publicId.replace("HCT-DEMO-", "HCT-VN-");
+
   if (!supabase) {
-    const defaultProduct = demoProducts[0]!;
-    const product = demoProducts.find((item) => item.passportId === publicId) ?? defaultProduct;
+    const product = demoProducts.find(normalizedMatch) ?? defaultProduct;
     return {
       demo: true,
       data: {
@@ -190,18 +195,25 @@ export async function getPassport(
     };
   }
 
-  const { data, error } = await supabase
-    .from("passport_records")
-    .select(
-      "public_id,tier,status,updated_at,products(name,price_vnd,artisans(name,bio,villages(name))),evidence_submissions(id,evidence_type,statement,status,heritage_sources(title))"
-    )
-    .eq("public_id", publicId)
-    .eq("status", "active")
-    .maybeSingle();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(publicId);
+  let data: any = null;
+  let error: any = null;
+
+  if (isUuid) {
+    const res = await supabase
+      .from("passport_records")
+      .select(
+        "public_id,tier,status,updated_at,products(name,price_vnd,artisans(name,bio,villages(name))),evidence_submissions(id,evidence_type,statement,status,heritage_sources(title))"
+      )
+      .eq("public_id", publicId)
+      .eq("status", "active")
+      .maybeSingle();
+    data = res.data;
+    error = res.error;
+  }
 
   if (error || !data) {
-    const defaultProduct = demoProducts[0]!;
-    const product = demoProducts.find((item) => item.passportId === publicId) ?? defaultProduct;
+    const product = demoProducts.find(normalizedMatch) ?? defaultProduct;
     return {
       demo: true,
       data: {
