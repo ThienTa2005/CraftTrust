@@ -3,11 +3,24 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
+function sanitizeSupabaseUrl(rawUrl: string | undefined): string | null {
+  if (!rawUrl) return null;
+  let cleaned = rawUrl.trim();
+  cleaned = cleaned.replace(/\/(rest|auth|storage)\/v\d+\/?$/i, "");
+  cleaned = cleaned.replace(/\/+$/, "");
+  return cleaned;
+}
+
 const url = () =>
-  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  sanitizeSupabaseUrl(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL,
+  );
 const anonKey = () =>
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  (
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    ""
+  ).trim();
 
 export function createPublicSupabase() {
   if (!url() || !anonKey()) return null;
