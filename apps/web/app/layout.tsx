@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Fraunces } from "next/font/google";
 import "./globals.css";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
 import { siteConfig } from "@/lib/config";
 import { LanguageProvider } from "@/lib/i18n/context";
 import { getServerLocale } from "@/lib/i18n/server";
+import { PortalShell } from "@/components/portal-shell";
 
 const bodyFont = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -40,9 +39,7 @@ export default async function RootLayout({
     >
       <body>
         <LanguageProvider initialLocale={locale}>
-          <SiteHeader />
-          <main>{children}</main>
-          <SiteFooter />
+          <PortalShell>{children}</PortalShell>
         </LanguageProvider>
       </body>
     </html>

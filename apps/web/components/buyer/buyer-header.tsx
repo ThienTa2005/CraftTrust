@@ -1,0 +1,586 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  ChevronDown,
+  Gift,
+  HelpCircle,
+  Leaf,
+  Menu,
+  QrCode,
+  Search,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Store,
+  UserRound,
+  X,
+  Glasses,
+  MapPin,
+  Layers,
+} from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useLanguage } from "@/lib/i18n/context";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { getDemoCart, type DemoCartItem } from "@/lib/cart-store";
+import { formatVnd } from "@/lib/format";
+import { createBrowserSupabase } from "@/lib/supabase-browser";
+
+export function BuyerHeader() {
+  const { locale } = useLanguage();
+  const router = useRouter();
+
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+
+  // Cart state
+  const [cartItems, setCartItems] = useState<DemoCartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+
+  // User state
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Mobile menu state
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Passport modal state
+  const [passportModalOpen, setPassportModalOpen] = useState(false);
+  const [passportQuery, setPassportQuery] = useState("");
+
+  const supabase = useMemo(() => {
+    try {
+      return createBrowserSupabase();
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Sync Cart
+  useEffect(() => {
+    const updateCart = () => setCartItems(getDemoCart());
+    updateCart();
+    window.addEventListener("hct_cart_updated", updateCart);
+    return () => window.removeEventListener("hct_cart_updated", updateCart);
+  }, []);
+
+  // Sync Auth & Roles
+  useEffect(() => {
+    if (!supabase) return;
+    async function syncUser() {
+      const { data } = await supabase!.auth.getUser();
+      if (data?.user) {
+        setUserEmail(data.user.email ?? "Khách hàng");
+        const { data: roles } = await supabase!
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id);
+        setUserRoles((roles ?? []).map((r) => r.role));
+      } else {
+        setUserEmail(null);
+        setUserRoles([]);
+      }
+    }
+    void syncUser();
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      void syncUser();
+    });
+    return () => listener.subscription.unsubscribe();
+  }, [supabase]);
+
+  const totalCartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const cartSubtotal = cartItems.reduce(
+    (acc, item) => acc + item.priceVnd * item.quantity,
+    0,
+  );
+
+  const isSeller = userRoles.includes("seller") || userRoles.includes("artisan");
+  const isAdmin = userRoles.includes("admin") || userRoles.includes("verifier");
+
+  function handleSearchSubmit(e: FormEvent) {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (searchTerm.trim()) params.set("q", searchTerm.trim());
+    if (selectedCategory !== "all") params.set("cat", selectedCategory);
+    router.push(`/marketplace?${params.toString()}`);
+  }
+
+  function handlePassportLookup(e: FormEvent) {
+    e.preventDefault();
+    if (passportQuery.trim()) {
+      setPassportModalOpen(false);
+      router.push(`/passport/${encodeURIComponent(passportQuery.trim())}`);
+    }
+  }
+
+  async function handleSignOut() {
+    if (supabase) {
+      await supabase.auth.signOut();
+      setUserEmail(null);
+      setUserRoles([]);
+      router.push("/");
+      router.refresh();
+    }
+  }
+
+  const trendingTags = [
+    { label: "Ấm tử sa Bát Tràng", q: "ấm" },
+    { label: "Men rạn cổ", q: "men rạn" },
+    { label: "Bình hút lộc", q: "bình" },
+    { label: "Men hỏa biến", q: "men hỏa biến" },
+    { label: "Lụa tơ tằm Vạn Phúc", q: "lụa" },
+    { label: "Hộ chiếu Vàng (Gold)", q: "gold" },
+  ];
+
+  return (
+    <header className="buyer-header">
+      {/* 1. TOP UTILITY BAR (Shopee-Style Topbar) */}
+      <div className="buyer-topbar">
+        <div className="buyer-topbar-container">
+          <div className="buyer-topbar-left">
+            <Link
+              href="/seller"
+              className="buyer-topbar-link highlight"
+              title="Chuyển sang không gian quản lý của Nghệ nhân & Nhà bán hàng"
+            >
+              <Store size={14} />
+              <span>{locale === "vi" ? "Kênh Người Bán" : "Seller Centre"}</span>
+            </Link>
+            <span className="buyer-topbar-sep">|</span>
+            <Link
+              href="/admin"
+              className="buyer-topbar-link"
+              title="Cổng quản trị, kiểm duyệt minh chứng & thẩm định di sản"
+            >
+              <ShieldCheck size={14} />
+              <span>{locale === "vi" ? "Cổng Quản Trị" : "Admin Portal"}</span>
+            </Link>
+            <span className="buyer-topbar-sep">|</span>
+            <button
+              type="button"
+              className="buyer-topbar-link button-link"
+              onClick={() => setPassportModalOpen(true)}
+            >
+              <QrCode size={14} />
+              <span>{locale === "vi" ? "Tra cứu Hộ chiếu số" : "Digital Passport"}</span>
+            </button>
+            <span className="buyer-topbar-sep">|</span>
+            <Link href="/assistant" className="buyer-topbar-link">
+              <Sparkles size={14} />
+              <span>{locale === "vi" ? "Trợ lý AI di sản" : "Heritage AI"}</span>
+            </Link>
+          </div>
+
+          <div className="buyer-topbar-right">
+            <Link href="/docs" className="buyer-topbar-link">
+              <HelpCircle size={14} />
+              <span>{locale === "vi" ? "Hỗ trợ & Chính sách" : "Help"}</span>
+            </Link>
+            <span className="buyer-topbar-sep">|</span>
+            <div className="buyer-topbar-lang">
+              <LanguageSwitcher />
+            </div>
+            <span className="buyer-topbar-sep">|</span>
+
+            {userEmail ? (
+              <div className="buyer-user-dropdown-wrapper">
+                <button
+                  type="button"
+                  className="buyer-user-btn"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  aria-expanded={userMenuOpen}
+                >
+                  <div className="buyer-avatar">
+                    <UserRound size={14} />
+                  </div>
+                  <span className="buyer-user-name" title={userEmail}>
+                    {userEmail.split("@")[0]}
+                  </span>
+                  <ChevronDown size={14} />
+                </button>
+
+                {userMenuOpen && (
+                  <div
+                    className="buyer-user-menu"
+                    onMouseLeave={() => setUserMenuOpen(false)}
+                  >
+                    <div className="buyer-user-menu-header">
+                      <strong>{userEmail}</strong>
+                      <span className="buyer-role-badge">
+                        {isAdmin ? "Admin · Verifier" : isSeller ? "Nghệ nhân · Seller" : "Khách hàng"}
+                      </span>
+                    </div>
+                    <Link
+                      href="/orders"
+                      className="buyer-menu-item"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      {locale === "vi" ? "Đơn mua của tôi" : "My Orders"}
+                    </Link>
+                    <Link
+                      href="/rewards"
+                      className="buyer-menu-item"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      {locale === "vi" ? "Kho Voucher & Điểm thưởng" : "Rewards & Vouchers"}
+                    </Link>
+                    {isSeller && (
+                      <Link
+                        href="/seller"
+                        className="buyer-menu-item highlight-seller"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <Store size={14} />
+                        <strong>{locale === "vi" ? "Vào Kênh Người Bán" : "Go to Seller Centre"}</strong>
+                      </Link>
+                    )}
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        className="buyer-menu-item highlight-admin"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <ShieldCheck size={14} />
+                        <strong>{locale === "vi" ? "Vào Cổng Quản Trị" : "Go to Admin Portal"}</strong>
+                      </Link>
+                    )}
+                    <button
+                      type="button"
+                      className="buyer-menu-item signout-btn"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        void handleSignOut();
+                      }}
+                    >
+                      {locale === "vi" ? "Đăng xuất" : "Sign out"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="buyer-auth-links">
+                <Link href="/auth" className="buyer-topbar-link">
+                  {locale === "vi" ? "Đăng nhập" : "Sign in"}
+                </Link>
+                <span className="buyer-topbar-sep">/</span>
+                <Link href="/auth" className="buyer-topbar-link bold">
+                  {locale === "vi" ? "Đăng ký" : "Register"}
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 2. MAIN HEADER (Search, Logo, Cart) */}
+      <div className="buyer-main-bar">
+        <div className="buyer-main-container">
+          {/* Brand Logo */}
+          <Link href="/" className="buyer-brand" aria-label="Hanoi Craft-Trust">
+            <span className="buyer-brand-icon">
+              <Leaf size={24} />
+            </span>
+            <div className="buyer-brand-text">
+              <span className="buyer-brand-title">HANOI CRAFT-TRUST</span>
+              <span className="buyer-brand-tagline">
+                {locale === "vi"
+                  ? "Sàn Gốm Sứ & Di Sản Thủ Công Thăng Long"
+                  : "Hanoi Heritage Crafts Marketplace"}
+              </span>
+            </div>
+          </Link>
+
+          {/* Prominent Shopee-Style Search Bar */}
+          <div className="buyer-search-wrapper">
+            <form className="buyer-search-form" onSubmit={handleSearchSubmit}>
+              <div className="buyer-search-select-box">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  aria-label="Chọn danh mục tìm kiếm"
+                >
+                  <option value="all">{locale === "vi" ? "Tất cả ngành" : "All Categories"}</option>
+                  <option value="tea">{locale === "vi" ? "Ấm chén trà" : "Tea Ware"}</option>
+                  <option value="vase">{locale === "vi" ? "Bình & Đồ trưng bày" : "Vases & Decor"}</option>
+                  <option value="cobalt">{locale === "vi" ? "Men lam Bát Tràng" : "Cobalt Glaze"}</option>
+                  <option value="gold">{locale === "vi" ? "Hộ chiếu Vàng" : "Gold Passport"}</option>
+                </select>
+              </div>
+
+              <div className="buyer-search-input-box">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={
+                    locale === "vi"
+                      ? "Tìm ấm chén men tro, bình hút lộc Bát Tràng, gốm nghệ nhân..."
+                      : "Search handcrafted ceramics, ash glaze teapots, vases..."
+                  }
+                  aria-label="Tìm kiếm sản phẩm"
+                />
+              </div>
+
+              <button type="submit" className="buyer-search-submit-btn" aria-label="Tìm kiếm">
+                <Search size={18} />
+                <span className="btn-text">{locale === "vi" ? "Tìm kiếm" : "Search"}</span>
+              </button>
+            </form>
+
+            {/* Quick Trending Keywords */}
+            <div className="buyer-trending-tags">
+              {trendingTags.map((tag) => (
+                <button
+                  type="button"
+                  key={tag.label}
+                  className="buyer-trending-tag"
+                  onClick={() => {
+                    setSearchTerm(tag.q);
+                    router.push(`/marketplace?q=${encodeURIComponent(tag.q)}`);
+                  }}
+                >
+                  {tag.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Header Actions */}
+          <div className="buyer-header-actions">
+            {/* Quick Passport button */}
+            <button
+              type="button"
+              className="buyer-action-icon-btn"
+              onClick={() => setPassportModalOpen(true)}
+              title={locale === "vi" ? "Tra cứu Hộ chiếu số tác phẩm" : "Passport verification"}
+            >
+              <QrCode size={22} />
+              <span className="icon-label">{locale === "vi" ? "Hộ chiếu" : "Passport"}</span>
+            </button>
+
+            {/* Shopping Cart with Hover Popover */}
+            <div
+              className="buyer-cart-wrapper"
+              onMouseEnter={() => setCartOpen(true)}
+              onMouseLeave={() => setCartOpen(false)}
+            >
+              <Link href="/cart" className="buyer-cart-btn" aria-label="Giỏ hàng">
+                <div className="buyer-cart-icon-wrap">
+                  <ShoppingBag size={24} />
+                  {totalCartCount > 0 && (
+                    <span className="buyer-cart-badge">{totalCartCount}</span>
+                  )}
+                </div>
+                <span className="buyer-cart-label">{locale === "vi" ? "Giỏ hàng" : "Cart"}</span>
+              </Link>
+
+              {cartOpen && (
+                <div className="buyer-cart-popover">
+                  <div className="buyer-cart-popover-header">
+                    <strong>{locale === "vi" ? "Sản phẩm mới thêm" : "Recently Added"}</strong>
+                    <span className="badge terracotta">{totalCartCount}</span>
+                  </div>
+
+                  {cartItems.length > 0 ? (
+                    <>
+                      <div className="buyer-cart-popover-list">
+                        {cartItems.slice(0, 4).map((item) => (
+                          <div key={item.id} className="buyer-cart-popover-item">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={item.image} alt={item.name} />
+                            <div className="item-info">
+                              <span className="item-name">{locale === "en" && item.nameEn ? item.nameEn : item.name}</span>
+                              <span className="item-meta">
+                                {item.quantity} × {formatVnd(item.priceVnd)}
+                              </span>
+                            </div>
+                            <strong className="item-total">
+                              {formatVnd(item.quantity * item.priceVnd)}
+                            </strong>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="buyer-cart-popover-footer">
+                        <div className="popover-subtotal">
+                          <span>{locale === "vi" ? "Tạm tính:" : "Subtotal:"}</span>
+                          <strong>{formatVnd(cartSubtotal)}</strong>
+                        </div>
+                        <Link
+                          href="/cart"
+                          className="button terracotta full small"
+                          onClick={() => setCartOpen(false)}
+                        >
+                          {locale === "vi" ? "Xem Giỏ Hàng & Thanh Toán" : "View Cart & Checkout"}
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="buyer-cart-popover-empty">
+                      <ShoppingBag size={32} />
+                      <p>{locale === "vi" ? "Chưa có sản phẩm trong giỏ" : "Your cart is empty"}</p>
+                      <Link
+                        href="/marketplace"
+                        className="button secondary small"
+                        onClick={() => setCartOpen(false)}
+                      >
+                        {locale === "vi" ? "Khám phá ngay" : "Shop now"}
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Nav Toggle */}
+            <button
+              type="button"
+              className="buyer-mobile-toggle"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle navigation"
+            >
+              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. CATEGORIES NAVIGATION SUB-BAR */}
+      <nav className="buyer-subnav" aria-label="Danh mục ngành hàng thủ công">
+        <div className="buyer-subnav-container">
+          <Link href="/marketplace" className="buyer-subnav-item active-indicator">
+            <Layers size={16} />
+            <span>{locale === "vi" ? "Tất cả sản phẩm" : "All Products"}</span>
+          </Link>
+          <Link href="/villages/bat-trang" className="buyer-subnav-item">
+            <span>🏺 {locale === "vi" ? "Gốm Bát Tràng" : "Bat Trang Ceramics"}</span>
+          </Link>
+          <Link href="/villages/van-phuc" className="buyer-subnav-item">
+            <span>🧣 {locale === "vi" ? "Lụa Vạn Phúc" : "Van Phuc Silk"}</span>
+          </Link>
+          <Link href="/villages" className="buyer-subnav-item">
+            <span>🪵 {locale === "vi" ? "Mộc Mỹ Nghệ" : "Wood Carving"}</span>
+          </Link>
+          <Link href="/marketplace?tier=gold" className="buyer-subnav-item highlight-tier">
+            <span>✨ {locale === "vi" ? "Hộ Chiếu Vàng (Gold)" : "Gold Passport"}</span>
+          </Link>
+          <Link href="/products/moon-glaze-tea-set" className="buyer-subnav-item">
+            <Glasses size={16} />
+            <span>{locale === "vi" ? "Trải nghiệm 3D/AR" : "3D/AR View"}</span>
+          </Link>
+          <Link href="/map" className="buyer-subnav-item">
+            <MapPin size={16} />
+            <span>{locale === "vi" ? "Bản đồ làng nghề" : "Craft Map"}</span>
+          </Link>
+          <Link href="/rewards" className="buyer-subnav-item">
+            <Gift size={16} />
+            <span>{locale === "vi" ? "Tích điểm đổi quà" : "Rewards"}</span>
+          </Link>
+        </div>
+      </nav>
+
+      {/* MOBILE DRAWER */}
+      {mobileOpen && (
+        <div className="buyer-mobile-drawer">
+          <div className="buyer-mobile-drawer-head">
+            <strong>HANOI CRAFT-TRUST</strong>
+            <button type="button" onClick={() => setMobileOpen(false)}>
+              <X size={20} />
+            </button>
+          </div>
+          <div className="buyer-mobile-drawer-body">
+            <Link href="/marketplace" onClick={() => setMobileOpen(false)}>
+              {locale === "vi" ? "Chợ thủ công" : "Marketplace"}
+            </Link>
+            <Link href="/villages" onClick={() => setMobileOpen(false)}>
+              {locale === "vi" ? "Làng nghề di sản" : "Craft Villages"}
+            </Link>
+            <Link href="/map" onClick={() => setMobileOpen(false)}>
+              {locale === "vi" ? "Bản đồ tương tác" : "Heritage Map"}
+            </Link>
+            <Link href="/rewards" onClick={() => setMobileOpen(false)}>
+              {locale === "vi" ? "Ưu đãi & Tích điểm" : "Rewards & Points"}
+            </Link>
+            <Link href="/orders" onClick={() => setMobileOpen(false)}>
+              {locale === "vi" ? "Đơn mua của tôi" : "My Orders"}
+            </Link>
+            <Link href="/passport/HCT-DEMO-BT-001" onClick={() => setMobileOpen(false)}>
+              {locale === "vi" ? "Hộ chiếu số mẫu" : "Demo Digital Passport"}
+            </Link>
+            <Link href="/assistant" onClick={() => setMobileOpen(false)}>
+              {locale === "vi" ? "Trợ lý nghệ nhân AI" : "Heritage AI Guide"}
+            </Link>
+            <div className="buyer-mobile-drawer-roles">
+              <Link href="/seller" className="drawer-role-link seller" onClick={() => setMobileOpen(false)}>
+                <Store size={18} />
+                <span>{locale === "vi" ? "Vào Kênh Người Bán (Seller Centre)" : "Seller Centre"}</span>
+              </Link>
+              <Link href="/admin" className="drawer-role-link admin" onClick={() => setMobileOpen(false)}>
+                <ShieldCheck size={18} />
+                <span>{locale === "vi" ? "Vào Cổng Quản Trị (Admin Portal)" : "Admin Portal"}</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK PASSPORT MODAL */}
+      {passportModalOpen && (
+        <div className="modal-backdrop" onClick={() => setPassportModalOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div className="modal-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <QrCode size={22} style={{ color: "var(--terracotta)" }} />
+                <h3>{locale === "vi" ? "Tra cứu Hộ chiếu di sản số" : "Digital Passport Lookup"}</h3>
+              </div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setPassportModalOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p style={{ fontSize: "0.9rem", color: "var(--muted)", margin: "8px 0 16px" }}>
+              {locale === "vi"
+                ? "Nhập mã định danh hộ chiếu hoặc quét mã QR/NFC được gắn trên tác phẩm gốm sứ để kiểm tra minh chứng xuất xứ."
+                : "Enter passport public ID or scan NFC chip attached to the ceramic artwork to verify origin evidence."}
+            </p>
+            <form onSubmit={handlePassportLookup} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <input
+                type="text"
+                value={passportQuery}
+                onChange={(e) => setPassportQuery(e.target.value)}
+                placeholder="VD: HCT-DEMO-BT-001"
+                required
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 8,
+                  border: "1px solid var(--line)",
+                  fontSize: "1rem",
+                  fontFamily: "monospace",
+                }}
+              />
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="button secondary small"
+                  onClick={() => {
+                    setPassportQuery("HCT-DEMO-BT-001");
+                  }}
+                >
+                  {locale === "vi" ? "Dùng mã mẫu" : "Use sample ID"}
+                </button>
+                <button type="submit" className="button terracotta small">
+                  {locale === "vi" ? "Tra cứu ngay" : "Lookup"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}

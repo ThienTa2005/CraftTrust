@@ -3,20 +3,29 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  ArrowRight,
   ArrowUpRight,
   BadgeCheck,
   BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
   MapPin,
   QrCode,
   ShieldCheck,
   Sparkles,
+  Timer,
+  Zap,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { DataNotice } from "@/components/data-state";
 import { CraftDoodle } from "@/components/craft-doodle";
 import { ProductCard } from "@/components/product-card";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import type { ProductCard as Product } from "@/lib/demo-data";
 import { useLanguage } from "@/lib/i18n/context";
+import { formatVnd } from "@/lib/format";
+import { addToDemoCart } from "@/lib/cart-store";
 
 interface HomeViewProps {
   products: Product[];
@@ -26,6 +35,159 @@ interface HomeViewProps {
 
 export function HomeView({ products, demo, error }: HomeViewProps) {
   const { locale, t } = useLanguage();
+
+  // Mega Banner Slider state
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const heroBanners = [
+    {
+      id: 1,
+      tag: locale === "vi" ? "SỰ KIỆN NGHỆ NHÂN 2026" : "ARTISAN EVENT 2026",
+      title:
+        locale === "vi"
+          ? "Tuần Lễ Gốm Sứ Bát Tràng: Giảm 20% Dòng Men Tro Độc Bản"
+          : "Bat Trang Pottery Week: 20% Off Moon Glaze Masterpieces",
+      desc:
+        locale === "vi"
+          ? "Mỗi tác phẩm phát hành đều được cấp Hộ chiếu số di sản Gold Passport, bảo chứng đất sông Hồng nung củi 1250°C."
+          : "Every piece issued includes a Gold Digital Passport verifying Red River clay and 1250°C wood kiln firing.",
+      cta: locale === "vi" ? "Khám phá bộ sưu tập" : "Explore collection",
+      href: "/marketplace",
+      image:
+        "https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=1500&q=90",
+      accent: "#e76043",
+    },
+    {
+      id: 2,
+      tag: locale === "vi" ? "DI SẢN TƠ TẰM HÀ NỘI" : "HANOI SILK HERITAGE",
+      title:
+        locale === "vi"
+          ? "Lụa Vạn Phúc: Tinh Hoa Tơ Tằm Dệt Thủ Công 1000 Năm"
+          : "Van Phuc Silk: Millennium-Old Natural Mulberry Weaving",
+      desc:
+        locale === "vi"
+          ? "Đắm mình trong chất lụa vân mỏng nhẹ, thoáng mát và bền bỉ từ làng dệt lụa cổ kính nhất kinh kỳ."
+          : "Immerse in lightweight, natural mulberry silk hand-loomed in Hanoi's most celebrated textile village.",
+      cta: locale === "vi" ? "Khám phá làng nghề" : "Visit village",
+      href: "/villages/van-phuc",
+      image:
+        "https://images.unsplash.com/photo-1606293926075-69a00dbfde81?auto=format&fit=crop&w=1500&q=90",
+      accent: "#08736b",
+    },
+    {
+      id: 3,
+      tag: locale === "vi" ? "CÔNG NGHỆ 3D & AR" : "INTERACTIVE 3D & AR",
+      title:
+        locale === "vi"
+          ? "Xoay 360° & Đặt Thử Gốm Vào Không Gian Sống Của Bạn"
+          : "Inspect in 360° & Preview in Your Living Space with AR",
+      desc:
+        locale === "vi"
+          ? "Ứng dụng mô hình 3D chuẩn xác đến từng milimet, tích hợp công nghệ scan AI từ xưởng nghệ nhân Bát Tràng."
+          : "Millimeter-accurate 3D models generated through our AI scanning pipeline directly from Bat Trang studios.",
+      cta: locale === "vi" ? "Trải nghiệm 3D ngay" : "Try 3D view",
+      href: "/products/moon-glaze-tea-set",
+      image:
+        "https://images.unsplash.com/photo-1686471715390-17eb6acca862?auto=format&fit=crop&w=1500&q=90",
+      accent: "#153b5b",
+    },
+  ];
+
+  // Auto-slide effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroBanners.length);
+    }, 6500);
+    return () => clearInterval(timer);
+  }, [heroBanners.length]);
+
+  // Flash Sale Countdown Timer (Simulated remaining time)
+  const [timeLeft, setTimeLeft] = useState({
+    hours: 3,
+    minutes: 42,
+    seconds: 18,
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+        if (prev.minutes > 0)
+          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        if (prev.hours > 0)
+          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        return { hours: 4, minutes: 0, seconds: 0 };
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Daily Discover Category Filter Tabs
+  const [discoverTab, setDiscoverTab] = useState<string>("all");
+  const discoverProducts = useMemo(() => {
+    if (discoverTab === "gold") return products.filter((p) => p.tier === "gold");
+    if (discoverTab === "cobalt")
+      return products.filter((p) =>
+        /(lam|cobalt|sen)/i.test(`${p.name} ${p.description}`),
+      );
+    if (discoverTab === "tea")
+      return products.filter((p) =>
+        /(ấm|chén|trà)/i.test(`${p.name} ${p.description}`),
+      );
+    return products;
+  }, [products, discoverTab]);
+
+  // Category Grid Data
+  const categories = [
+    {
+      id: "bat-trang",
+      name: locale === "vi" ? "Gốm Bát Tràng" : "Bat Trang Ceramics",
+      desc: locale === "vi" ? "Ấm chén men tro, bình hút lộc" : "Ash glaze tea sets & vases",
+      icon: "🏺",
+      href: "/marketplace?cat=pottery",
+      count: "24 tác phẩm",
+    },
+    {
+      id: "van-phuc",
+      name: locale === "vi" ? "Lụa Vạn Phúc" : "Van Phuc Silk",
+      desc: locale === "vi" ? "Khăn tơ tằm, áo dài lụa vân" : "Natural silk scarves & fabric",
+      icon: "🧣",
+      href: "/villages/van-phuc",
+      count: "18 tác phẩm",
+    },
+    {
+      id: "chang-son",
+      name: locale === "vi" ? "Mộc Chàng Sơn" : "Chang Son Woodwork",
+      desc: locale === "vi" ? "Tượng gỗ, khay trà chạm đục" : "Fine hand-carved wood",
+      icon: "🪵",
+      href: "/villages",
+      count: "15 tác phẩm",
+    },
+    {
+      id: "ha-thai",
+      name: locale === "vi" ? "Sơn Mài Hạ Thái" : "Ha Thai Lacquer",
+      desc: locale === "vi" ? "Tranh sơn mài, bình cẩn ốc" : "Mother-of-pearl lacquer",
+      icon: "🎨",
+      href: "/marketplace",
+      count: "12 tác phẩm",
+    },
+    {
+      id: "dinh-cong",
+      name: locale === "vi" ? "Kim Hoàn Định Công" : "Dinh Cong Silver",
+      desc: locale === "vi" ? "Trâm cài, trang sức bạc đậu" : "Filigree silver craft",
+      icon: "🪙",
+      href: "/marketplace",
+      count: "9 tác phẩm",
+    },
+    {
+      id: "chuong",
+      name: locale === "vi" ? "Nón Làng Chuông" : "Chuong Conical Hats",
+      desc: locale === "vi" ? "Nón lá truyền thống Thăng Long" : "Traditional craft hats",
+      icon: "👒",
+      href: "/marketplace",
+      count: "14 tác phẩm",
+    },
+  ];
+
   const potteryStories = [
     {
       id: "clay",
@@ -63,8 +225,208 @@ export function HomeView({ products, demo, error }: HomeViewProps) {
   ];
 
   return (
-    <>
-      <section className="hero shell">
+    <div className="buyer-homepage">
+      {/* 1. MEGA PROMOTIONAL HERO BANNER CAROUSEL (Shopee-Style Heritage) */}
+      <section className="buyer-promo-slider-section">
+        <div className="shell">
+          <div className="buyer-slider-container">
+            {heroBanners.map((banner, index) => {
+              const isActive = index === currentSlide;
+              return (
+                <div
+                  key={banner.id}
+                  className={`buyer-slide ${isActive ? "active" : ""}`}
+                >
+                  <div className="buyer-slide-bg">
+                    <Image
+                      src={banner.image}
+                      alt={banner.title}
+                      fill
+                      priority={index === 0}
+                      sizes="(max-width: 1200px) 100vw, 1200px"
+                      className="buyer-slide-img"
+                    />
+                    <div className="buyer-slide-overlay" />
+                  </div>
+
+                  <div className="buyer-slide-content">
+                    <span className="buyer-slide-tag">{banner.tag}</span>
+                    <h2 className="buyer-slide-title">{banner.title}</h2>
+                    <p className="buyer-slide-desc">{banner.desc}</p>
+                    <div className="buyer-slide-actions">
+                      <Link
+                        href={banner.href}
+                        className="button terracotta"
+                        style={{ background: banner.accent }}
+                      >
+                        {banner.cta} <ArrowRight size={18} />
+                      </Link>
+                      <Link href="/passport/HCT-DEMO-BT-001" className="button secondary">
+                        <QrCode size={16} /> {locale === "vi" ? "Xem Hộ Chiếu Số" : "View Passport"}
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Slider Controls */}
+            <button
+              type="button"
+              className="buyer-slider-arrow prev"
+              onClick={() =>
+                setCurrentSlide(
+                  (prev) => (prev - 1 + heroBanners.length) % heroBanners.length,
+                )
+              }
+              aria-label="Previous slide"
+            >
+              <ChevronLeft size={22} />
+            </button>
+            <button
+              type="button"
+              className="buyer-slider-arrow next"
+              onClick={() =>
+                setCurrentSlide((prev) => (prev + 1) % heroBanners.length)
+              }
+              aria-label="Next slide"
+            >
+              <ChevronRight size={22} />
+            </button>
+
+            {/* Dots */}
+            <div className="buyer-slider-dots">
+              {heroBanners.map((b, i) => (
+                <button
+                  type="button"
+                  key={b.id}
+                  className={`dot ${i === currentSlide ? "active" : ""}`}
+                  onClick={() => setCurrentSlide(i)}
+                  aria-label={`Slide ${i + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. HERITAGE CATEGORIES GRID (Danh Mục Ngành Hàng Đa Dạng) */}
+      <section className="section buyer-categories-section">
+        <div className="shell">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">
+                {locale === "vi" ? "Làng nghề Thăng Long" : "Heritage Crafts"}
+              </span>
+              <h2>{locale === "vi" ? "Danh Mục Ngành Hàng Truyền Thống" : "Explore Traditional Crafts"}</h2>
+            </div>
+            <Link href="/villages" className="button secondary small">
+              {locale === "vi" ? "Xem tất cả làng nghề" : "All villages"}
+            </Link>
+          </div>
+
+          <div className="buyer-category-cards-grid">
+            {categories.map((cat) => (
+              <Link key={cat.id} href={cat.href} className="buyer-category-card">
+                <span className="cat-icon">{cat.icon}</span>
+                <strong className="cat-name">{cat.name}</strong>
+                <span className="cat-desc">{cat.desc}</span>
+                <small className="cat-count">{cat.count}</small>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 3. FLASH SALE LÀNG NGHỀ (DEAL GIỜ VÀNG SỐC) */}
+      <section className="section buyer-flash-sale-section">
+        <div className="shell">
+          <div className="flash-sale-banner-header">
+            <div className="flash-sale-title-wrap">
+              <span className="flash-bolt">
+                <Zap size={24} />
+              </span>
+              <h3>FLASH SALE LÀNG NGHỀ</h3>
+              <div className="flash-countdown-box">
+                <Timer size={16} />
+                <span className="digit">
+                  {String(timeLeft.hours).padStart(2, "0")}
+                </span>
+                <span className="colon">:</span>
+                <span className="digit">
+                  {String(timeLeft.minutes).padStart(2, "0")}
+                </span>
+                <span className="colon">:</span>
+                <span className="digit">
+                  {String(timeLeft.seconds).padStart(2, "0")}
+                </span>
+              </div>
+            </div>
+
+            <Link href="/marketplace" className="flash-sale-view-all">
+              <span>{locale === "vi" ? "Xem tất cả deal sốc" : "See all deals"}</span>
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          <div className="flash-sale-products-grid">
+            {products.slice(0, 3).map((product, idx) => {
+              const originalPrice = Math.round(product.priceVnd * 1.25);
+              return (
+                <div key={product.id} className="flash-product-card">
+                  <div className="flash-badge-corner">-20%</div>
+                  <div className="card-thumb-wrap">
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 600px) 100vw, 33vw"
+                    />
+                  </div>
+                  <div className="flash-card-body">
+                    <span className="flash-artisan">{product.artisan} · {product.village}</span>
+                    <h4 className="flash-title">{product.name}</h4>
+                    <div className="flash-price-row">
+                      <strong className="flash-sale-price">{formatVnd(product.priceVnd)}</strong>
+                      <span className="flash-original-price">{formatVnd(originalPrice)}</span>
+                    </div>
+
+                    <div className="flash-progress-bar">
+                      <div className="progress-fill" style={{ width: `${75 + idx * 8}%` }} />
+                      <span className="progress-label">
+                        <Flame size={12} /> {locale === "vi" ? `Đã bán ${7 + idx}/10 tác phẩm` : `Sold ${7 + idx}/10`}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="button terracotta full small"
+                      style={{ marginTop: 12 }}
+                      onClick={() => {
+                        addToDemoCart({
+                          productId: product.id,
+                          name: product.name,
+                          priceVnd: product.priceVnd,
+                          image: product.image,
+                          quantity: 1,
+                          village: product.village,
+                          artisan: product.artisan,
+                        });
+                        alert(locale === "vi" ? "Đã thêm tác phẩm vào giỏ hàng!" : "Added to cart!");
+                      }}
+                    >
+                      {locale === "vi" ? "Mua ngay deal hot" : "Claim deal"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 4. ORIGINAL CORE STORY SECTION (Kept for E2E tests & cultural depth) */}
+      <section className="hero shell" style={{ marginTop: 40 }}>
         <div className="hero-panel">
           <span className="hero-orb hero-orb-one" aria-hidden="true" />
           <span className="hero-orb hero-orb-two" aria-hidden="true" />
@@ -151,6 +513,65 @@ export function HomeView({ products, demo, error }: HomeViewProps) {
         </div>
       </section>
 
+      {/* 5. GỢI Ý HÔM NAY (DAILY DISCOVER - Shopee Style) */}
+      <section className="section buyer-daily-discover">
+        <div className="shell">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">
+                {locale === "vi" ? "Dành riêng cho bạn" : "Recommended for you"}
+              </span>
+              <h2>{locale === "vi" ? "Gợi Ý Hôm Nay" : "Daily Discover"}</h2>
+            </div>
+          </div>
+
+          <div className="buyer-discover-tabs">
+            <button
+              type="button"
+              className={`discover-tab ${discoverTab === "all" ? "active" : ""}`}
+              onClick={() => setDiscoverTab("all")}
+            >
+              {locale === "vi" ? "Tất cả gợi ý" : "All items"}
+            </button>
+            <button
+              type="button"
+              className={`discover-tab ${discoverTab === "gold" ? "active" : ""}`}
+              onClick={() => setDiscoverTab("gold")}
+            >
+              ✨ {locale === "vi" ? "Hộ Chiếu Vàng" : "Gold Passport"}
+            </button>
+            <button
+              type="button"
+              className={`discover-tab ${discoverTab === "tea" ? "active" : ""}`}
+              onClick={() => setDiscoverTab("tea")}
+            >
+              🍵 {locale === "vi" ? "Ấm chén trà" : "Tea Ware"}
+            </button>
+            <button
+              type="button"
+              className={`discover-tab ${discoverTab === "cobalt" ? "active" : ""}`}
+              onClick={() => setDiscoverTab("cobalt")}
+            >
+              🏺 {locale === "vi" ? "Men lam Bát Tràng" : "Cobalt Glaze"}
+            </button>
+          </div>
+
+          <div className="grid three" style={{ marginTop: 24 }}>
+            {discoverProducts.map((product) => (
+              <ProductCard product={product} key={product.id} />
+            ))}
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: 36 }}>
+            <Link href="/marketplace" className="button terracotta">
+              {locale === "vi" ? "Xem thêm nhiều tác phẩm thủ công" : "Explore full marketplace"}
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. LÀNG NGHỀ TIÊU BIỂU (VILLAGES STORIES) */}
       <ScrollReveal className="section villages-section">
         <CraftDoodle className="section-doodle doodle-villages" />
         <div className="shell">
@@ -195,83 +616,6 @@ export function HomeView({ products, demo, error }: HomeViewProps) {
           )}
         </div>
       </ScrollReveal>
-
-      <ScrollReveal className="section soft craft-section" delay={80}>
-        <CraftDoodle className="section-doodle doodle-craft" />
-        <div className="shell">
-          <div className="section-head">
-            <div>
-              <span className="eyebrow">{t.homeSections.craftEyebrow}</span>
-              <h2>{t.homeSections.craftTitle}</h2>
-            </div>
-            <Link href="/marketplace" className="button secondary">
-              {t.homeSections.seeAllCraft}
-            </Link>
-          </div>
-          {products.length ? (
-            <div className="grid three">
-              {products.slice(0, 3).map((product) => (
-                <ProductCard product={product} key={product.id} />
-              ))}
-            </div>
-          ) : (
-            <div className="empty">{t.homeSections.noProducts}</div>
-          )}
-        </div>
-      </ScrollReveal>
-
-      <ScrollReveal className="section story-section" delay={100}>
-        <div className="shell story-band">
-          <div className="story-image">
-            <Image
-              src="https://images.unsplash.com/photo-1721373489867-b95a7b3fe16c?auto=format&fit=crop&w=1200&q=88"
-              alt="Bộ trà gốm men lam vẽ tay Bát Tràng"
-              width={1000}
-              height={900}
-            />
-          </div>
-          <div className="story-copy">
-            <span className="eyebrow" style={{ color: "#ffe2d6" }}>
-              {t.homeSections.trustMethodEyebrow}
-            </span>
-            <h2>{t.homeSections.trustMethodTitle}</h2>
-            <p>{t.homeSections.trustMethodDesc}</p>
-            <div className="steps">
-              <div className="step">
-                <span className="step-number">1</span>
-                <div>
-                  <strong>{t.homeSections.step1Title}</strong>
-                  <br />
-                  <span>{t.homeSections.step1Desc}</span>
-                </div>
-              </div>
-              <div className="step">
-                <span className="step-number">2</span>
-                <div>
-                  <strong>{t.homeSections.step2Title}</strong>
-                  <br />
-                  <span>{t.homeSections.step2Desc}</span>
-                </div>
-              </div>
-              <div className="step">
-                <span className="step-number">3</span>
-                <div>
-                  <strong>{t.homeSections.step3Title}</strong>
-                  <br />
-                  <span>{t.homeSections.step3Desc}</span>
-                </div>
-              </div>
-            </div>
-            <Link
-              href="/passport/HCT-DEMO-BT-001"
-              className="button"
-              style={{ marginTop: 28, background: "#fff", color: "#7d351e" }}
-            >
-              {t.homeSections.samplePassport}
-            </Link>
-          </div>
-        </div>
-      </ScrollReveal>
-    </>
+    </div>
   );
 }
