@@ -148,8 +148,8 @@ const statusCopy: Record<ModelStatus, { label: string; detail: string }> = {
     detail: "Đang tách nền, dựng khối và phủ hoa văn.",
   },
   review: {
-    label: "Chờ nghệ nhân duyệt",
-    detail: "Xoay và kiểm tra kỹ trước khi công khai.",
+    label: "Chờ duyệt mô hình",
+    detail: "Nghệ nhân kiểm tra; admin duyệt mô hình trước khi người mua xem.",
   },
   ready: {
     label: "Đã xuất bản",
@@ -361,7 +361,7 @@ export function Seller3DStudio({
         kind: "success",
         text:
           action === "publish"
-            ? "Đã xuất bản. Người mua có thể xem sản phẩm và xoay mô hình 3D."
+            ? "Đã đăng sản phẩm. Mô hình 3D chỉ hiển thị công khai sau khi admin phê duyệt."
             : "Đã đưa sản phẩm trở lại hàng đợi tạo 3D.",
       });
       await refreshProducts(true);
@@ -1192,7 +1192,7 @@ export function Seller3DStudio({
                           disabled={isBusy}
                           onClick={() => void runAction(product.id, "publish")}
                         >
-                          <CheckCircle2 size={17} /> Duyệt & xuất bản
+                          <CheckCircle2 size={17} /> Đăng sản phẩm, chờ duyệt 3D
                         </button>
                       ) : null}
                       {["failed", "review", "ready"].includes(

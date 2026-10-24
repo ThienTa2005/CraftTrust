@@ -6,7 +6,6 @@ import {
   ChevronDown,
   Gift,
   HelpCircle,
-  Leaf,
   Menu,
   QrCode,
   Search,
@@ -23,6 +22,7 @@ import {
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { BrandLogo } from "@/components/brand-logo";
 import { getDemoCart, type DemoCartItem } from "@/lib/cart-store";
 import { formatVnd } from "@/lib/format";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
@@ -50,6 +50,12 @@ export function BuyerHeader() {
   // Passport modal state
   const [passportModalOpen, setPassportModalOpen] = useState(false);
   const [passportQuery, setPassportQuery] = useState("");
+  useEffect(() => {
+    if (!mobileOpen && !passportModalOpen) return;
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") { setMobileOpen(false); setPassportModalOpen(false); } };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [mobileOpen, passportModalOpen]);
 
   const supabase = useMemo(() => {
     try {
@@ -280,17 +286,7 @@ export function BuyerHeader() {
         <div className="buyer-main-container">
           {/* Brand Logo */}
           <Link href="/" className="buyer-brand" aria-label="Hanoi Craft-Trust">
-            <span className="buyer-brand-icon">
-              <Leaf size={24} />
-            </span>
-            <div className="buyer-brand-text">
-              <span className="buyer-brand-title">HANOI CRAFT-TRUST</span>
-              <span className="buyer-brand-tagline">
-                {locale === "vi"
-                  ? "Sàn Gốm Sứ & Di Sản Thủ Công Thăng Long"
-                  : "Hanoi Heritage Crafts Marketplace"}
-              </span>
-            </div>
+            <BrandLogo />
           </Link>
 
           {/* Prominent Shopee-Style Search Bar */}
@@ -440,6 +436,8 @@ export function BuyerHeader() {
               className="buyer-mobile-toggle"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle navigation"
+              aria-expanded={mobileOpen}
+              aria-controls="buyer-mobile-navigation"
             >
               {mobileOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -483,14 +481,17 @@ export function BuyerHeader() {
 
       {/* MOBILE DRAWER */}
       {mobileOpen && (
-        <div className="buyer-mobile-drawer">
+        <div className="buyer-mobile-drawer" id="buyer-mobile-navigation">
           <div className="buyer-mobile-drawer-head">
-            <strong>HANOI CRAFT-TRUST</strong>
-            <button type="button" onClick={() => setMobileOpen(false)}>
+            <strong>CraftTrust</strong>
+            <button type="button" aria-label="Đóng menu" onClick={() => setMobileOpen(false)}>
               <X size={20} />
             </button>
           </div>
           <div className="buyer-mobile-drawer-body">
+            <LanguageSwitcher />
+            <Link href="/auth" onClick={() => setMobileOpen(false)}>{locale === "vi" ? "Tài khoản / Đăng nhập" : "Account / Sign in"}</Link>
+            <Link href="/experiences" onClick={() => setMobileOpen(false)}>{locale === "vi" ? "Trải nghiệm 3D/VR" : "3D/VR experiences"}</Link>
             <Link href="/marketplace" onClick={() => setMobileOpen(false)}>
               {locale === "vi" ? "Chợ thủ công" : "Marketplace"}
             </Link>

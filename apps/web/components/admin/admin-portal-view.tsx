@@ -11,6 +11,7 @@ import {
 import { AdminHeader } from "./admin-header";
 import { AdminSidebar } from "./admin-sidebar";
 import { AdminExperiences } from "./admin-experiences";
+import { Admin3DManager } from "./admin-3d-manager";
 import { ReviewEvidence } from "@/components/review-evidence";
 import type { AppRole } from "@/lib/authz";
 
@@ -390,66 +391,11 @@ export function AdminPortalView({
             </div>
           )}
 
-          {/* TAB 4: DUYỆT SẢN PHẨM & 3D */}
+          {/* TAB 4: QUẢN LÝ & KIỂM ĐỊNH MÔ HÌNH 3D/AR */}
           {activeTab === "products-audit" && (
             <div className="admin-view-fade">
               <div className="admin-card">
-                <div className="admin-card-header">
-                  <div>
-                    <h2>Kiểm Duyệt Sản Phẩm & Mô Hình 3D Toàn Sàn</h2>
-                    <p className="card-sub">
-                      Đảm bảo thông số chiều cao, đường kính và độ chính xác của mô hình 3D AR trước khi đưa lên sàn
-                    </p>
-                  </div>
-                </div>
-
-                <div className="admin-table-wrap">
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Tác Phẩm Gốm Sứ</th>
-                        <th>Xưởng Sản Xuất</th>
-                        <th>Giá Niêm Yết</th>
-                        <th>Kiểm Định 3D AR</th>
-                        <th>Quyết Định Sàn</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>
-                          <strong>Bộ ấm chén gốm men tro trăng Bát Tràng</strong>
-                          <br /><small className="mono-code">moon-glaze-tea-set</small>
-                        </td>
-                        <td>Nguyễn Thu Hà · Bát Tràng</td>
-                        <td><strong>1.850.000 ₫</strong></td>
-                        <td>
-                          <span className="badge success">
-                            <Sparkles size={12} /> Đã kiểm định kích thước
-                          </span>
-                        </td>
-                        <td>
-                          <span className="seller-status-pill success">Đã phát hành</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <strong>Bình hoa gốm men lam vẽ sen Bát Tràng</strong>
-                          <br /><small className="mono-code">lotus-cobalt-vase</small>
-                        </td>
-                        <td>Trần Ngọc Mai · Bát Tràng</td>
-                        <td><strong>1.350.000 ₫</strong></td>
-                        <td>
-                          <span className="badge success">
-                            <Sparkles size={12} /> Đã kiểm định kích thước
-                          </span>
-                        </td>
-                        <td>
-                          <span className="seller-status-pill success">Đã phát hành</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                <Admin3DManager />
               </div>
             </div>
           )}

@@ -242,6 +242,43 @@ export function OrdersView({
                             <small>
                               {item.village} · Số lượng: × {item.quantity}
                             </small>
+                            {item.personalization && (
+                              <div
+                                className="order-personalization-badge"
+                                style={{
+                                  marginTop: 6,
+                                  padding: "6px 10px",
+                                  background: "var(--paper)",
+                                  border: "1px dashed var(--gold)",
+                                  borderRadius: 6,
+                                  fontSize: "0.82rem",
+                                }}
+                              >
+                                <strong style={{ color: "var(--terracotta)" }}>
+                                  ✨ {locale === "vi" ? "Khắc chữ cá nhân hóa:" : "Personalized engraving:"}{" "}
+                                </strong>
+                                <span>&quot;{item.personalization.text}&quot;</span>
+                                <div style={{ color: "var(--muted)", fontSize: "0.78rem", marginTop: 2 }}>
+                                  {locale === "vi" ? "Hoàn thiện:" : "Finish:"}{" "}
+                                  {{ ink: "Chữ men / Ink", gold: "Dát vàng / Gold", recessed: "Khắc chìm / Recessed", raised: "Khắc nổi / Raised" }[item.personalization.finish] || item.personalization.finish} · {item.personalization.fontSizeMm}mm
+                                </div>
+                                {item.personalization.previewDataUrl && (
+                                  <img
+                                    src={item.personalization.previewDataUrl}
+                                    alt="Bản xem trước cá nhân hóa"
+                                    style={{
+                                      width: 64,
+                                      height: 64,
+                                      objectFit: "contain",
+                                      marginTop: 4,
+                                      borderRadius: 4,
+                                      border: "1px solid var(--line)",
+                                      background: "#fff",
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            )}
                             <Link
                               href="/passport/HCT-VN-BT-001"
                               className="order-passport-link"

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Fraunces } from "next/font/google";
 import "./globals.css";
+import "./upgrade.css";
 import { siteConfig } from "@/lib/config";
 import { LanguageProvider } from "@/lib/i18n/context";
 import { getServerLocale } from "@/lib/i18n/server";
@@ -23,6 +24,8 @@ const displayFont = Fraunces({
 export const metadata: Metadata = {
   title: { default: siteConfig.name, template: `%s · ${siteConfig.name}` },
   description: siteConfig.description,
+  icons: { icon: "/brand/icon-32.png", apple: "/brand/icon-180.png" },
+  openGraph: { title: "CraftTrust · Hanoi Craft-Trust", description: siteConfig.description, images: [{ url: "/brand/full.png", width: 792, height: 600 }] },
   metadataBase: new URL(siteConfig.siteUrl),
 };
 

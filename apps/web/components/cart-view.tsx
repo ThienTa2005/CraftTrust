@@ -176,6 +176,21 @@ export function CartView({
                       <strong style={{ fontSize: "1.05rem" }}>
                         {displayName}
                       </strong>
+                      {item.personalization && (
+                        <div
+                          style={{
+                            fontSize: "0.82rem",
+                            color: "var(--terracotta)",
+                            marginTop: 4,
+                            background: "var(--paper)",
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                            border: "1px dashed var(--gold)",
+                          }}
+                        >
+                          <strong>✨ {locale === "vi" ? "Khắc chữ:" : "Engraved:"} </strong>&quot;{item.personalization.text}&quot; ({{ ink: "Chữ men", gold: "Dát vàng", recessed: "Khắc chìm", raised: "Khắc nổi" }[item.personalization.finish] || item.personalization.finish})
+                        </div>
+                      )}
                       {item.customNote && (
                         <div
                           style={{

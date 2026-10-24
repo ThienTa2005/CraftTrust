@@ -1,4 +1,5 @@
 import { createPublicSupabase } from "./supabase";
+import { modelConfigSchema } from "./model-config";
 import {
   demoProducts,
   demoVillages,
@@ -44,13 +45,13 @@ export async function getVillages(): Promise<DataResult<VillageCard[]>> {
   const existingSlugs = new Set(dbVillages.map((v) => v.slug));
   const merged = [...dbVillages];
   for (const demo of demoVillages) {
-    if (!existingSlugs.has(demo.slug)) {
+    if (!supabase && !existingSlugs.has(demo.slug)) {
       merged.push(demo);
     }
   }
 
   return {
-    demo: dbVillages.length === 0,
+    demo: !supabase,
     data: merged,
   };
 }
@@ -58,9 +59,10 @@ export async function getVillages(): Promise<DataResult<VillageCard[]>> {
 export async function getProducts(): Promise<DataResult<ProductCard[]>> {
   const supabase = createPublicSupabase();
   let dbProducts: ProductCard[] = [];
+  let dataError: string | undefined;
 
   if (supabase) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("products")
       .select(
         "id,slug,name,description,price_vnd,stock_quantity,poster_url,model_url,ar_url,artisans(name,villages(name)),passport_records(public_id,tier)",
@@ -68,8 +70,12 @@ export async function getProducts(): Promise<DataResult<ProductCard[]>> {
       .eq("status", "active")
       .order("created_at", { ascending: false });
 
+    dataError = error?.message;
+    const { data: assets } = await supabase.from("product_model_assets").select("id,product_id,settings").eq("status", "published");
     if (data && data.length > 0) {
       dbProducts = data.map((row: any) => {
+        const asset = assets?.find((a) => a.product_id === row.id);
+        const settings = modelConfigSchema.safeParse(asset?.settings);
         const passport = Array.isArray(row.passport_records)
           ? row.passport_records[0]
           : row.passport_records;
@@ -89,10 +95,11 @@ export async function getProducts(): Promise<DataResult<ProductCard[]>> {
           image: row.poster_url ?? "/placeholder-product.svg",
           artisan: artisan?.name ?? "Nghệ nhân Hà Nội",
           village: village?.name ?? "Bát Tràng",
-          passportId: passport?.public_id ?? "HCT-VN-BT-001",
-          tier: passport?.tier ?? "gold",
-          modelUrl: row.model_url ?? undefined,
-          arUrl: row.ar_url ?? undefined,
+          passportId: passport?.public_id ?? "",
+          tier: passport?.tier ?? "unverified",
+          modelUrl: asset ? `/api/models/${asset.id}` : undefined,
+          modelAssetId: asset?.id,
+          modelConfig: settings.success ? settings.data : undefined,
         } satisfies ProductCard;
       });
     }
@@ -101,13 +108,14 @@ export async function getProducts(): Promise<DataResult<ProductCard[]>> {
   const existingSlugs = new Set(dbProducts.map((p) => p.slug));
   const merged = [...dbProducts];
   for (const demo of demoProducts) {
-    if (!existingSlugs.has(demo.slug)) {
+    if (!supabase && !existingSlugs.has(demo.slug)) {
       merged.push(demo);
     }
   }
 
   return {
-    demo: dbProducts.length === 0,
+    demo: !supabase,
+    ...(dataError ? { error: dataError } : {}),
     data: merged,
   };
 }
@@ -124,7 +132,7 @@ export async function getProduct(
         slug === `demo-${product.slug}` ||
         product.slug.replace("demo-", "") === slug.replace("demo-", ""),
     ) ??
-    demoProducts.find(
+    (result.demo ? demoProducts : []).find(
       (p) =>
         p.slug === slug ||
         p.slug.replace("demo-", "") === slug.replace("demo-", ""),
@@ -149,7 +157,7 @@ export async function getVillage(
         slug === `demo-${village.slug}` ||
         village.slug.replace("demo-", "") === slug.replace("demo-", ""),
     ) ??
-    demoVillages.find(
+    (result.demo ? demoVillages : []).find(
       (v) =>
         v.slug === slug ||
         v.slug.replace("demo-", "") === slug.replace("demo-", ""),

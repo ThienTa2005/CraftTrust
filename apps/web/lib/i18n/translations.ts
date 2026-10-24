@@ -3,7 +3,7 @@ import type { Locale, TranslationDictionary } from "./types";
 export const translations: Record<Locale, TranslationDictionary> = {
   vi: {
     common: {
-      siteTitle: "Bát Tràng Craft",
+      siteTitle: "Hanoi Craft-Trust",
       siteDescription:
         "Không gian triển lãm và cửa hàng gốm Bát Tràng có hộ chiếu nguồn gốc",
       demoNotice:
@@ -390,13 +390,13 @@ export const translations: Record<Locale, TranslationDictionary> = {
       digitalPassports: "Hộ chiếu số",
       evidencePolicy: "Chính sách bằng chứng",
       testOnlyNote: "Cam kết 100% tác phẩm chính hãng",
-      copyright: "© 2026 Bát Tràng Craft.",
+      copyright: "© 2026 Hanoi Craft-Trust (CraftTrust). Bảo lưu mọi quyền.",
       mission: "Gìn giữ dáng gốm Việt trong nhịp sống đương đại.",
     },
   },
   en: {
     common: {
-      siteTitle: "Bat Trang Craft",
+      siteTitle: "Hanoi Craft-Trust",
       siteDescription: "A gallery and shop for traceable Bat Trang ceramics",
       demoNotice:
         "Preserving and celebrating authentic Bat Trang ceramic arts.",
@@ -778,7 +778,7 @@ export const translations: Record<Locale, TranslationDictionary> = {
       digitalPassports: "Digital passports",
       evidencePolicy: "Evidence policy",
       testOnlyNote: "100% Authentic Heritage Guarantee",
-      copyright: "© 2026 Bat Trang Craft.",
+      copyright: "© 2026 Hanoi Craft-Trust (CraftTrust). All rights reserved.",
       mission:
         "Keeping Vietnamese ceramic forms alive in contemporary rituals.",
     },

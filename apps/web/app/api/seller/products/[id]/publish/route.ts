@@ -33,7 +33,7 @@ export async function POST(
   }
   const { error: updateError } = await auth.supabase
     .from("products")
-    .update({ status: "active", model_status: "ready", model_error: null })
+    .update({ status: "active", model_error: null })
     .eq("id", id);
   if (updateError)
     return NextResponse.json({ error: updateError.message }, { status: 500 });

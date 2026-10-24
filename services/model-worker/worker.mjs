@@ -216,7 +216,7 @@ async function processJob(job) {
     uploadedModelPath = `${artisan.owner_id}/${job.product_id}/model-${version}.glb`;
 
     const { error: uploadError } = await supabase.storage
-      .from("product-assets")
+      .from("product-models")
       .upload(uploadedModelPath, model, {
         contentType: "model/gltf-binary",
         cacheControl: "31536000",
@@ -224,10 +224,14 @@ async function processJob(job) {
       });
     if (uploadError) throw uploadError;
 
-    const { data: publicAsset } = supabase.storage
-      .from("product-assets")
-      .getPublicUrl(uploadedModelPath);
-    const modelUrl = publicAsset.publicUrl;
+    const modelUrl = `/api/models/${version}`;
+    const { error: assetError } = await supabase.from("product_model_assets").insert({
+      id: version, product_id: job.product_id, storage_path: uploadedModelPath,
+      original_filename: "generated-model.glb", file_size: model.byteLength,
+      origin: "generated", status: "pending_review", uploaded_by: artisan.owner_id,
+      settings: { heightCm: product.height_cm, widthCm: product.width_cm, scale: 1, orientation: [0,0,0], cameraOrbit: "0deg 75deg auto", arEnabled: false, regions: [] },
+    });
+    if (assetError) throw assetError;
 
     // Check if master GLB exists and upload it
     const masterPath = path.join(tempDirectory, "model-master.glb");
@@ -236,17 +240,14 @@ async function processJob(job) {
         const masterModel = await readFile(masterPath);
         const masterUploadPath = `${artisan.owner_id}/${job.product_id}/model-master-${version}.glb`;
         const { error: masterUploadError } = await supabase.storage
-          .from("product-assets")
+          .from("product-models")
           .upload(masterUploadPath, masterModel, {
             contentType: "model/gltf-binary",
             cacheControl: "31536000",
             upsert: false,
           });
         if (!masterUploadError) {
-          const { data: masterAsset } = supabase.storage
-            .from("product-assets")
-            .getPublicUrl(masterUploadPath);
-          report.masterModelUrl = masterAsset.publicUrl;
+          report.masterModelPath = masterUploadPath;
         }
       } catch (err) {
         console.warn("[model-worker] master GLB upload warning:", err);
@@ -259,7 +260,7 @@ async function processJob(job) {
       .from("products")
       .update({
         model_url: modelUrl,
-        ar_url: modelUrl,
+        ar_url: null,
         model_status: "review",
         model_report: report,
         model_error: null,
@@ -288,7 +289,7 @@ async function processJob(job) {
         ? error.message.slice(0, 2000)
         : String(error).slice(0, 2000);
     if (uploadedModelPath) {
-      await supabase.storage.from("product-assets").remove([uploadedModelPath]);
+      await supabase.storage.from("product-models").remove([uploadedModelPath]);
     }
     await Promise.all([
       supabase

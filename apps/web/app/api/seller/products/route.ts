@@ -215,9 +215,7 @@ export async function POST(request: Request) {
       if (publicUploadError) throw publicUploadError;
       uploadedPublicPaths.push(publicPath);
 
-      const { data: publicAsset } = auth.supabase.storage
-        .from("product-assets")
-        .getPublicUrl(publicPath);
+      const publicAsset = { publicUrl: `/api/assets/product-assets/${publicPath}` };
       if (index === 0) posterUrl = publicAsset.publicUrl;
       sourceRows.push({
         product_id: productId,
@@ -248,6 +246,7 @@ export async function POST(request: Request) {
       .update({ poster_url: posterUrl })
       .eq("id", productId);
     const engine = String(form.get("engine") ?? "auto").trim();
+    if (posterError) throw posterError;
     const { error: jobError } = await auth.supabase
       .from("model_jobs")
       .insert({

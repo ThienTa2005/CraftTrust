@@ -42,6 +42,7 @@ async function hasValidSignature(file: File) {
 }
 
 function publicStoragePath(url: string) {
+  if (url.startsWith("/api/assets/product-assets/")) return url.slice("/api/assets/product-assets/".length);
   try {
     const marker = "/storage/v1/object/public/product-assets/";
     const path = new URL(url).pathname;
@@ -191,9 +192,7 @@ export async function PATCH(
         });
       if (publicError) throw publicError;
       newPublicPaths.push(publicPath);
-      const { data: asset } = auth.supabase.storage
-        .from("product-assets")
-        .getPublicUrl(publicPath);
+      const asset = { publicUrl: `/api/assets/product-assets/${publicPath}` };
       if (index === 0) posterUrl = asset.publicUrl;
       sourceRows.push({
         product_id: id,

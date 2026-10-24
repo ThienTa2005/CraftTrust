@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthForm } from "@/components/auth-form";
+import { BrandLogo } from "@/components/brand-logo";
 import { useLanguage } from "@/lib/i18n/context";
 
 export function AuthView() {
@@ -9,10 +10,11 @@ export function AuthView() {
   return (
     <section className="shell auth-page">
       <div className="auth-intro">
+        <BrandLogo />
         <span className="eyebrow">
           {locale === "vi"
-            ? "Tài khoản Bát Tràng Craft"
-            : "Bát Tràng Craft account"}
+            ? "Tài khoản CraftTrust"
+            : "CraftTrust account"}
         </span>
         <h1>
           {locale === "vi"
@@ -40,8 +42,8 @@ export function AuthView() {
           <span>
             03 ·{" "}
             {locale === "vi"
-              ? "Phân quyền dữ liệu bằng Supabase RLS"
-              : "Data access protected by Supabase RLS"}
+              ? "Thông tin mua hàng và gian hàng được bảo vệ"
+              : "Your shopping and workshop information is protected"}
           </span>
         </div>
       </div>

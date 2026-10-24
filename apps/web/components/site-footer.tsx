@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Leaf } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/context";
 
+import { BrandLogo } from "@/components/brand-logo";
+
 export function SiteFooter() {
   const { t } = useLanguage();
 
@@ -12,11 +14,9 @@ export function SiteFooter() {
       <div className="shell">
         <div className="footer-grid">
           <div>
-            <div className="brand">
-              <span className="brand-mark">
-                <Leaf size={18} />
-              </span>
-              <span>Bát Tràng Craft</span>
+            <div className="brand" style={{ marginBottom: 12 }}>
+              <BrandLogo compact />
+              <span style={{ fontWeight: 700, fontSize: "1.1rem" }}>CraftTrust</span>
             </div>
             <p>{t.footer.brandTagline}</p>
           </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createRequestSupabase } from "@/lib/supabase";
+import { personalizationSchema } from "@/lib/model-config";
 
 // PostgreSQL accepts the deterministic UUID fixtures used by the local demo,
 // while Zod's strict uuid() validator rejects UUIDs whose version nibble is 0.
@@ -10,6 +11,7 @@ const postgresUuid = z
 const inputSchema = z.object({
   productId: postgresUuid,
   quantity: z.number().int().min(1).max(20),
+  personalization: personalizationSchema.optional(),
 });
 const updateSchema = z.object({
   productId: postgresUuid,
@@ -72,9 +74,10 @@ export async function POST(request: Request) {
       { error: "Sign in before adding products." },
       { status: 401 },
     );
-  const { data, error } = await supabase.rpc("add_to_cart", {
+  const { data, error } = await supabase.rpc("add_configured_cart_item", {
     p_product_id: parsed.data.productId,
     p_quantity: parsed.data.quantity,
+    p_personalization: parsed.data.personalization ?? null,
   });
   if (error)
     return NextResponse.json({ error: error.message }, { status: 400 });

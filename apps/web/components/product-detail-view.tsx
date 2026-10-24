@@ -37,7 +37,7 @@ export function ProductDetailView({
       <div className="detail-media">
         <ProductImageLens src={product.image} alt={title} />
         {product.modelUrl ? (
-          <GlazeEngravingCustomizer product={product} />
+          <GlazeEngravingCustomizer product={product} isDemo={demo} />
         ) : (
           <CraftModelViewer
             src={product.modelUrl}
@@ -78,11 +78,11 @@ export function ProductDetailView({
           </div>
           <div className="fact">
             <span>{t.product.passportTier}</span>
-            <Link href={`/passport/${product.passportId}`}>
+            {product.passportId ? <Link href={`/passport/${product.passportId}`}>
               <strong>
                 {product.passportId} <ExternalLink size={13} />
               </strong>
-            </Link>
+            </Link> : <span>{locale === "vi" ? "Chưa có hồ sơ hộ chiếu" : "No passport record"}</span>}
           </div>
         </div>
 

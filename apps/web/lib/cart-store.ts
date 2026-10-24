@@ -1,4 +1,5 @@
 "use client";
+import type { Personalization } from "./model-config";
 
 export interface DemoCartItem {
   id: string;
@@ -11,6 +12,7 @@ export interface DemoCartItem {
   village: string;
   artisan?: string | undefined;
   customNote?: string | undefined;
+  personalization?: Personalization | undefined;
 }
 
 export interface DemoOrder {
@@ -50,7 +52,7 @@ export function saveDemoCart(items: DemoCartItem[]): void {
 
 export function addToDemoCart(item: Omit<DemoCartItem, "id">): void {
   const current = getDemoCart();
-  const existing = current.find((i) => i.productId === item.productId);
+  const existing = current.find((i) => i.productId === item.productId && JSON.stringify(i.personalization) === JSON.stringify(item.personalization));
   if (existing) {
     existing.quantity = Math.min(20, existing.quantity + item.quantity);
   } else {
@@ -59,8 +61,8 @@ export function addToDemoCart(item: Omit<DemoCartItem, "id">): void {
   saveDemoCart(current);
 }
 
-export function removeFromDemoCart(productId: string): void {
-  const current = getDemoCart().filter((i) => i.productId !== productId);
+export function removeFromDemoCart(itemId: string): void {
+  const current = getDemoCart().filter((i) => i.id !== itemId);
   saveDemoCart(current);
 }
 

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useLanguage } from "@/lib/i18n/context";
 import { LanguageSwitcher } from "./language-switcher";
 import { AccountActions } from "./account-actions";
+import { BrandLogo } from "./brand-logo";
 
 export function SiteHeader() {
   const { t, hydrated } = useLanguage();
@@ -14,13 +15,11 @@ export function SiteHeader() {
   return (
     <header className="site-header">
       <div className="shell nav">
-        <Link href="/" className="brand" aria-label="Bát Tràng Craft home">
-          <span className="brand-mark">
-            <Leaf size={18} />
-          </span>
+        <Link href="/" className="brand" aria-label="CraftTrust · Hanoi Craft-Trust">
+          <BrandLogo compact />
           <span className="brand-wordmark">
-            <strong>Bát Tràng Craft</strong>
-            <small>Gốm Việt · Hộ chiếu số</small>
+            <strong>CraftTrust</strong>
+            <small>Di sản Hà Nội · Hộ chiếu số</small>
           </span>
         </Link>
 

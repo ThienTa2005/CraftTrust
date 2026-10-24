@@ -10,6 +10,7 @@ export type VillageCard = {
   image: string;
 };
 
+import type { ModelConfig } from "./model-config";
 export type ProductCard = {
   id: string;
   slug: string;
@@ -27,6 +28,8 @@ export type ProductCard = {
   tier: "unverified" | "bronze" | "silver" | "gold";
   modelUrl?: string | undefined;
   arUrl?: string | undefined;
+  modelAssetId?: string | undefined;
+  modelConfig?: ModelConfig | undefined;
 };
 
 export const demoVillages: VillageCard[] = [
@@ -93,8 +96,6 @@ export const demoProducts: ProductCard[] = [
     villageEn: "Bat Trang",
     passportId: "HCT-VN-BT-001",
     tier: "gold",
-    modelUrl: "/models/craft-pottery.glb",
-    arUrl: "/models/craft-pottery.glb",
   },
   {
     id: "00000000-0000-4000-8000-000000000202",

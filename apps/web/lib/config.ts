@@ -1,7 +1,7 @@
 export const siteConfig = {
-  name: "Bát Tràng Craft",
+  name: "Hanoi Craft-Trust",
   description:
-    "Gốm Bát Tràng tuyển chọn với câu chuyện nghệ nhân và hộ chiếu nguồn gốc minh bạch.",
+    "CraftTrust — kết nối nghệ nhân Hà Nội, tác phẩm thủ công và hồ sơ di sản có minh chứng.",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
 };
 
