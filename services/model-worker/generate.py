@@ -202,12 +202,22 @@ def decoration_texture(rgb, mask, cx, samples, radii, top, bottom, size=768, bac
     sampled = cv2.remap(filled, mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
     output = io.BytesIO()
     if back_texture == "mirror":
-        Image.fromarray(sampled).save(output, format="JPEG", quality=92, subsampling=0)
+        Image.fromarray(sampled).save(output, format="JPEG", quality=95, subsampling=0)
         return output.getvalue(), size * size
-    alpha = np.broadcast_to((np.abs(theta) <= np.pi / 2) * 255, (size, size)).astype(np.uint8)
-    sampled[alpha == 0] = 0
-    Image.fromarray(np.dstack((sampled, alpha))).save(output, format="PNG", optimize=True)
-    return output.getvalue(), int((alpha > 0).sum())
+
+    # For plain back: blend smoothly to the natural ceramic glaze color on the back without alpha masking
+    glaze_color = np.array([247, 245, 235], dtype=np.float32)
+    abs_theta = np.abs(theta)  # shape (size,)
+    t_start = np.pi * 0.38
+    t_end = np.pi * 0.55
+    weight = np.clip((t_end - abs_theta) / (t_end - t_start), 0.0, 1.0)
+    weight = weight[None, :, None]
+    blended = (
+        sampled.astype(np.float32) * weight
+        + glaze_color[None, None, :] * (1.0 - weight)
+    ).clip(0, 255).astype(np.uint8)
+    Image.fromarray(blended).save(output, format="JPEG", quality=95, subsampling=0)
+    return output.getvalue(), size * size
 
 
 def construct_mesh(radii_px, height_cm, width_cm):
@@ -281,15 +291,14 @@ def construct_mesh(radii_px, height_cm, width_cm):
                 if direction < 0
                 else [center, start + j, start + j + 1]
             )
+    inner_rim_base_indices = indices[len(outer_indices):]
     base_positions = np.asarray(positions, dtype="<f4")
     base_normals = np.asarray(normals, dtype="<f4")
     base_uv = np.asarray(uv, dtype="<f4")
-    overlay_positions = base_positions[:outer_count].copy()
-    overlay_positions[:, [0, 2]] *= 1.0001
     return [
-        (base_positions, base_normals, base_uv, np.asarray(indices, dtype="<u2")),
+        (base_positions, base_normals, base_uv, np.asarray(inner_rim_base_indices, dtype="<u2")),
         (
-            overlay_positions,
+            base_positions[:outer_count],
             base_normals[:outer_count],
             base_uv[:outer_count],
             np.asarray(outer_indices, dtype="<u2"),
@@ -374,7 +383,7 @@ def write_glb(path, parts, texture, height_cm, width_cm, back_texture="mirror"):
                 "pbrMetallicRoughness": {
                     "baseColorFactor": [0.97, 0.96, 0.92, 1],
                     "metallicFactor": 0,
-                    "roughnessFactor": 0.19,
+                    "roughnessFactor": 0.25,
                 },
                 "doubleSided": True,
             },
@@ -383,10 +392,9 @@ def write_glb(path, parts, texture, height_cm, width_cm, back_texture="mirror"):
                 "pbrMetallicRoughness": {
                     "baseColorTexture": {"index": 0},
                     "metallicFactor": 0,
-                    "roughnessFactor": 0.65,
+                    "roughnessFactor": 0.45,
                 },
-                "alphaMode": "OPAQUE" if back_texture == "mirror" else "MASK",
-                "alphaCutoff": 0.5,
+                "alphaMode": "OPAQUE",
                 "doubleSided": False,
             },
         ],
