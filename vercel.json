@@ -1,7 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "installCommand": "corepack pnpm install",
-  "buildCommand": "corepack pnpm --filter @craft-trust/web build",
-  "outputDirectory": "apps/web/.next"
-}
