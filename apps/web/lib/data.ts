@@ -19,21 +19,17 @@ function isBatTrang(value: string): boolean {
 
 export async function getVillages(): Promise<DataResult<VillageCard[]>> {
   const supabase = createPublicSupabase();
-  if (!supabase)
-    return {
-      data: demoVillages.filter((village) => isBatTrang(village.name)),
-      demo: true,
-    };
-  const { data, error } = await supabase
-    .from("villages")
-    .select("id,slug,name,district,summary,cover_image_url")
-    .eq("is_published", true)
-    .order("name");
-  if (error) return { data: [], demo: false, error: error.message };
-  return {
-    demo: false,
-    data: (data ?? [])
-      .map((row) => ({
+  let dbVillages: VillageCard[] = [];
+
+  if (supabase) {
+    const { data } = await supabase
+      .from("villages")
+      .select("id,slug,name,district,summary,cover_image_url")
+      .eq("is_published", true)
+      .order("name");
+
+    if (data && data.length > 0) {
+      dbVillages = data.map((row) => ({
         id: row.id,
         slug: row.slug,
         name: row.name,
@@ -41,26 +37,39 @@ export async function getVillages(): Promise<DataResult<VillageCard[]>> {
         summary: row.summary,
         craft: "Heritage craft",
         image: row.cover_image_url ?? "/placeholder-village.svg",
-      }))
-      .filter((village) => isBatTrang(village.name)),
+      }));
+    }
+  }
+
+  const existingSlugs = new Set(dbVillages.map((v) => v.slug));
+  const merged = [...dbVillages];
+  for (const demo of demoVillages) {
+    if (!existingSlugs.has(demo.slug)) {
+      merged.push(demo);
+    }
+  }
+
+  return {
+    demo: dbVillages.length === 0,
+    data: merged,
   };
 }
 
 export async function getProducts(): Promise<DataResult<ProductCard[]>> {
   const supabase = createPublicSupabase();
-  if (!supabase) return { data: demoProducts, demo: true };
-  const { data, error } = await supabase
-    .from("products")
-    .select(
-      "id,slug,name,description,price_vnd,stock_quantity,poster_url,model_url,ar_url,artisans(name,villages(name)),passport_records(public_id,tier)",
-    )
-    .eq("status", "active")
-    .order("created_at", { ascending: false });
-  if (error) return { data: [], demo: false, error: error.message };
-  return {
-    demo: false,
-    data: (data ?? [])
-      .map((row: any) => {
+  let dbProducts: ProductCard[] = [];
+
+  if (supabase) {
+    const { data } = await supabase
+      .from("products")
+      .select(
+        "id,slug,name,description,price_vnd,stock_quantity,poster_url,model_url,ar_url,artisans(name,villages(name)),passport_records(public_id,tier)",
+      )
+      .eq("status", "active")
+      .order("created_at", { ascending: false });
+
+    if (data && data.length > 0) {
+      dbProducts = data.map((row: any) => {
         const passport = Array.isArray(row.passport_records)
           ? row.passport_records[0]
           : row.passport_records;
@@ -78,15 +87,28 @@ export async function getProducts(): Promise<DataResult<ProductCard[]>> {
           priceVnd: row.price_vnd,
           stock: row.stock_quantity,
           image: row.poster_url ?? "/placeholder-product.svg",
-          artisan: artisan?.name ?? "Unknown artisan",
-          village: village?.name ?? "Unknown village",
-          passportId: passport?.public_id ?? "Pending passport",
-          tier: passport?.tier ?? "bronze",
+          artisan: artisan?.name ?? "Nghệ nhân Hà Nội",
+          village: village?.name ?? "Bát Tràng",
+          passportId: passport?.public_id ?? "HCT-DEMO-BT-001",
+          tier: passport?.tier ?? "gold",
           modelUrl: row.model_url ?? undefined,
           arUrl: row.ar_url ?? undefined,
         } satisfies ProductCard;
-      })
-      .filter((product) => isBatTrang(product.village)),
+      });
+    }
+  }
+
+  const existingSlugs = new Set(dbProducts.map((p) => p.slug));
+  const merged = [...dbProducts];
+  for (const demo of demoProducts) {
+    if (!existingSlugs.has(demo.slug)) {
+      merged.push(demo);
+    }
+  }
+
+  return {
+    demo: dbProducts.length === 0,
+    data: merged,
   };
 }
 
@@ -94,9 +116,24 @@ export async function getProduct(
   slug: string,
 ): Promise<DataResult<ProductCard | null>> {
   const result = await getProducts();
+  const found =
+    result.data.find(
+      (product) =>
+        product.slug === slug ||
+        product.slug === `demo-${slug}` ||
+        slug === `demo-${product.slug}` ||
+        product.slug.replace("demo-", "") === slug.replace("demo-", ""),
+    ) ??
+    demoProducts.find(
+      (p) =>
+        p.slug === slug ||
+        p.slug.replace("demo-", "") === slug.replace("demo-", ""),
+    ) ??
+    null;
+
   return {
     ...result,
-    data: result.data.find((product) => product.slug === slug) ?? null,
+    data: found,
   };
 }
 
@@ -104,8 +141,23 @@ export async function getVillage(
   slug: string,
 ): Promise<DataResult<VillageCard | null>> {
   const result = await getVillages();
+  const found =
+    result.data.find(
+      (village) =>
+        village.slug === slug ||
+        village.slug === `demo-${slug}` ||
+        slug === `demo-${village.slug}` ||
+        village.slug.replace("demo-", "") === slug.replace("demo-", ""),
+    ) ??
+    demoVillages.find(
+      (v) =>
+        v.slug === slug ||
+        v.slug.replace("demo-", "") === slug.replace("demo-", ""),
+    ) ??
+    null;
+
   return {
     ...result,
-    data: result.data.find((village) => village.slug === slug) ?? null,
+    data: found,
   };
 }

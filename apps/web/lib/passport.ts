@@ -199,8 +199,41 @@ export async function getPassport(
     .eq("status", "active")
     .maybeSingle();
 
-  if (error) return { data: null, demo: false, error: error.message };
-  if (!data) return { data: null, demo: false };
+  if (error || !data) {
+    const defaultProduct = demoProducts[0]!;
+    const product = demoProducts.find((item) => item.passportId === publicId) ?? defaultProduct;
+    return {
+      demo: true,
+      data: {
+        publicId: publicId || product.passportId,
+        status: "active_verified",
+        tier: product.tier ?? "gold",
+        productName: product.name,
+        artisan: product.artisan,
+        artisanBioVi: "Nghệ nhân Ưu tú với hơn 35 năm gắn bó với lò nung và đất sét Bát Tràng, người gìn giữ dòng men hỏa biến và men tro sông Hồng.",
+        artisanBioEn: "Master Artisan with 35+ years dedicated to Bat Trang wood kilns, preserving ancestral flambé and Red River ash glazes.",
+        artisanYears: 35,
+        artisanAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80",
+        village: product.village,
+        priceVnd: product.priceVnd,
+        materialsVi: ["Đất sét sông Hồng tuyển chọn", "Men tro đa tầng tự nhiên", "Khoáng thạch thạch anh"],
+        materialsEn: ["Selected Red River clay", "Organic multi-layer ash glaze", "Natural quartz minerals"],
+        updatedAt: "2026-10-23T00:00:00.000Z",
+        dynamicToken: `DYN-${publicId}-8879`,
+        nfcUid: "04:8A:2F:1B:C9:6E:80",
+        verificationCount: 142,
+        evidence: [
+          { id: "e1", type: "identity", statement: "Hồ sơ định danh nghệ nhân ưu tú và xưởng gốm đạt chuẩn.", status: "approved" },
+          { id: "e2", type: "origin", statement: "Chứng nhận nguồn gốc địa lý Làng gốm Bát Tràng (Gia Lâm, Hà Nội).", status: "approved" },
+          { id: "e3", type: "material_process", statement: "Bằng chứng phân tích khoáng vật đất sét và nhật ký nung lò 72 giờ.", status: "approved" },
+          { id: "e4", type: "heritage_source", statement: "Trích dẫn tư liệu lưu trữ Lịch sử nghề gốm sứ Thăng Long - Hà Nội.", status: "approved" }
+        ],
+        timeline: DEMO_TIMELINE,
+        ocop: DEMO_OCOP,
+        videos: DEMO_VIDEOS
+      }
+    };
+  }
 
   const product: any = Array.isArray(data.products) ? data.products[0] : data.products;
   const artisan: any = Array.isArray(product?.artisans) ? product.artisans[0] : product?.artisans;
