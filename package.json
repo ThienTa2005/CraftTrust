@@ -1,0 +1,36 @@
+{
+  "name": "hanoi-craft-trust",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "corepack pnpm --recursive --parallel --if-present dev",
+    "dev:web": "corepack pnpm --filter @craft-trust/web dev",
+    "dev:mobile": "corepack pnpm --filter @craft-trust/mobile start",
+    "dev:zalo": "corepack pnpm --filter @craft-trust/zalo-mini-app dev",
+    "supabase:start": "supabase start",
+    "supabase:status": "supabase status",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "build": "corepack pnpm --recursive --if-present build",
+    "lint": "corepack pnpm --recursive --if-present lint",
+    "typecheck": "corepack pnpm --recursive --if-present typecheck",
+    "test": "corepack pnpm --recursive --if-present test",
+    "test:e2e": "playwright test",
+    "check": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.10.0",
+    "prettier": "^3.6.2",
+    "supabase": "^2.122.0",
+    "turbo": "^2.6.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.8"
+  }
+}

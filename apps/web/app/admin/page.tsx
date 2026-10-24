@@ -1,0 +1,11 @@
+import Link from "next/link";
+import { ClipboardCheck, FileClock, ShieldAlert } from "lucide-react";
+import { ReviewEvidence } from "@/components/review-evidence";
+import { getAuthorizedUser } from "@/lib/authz";
+
+export default async function AdminPage() {
+  const auth=await getAuthorizedUser(["verifier","admin"]);
+  if(auth.reason) return <section className="shell page-hero"><span className="eyebrow">Verification desk</span><h1>Restricted review workspace</h1><div className="error-banner">{auth.reason}</div><Link className="button" href="/auth" style={{marginTop:20}}>Sign in</Link></section>;
+  const {data,error}=await auth.supabase!.from("evidence_submissions").select("id,evidence_type,statement,status,created_at,passport_records(public_id,products(name)),heritage_sources(title,approval_status)").eq("status","pending").order("created_at");
+  return <section className="shell page-hero"><div className="section-head"><div><span className="eyebrow">Verification desk</span><h1>Evidence awaiting judgment</h1></div><span className="badge"><ClipboardCheck size={14}/>{auth.roles.join(" · ")}</span></div><div className="metric-grid"><div className="metric"><FileClock/><strong>{data?.length??0}</strong><span>Pending submissions</span></div><div className="metric"><ShieldAlert/><strong>Manual</strong><span>No automatic approval</span></div><div className="metric"><ClipboardCheck/><strong>Audited</strong><span>Every decision logged</span></div></div>{error?<div className="error-banner">{error.message}</div>:data?.length?<div className="panel"><table className="table"><thead><tr><th>Product/passport</th><th>Evidence</th><th>Statement</th><th>Source</th><th>Decision</th></tr></thead><tbody>{data.map((item:any)=><tr key={item.id}><td>{item.passport_records?.products?.name??"Product"}<br/><small>{item.passport_records?.public_id}</small></td><td>{item.evidence_type}</td><td>{item.statement}</td><td>{item.heritage_sources?.title??"Direct evidence"}<br/><small>{item.heritage_sources?.approval_status}</small></td><td><ReviewEvidence evidenceId={item.id}/></td></tr>)}</tbody></table></div>:<div className="empty">No pending evidence. Approved and rejected submissions remain in the audit trail.</div>}</section>;
+}

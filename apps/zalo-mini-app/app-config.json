@@ -1,0 +1,6 @@
+{
+  "app": { "title": "Hanoi Craft-Trust", "textColor": "black", "statusBarColor": "#fbf7f1", "leftButton": "back" },
+  "listCSS": [],
+  "listSyncJS": [],
+  "listAsyncJS": []
+}

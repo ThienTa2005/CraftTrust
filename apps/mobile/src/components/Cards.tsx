@@ -1,0 +1,11 @@
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { money, type ProductView, type VillageView } from "../domain";
+
+export function VillageCard({ village }: { village: VillageView }) {
+  return <View style={styles.card}>{village.coverImageUrl ? <Image source={{ uri: village.coverImageUrl }} style={styles.image} accessibilityLabel={village.name} /> : <View style={[styles.image, styles.placeholder]}><Text>Craft village</Text></View>}<View style={styles.body}><Text style={styles.title}>{village.name}</Text><Text style={styles.meta}>{village.district}</Text><Text style={styles.copy} numberOfLines={3}>{village.summary}</Text></View></View>;
+}
+export function ProductCard({ product, onAdd, busy }: { product: ProductView; onAdd: () => void; busy: boolean }) {
+  const unavailable = product.stockQuantity < 1;
+  return <View style={styles.card}>{product.posterUrl ? <Image source={{ uri: product.posterUrl }} style={styles.image} accessibilityLabel={product.name} /> : <View style={[styles.image, styles.placeholder]}><Text>No image</Text></View>}<View style={styles.body}><Text style={styles.title}>{product.name}</Text><Text style={styles.meta}>{product.artisanName}</Text><Text style={styles.price}>{money(product.priceVnd)}</Text><Pressable accessibilityRole="button" disabled={busy || unavailable} onPress={onAdd} style={[styles.button, (busy || unavailable) && styles.disabled]}><Text style={styles.buttonText}>{unavailable ? "Out of stock" : busy ? "Adding…" : "Add to cart"}</Text></Pressable></View></View>;
+}
+const styles = StyleSheet.create({ card: { flexDirection: "row", backgroundColor: "white", borderRadius: 16, overflow: "hidden", marginBottom: 14, borderWidth: 1, borderColor: "#e7dfd7" }, image: { width: 112, minHeight: 142, backgroundColor: "#eee6dc" }, placeholder: { alignItems: "center", justifyContent: "center" }, body: { flex: 1, padding: 14, gap: 4 }, title: { fontSize: 17, fontWeight: "700", color: "#30221b" }, meta: { color: "#76675f" }, copy: { color: "#54463e", lineHeight: 19 }, price: { color: "#8a3f22", fontWeight: "800", marginVertical: 4 }, button: { backgroundColor: "#8a3f22", paddingVertical: 9, paddingHorizontal: 12, borderRadius: 9, alignSelf: "flex-start" }, buttonText: { color: "white", fontWeight: "700" }, disabled: { opacity: 0.45 } });

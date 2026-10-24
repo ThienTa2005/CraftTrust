@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Hanoi Craft-Trust",
+    "slug": "hanoi-craft-trust",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "crafttrust",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Hanoi Craft-Trust to scan a craft passport QR code."
+        }
+      ]
+    ],
+    "ios": { "supportsTablet": true, "bundleIdentifier": "vn.hanoi.crafttrust" },
+    "android": { "package": "vn.hanoi.crafttrust" },
+    "web": { "bundler": "metro", "output": "static" },
+    "experiments": { "typedRoutes": true }
+  }
+}
