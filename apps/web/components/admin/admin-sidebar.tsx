@@ -12,12 +12,14 @@ import {
   Settings2,
   Store,
   Users,
+  Box,
 } from "lucide-react";
 
 interface AdminSidebarProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
   pendingCount?: number | undefined;
+  canManageExperiences?: boolean;
 }
 
 interface AdminMenuItem {
@@ -37,6 +39,7 @@ export function AdminSidebar({
   activeTab,
   onSelectTab,
   pendingCount = 0,
+  canManageExperiences = false,
 }: AdminSidebarProps) {
   const menuGroups: AdminMenuGroup[] = [
     {
@@ -141,7 +144,7 @@ export function AdminSidebar({
           <div key={group.title} className="admin-menu-group">
             <span className="admin-menu-group-title">{group.title}</span>
             <div className="admin-menu-items">
-              {group.items.map((item) => {
+              {[...group.items, ...(group.title === "THẨM ĐỊNH & DI SẢN" && canManageExperiences ? [{ id: "experiences", label: "Trải nghiệm 3D/VR", icon: Box, badge: null }] : [])].map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
                 return (

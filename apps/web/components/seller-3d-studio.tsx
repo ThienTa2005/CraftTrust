@@ -13,7 +13,6 @@ import {
   CheckCircle2,
   Clock3,
   Download,
-  Eye,
   Flame,
   ImagePlus,
   Info,
@@ -174,11 +173,13 @@ export function Seller3DStudio({
   roles,
   initialProducts,
   initialError,
+  onProductsChange,
 }: {
   artisanName: string;
   roles: AppRole[];
   initialProducts: SellerProduct[];
   initialError?: string | undefined;
+  onProductsChange?: (products: SellerProduct[]) => void;
 }) {
   const [products, setProducts] = useState(initialProducts);
   const [files, setFiles] = useState<File[]>([]);
@@ -262,7 +263,8 @@ export function Seller3DStudio({
       return;
     }
     setProducts(result.products ?? []);
-  }, []);
+    onProductsChange?.(result.products ?? []);
+  }, [onProductsChange]);
 
   const refreshOrders = useCallback(async () => {
     setOrdersLoading(true);
@@ -520,6 +522,7 @@ export function Seller3DStudio({
               Đăng sản phẩm, nhập kích thước thật và gửi ảnh chụp thẳng. Hệ
               thống dựng mô hình để nghệ nhân kiểm tra trước khi đưa lên gian
               hàng.
+              Nội dung trang Trải nghiệm 3D/VR do admin đăng riêng.
             </p>
             <div className="seller-role-row">
               {roles.map((role) => (

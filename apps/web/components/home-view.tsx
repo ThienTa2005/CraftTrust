@@ -78,14 +78,14 @@ export function HomeView({ products, demo, error }: HomeViewProps) {
       tag: locale === "vi" ? "CÔNG NGHỆ 3D & AR" : "INTERACTIVE 3D & AR",
       title:
         locale === "vi"
-          ? "Xoay 360° & Đặt Thử Gốm Vào Không Gian Sống Của Bạn"
-          : "Inspect in 360° & Preview in Your Living Space with AR",
+          ? "Khám Phá Tác Phẩm Trong Không Gian 3D"
+          : "Explore Craftsmanship in 3D",
       desc:
         locale === "vi"
-          ? "Ứng dụng mô hình 3D chuẩn xác đến từng milimet, tích hợp công nghệ scan AI từ xưởng nghệ nhân Bát Tràng."
-          : "Millimeter-accurate 3D models generated through our AI scanning pipeline directly from Bat Trang studios.",
+          ? "Xoay và xem chi tiết bộ sưu tập mô hình do quản trị viên đăng tải và tuyển chọn."
+          : "Rotate and inspect a collection of models uploaded and curated by our administrators.",
       cta: locale === "vi" ? "Trải nghiệm 3D ngay" : "Try 3D view",
-      href: "/products/moon-glaze-tea-set",
+      href: "/experiences",
       image:
         "https://images.unsplash.com/photo-1686471715390-17eb6acca862?auto=format&fit=crop&w=1500&q=90",
       accent: "#153b5b",

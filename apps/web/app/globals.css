@@ -1,3 +1,23 @@
+.experiences-page { padding-block: 40px; }
+.portal-mobile-actions { display: none; }
+@media (max-width: 900px) {
+  .portal-mobile-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  .portal-mobile-actions button { white-space: normal; min-height: 44px; }
+}
+.experiences-page > p { max-width: 75ch; }
+.experiences-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 20px; margin-top: 24px; }
+.experience-card { min-width: 0; padding: clamp(16px, 3vw, 28px); border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); overflow-wrap: anywhere; }
+.experience-card p { white-space: pre-wrap; }
+.experience-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 16px; }
+.experience-viewer { margin-top: 20px; min-width: 0; }
+.experience-viewer model-viewer { border-radius: 12px; background: var(--paper); }
+.experience-viewer p { font-size: 0.875rem; color: var(--muted); }
+.experiences-manager { padding: clamp(16px, 3vw, 32px); min-width: 0; }
+.experience-form { display: grid; gap: 16px; margin-block: 24px; max-width: 720px; }
+.experience-form label { display: grid; gap: 8px; min-width: 0; }
+.experience-form input, .experience-form textarea { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
+.experience-form button, .experience-actions button { min-height: 44px; white-space: normal; }
+
 :root {
   --ink: #172c35;
   --ink-soft: #29434d;

@@ -466,9 +466,9 @@ export function BuyerHeader() {
           <Link href="/marketplace?tier=gold" className="buyer-subnav-item highlight-tier">
             <span>✨ {locale === "vi" ? "Hộ Chiếu Vàng (Gold)" : "Gold Passport"}</span>
           </Link>
-          <Link href="/products/moon-glaze-tea-set" className="buyer-subnav-item">
+          <Link href="/experiences" className="buyer-subnav-item">
             <Glasses size={16} />
-            <span>{locale === "vi" ? "Trải nghiệm 3D/AR" : "3D/AR View"}</span>
+            <span>{locale === "vi" ? "Trải nghiệm 3D/VR" : "3D/VR Experiences"}</span>
           </Link>
           <Link href="/map" className="buyer-subnav-item">
             <MapPin size={16} />

@@ -40,7 +40,7 @@ export function SellerCentreView({
   initialError,
 }: SellerCentreViewProps) {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
-  const [products] = useState<SellerProduct[]>(initialProducts);
+  const [products, setProducts] = useState<SellerProduct[]>(initialProducts);
   const [productFilter, setProductFilter] = useState<string>("all");
   const [productSearch, setProductSearch] = useState<string>("");
 
@@ -143,6 +143,10 @@ export function SellerCentreView({
 
         {/* SELLER MAIN WORKSPACE */}
         <main className="seller-main-viewport">
+          <nav className="portal-mobile-actions" aria-label="Sản phẩm nghệ nhân">
+            <button type="button" className="button secondary" onClick={() => setActiveTab("products")}>Sản phẩm của tôi</button>
+            <button type="button" className="button" onClick={() => setActiveTab("new-product")}>Đăng sản phẩm & tạo 3D</button>
+          </nav>
           {initialError && (
             <div className="seller-alert-box error">
               <AlertCircle size={18} />
@@ -354,7 +358,7 @@ export function SellerCentreView({
           )}
 
           {/* TAB 2: QUẢN LÝ SẢN PHẨM & CRUD */}
-          {(activeTab === "products" || activeTab === "new-product") && (
+          {activeTab === "products" && (
             <div className="seller-view-fade">
               <div className="seller-card">
                 <div className="seller-card-header">
@@ -507,10 +511,11 @@ export function SellerCentreView({
           )}
 
           {/* TAB 3: STUDIO 3D & AI SCAN PIPELINE */}
-          {activeTab === "studio-3d" && (
+          {(activeTab === "studio-3d" || activeTab === "new-product") && (
             <div className="seller-view-fade">
               <div className="seller-studio-embedded">
                 <Seller3DStudio
+                  onProductsChange={setProducts}
                   artisanName={artisanName}
                   roles={roles}
                   initialProducts={products}

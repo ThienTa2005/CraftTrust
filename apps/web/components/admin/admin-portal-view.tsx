@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { AdminHeader } from "./admin-header";
 import { AdminSidebar } from "./admin-sidebar";
+import { AdminExperiences } from "./admin-experiences";
 import { ReviewEvidence } from "@/components/review-evidence";
 import type { AppRole } from "@/lib/authz";
 
@@ -122,6 +123,7 @@ export function AdminPortalView({
       <div className="admin-body-container">
         {/* ADMIN SIDEBAR */}
         <AdminSidebar
+          canManageExperiences={roles.includes("admin")}
           activeTab={activeTab}
           onSelectTab={setActiveTab}
           pendingCount={evidenceList.length}
@@ -129,6 +131,13 @@ export function AdminPortalView({
 
         {/* ADMIN MAIN VIEWPORT */}
         <main className="admin-main-viewport">
+          {roles.includes("admin") && (
+            <nav className="portal-mobile-actions" aria-label="Quản lý trải nghiệm">
+              <button type="button" className="button secondary" onClick={() => setActiveTab("overview")}>Tổng quan</button>
+              <button type="button" className="button" onClick={() => setActiveTab("experiences")}>Quản lý Trải nghiệm 3D/VR</button>
+            </nav>
+          )}
+          {activeTab === "experiences" && roles.includes("admin") && <AdminExperiences />}
           {initialError && (
             <div className="admin-alert-box error">
               <AlertCircle size={18} />
