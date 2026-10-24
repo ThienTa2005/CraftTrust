@@ -306,7 +306,14 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                   alt: product.name,
                   "camera-controls": true,
                   "auto-rotate": true,
+                  "auto-rotate-delay": 1500,
                   "shadow-intensity": "1.2",
+                  "shadow-softness": "0.75",
+                  "environment-image": "neutral",
+                  exposure: "1.05",
+                  ar: arCapable,
+                  "ar-scale": "fixed",
+                  "ar-modes": "webxr scene-viewer quick-look",
                   "touch-action": "pan-y",
                   style: { width: "100%", height: "100%", display: "block" },
                 })
@@ -318,7 +325,7 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                 </div>
               )}
 
-              {/* Dynamic Engraved Text 3D Surface Overlay Simulation */}
+              {/* Cylindrical Curved Surface Engraving & Stamping Simulation */}
               {engravingText.trim() && (
                 <div
                   style={{
@@ -326,74 +333,76 @@ export function GlazeEngravingCustomizer({ product }: Props) {
                     left: "50%",
                     transform: "translateX(-50%)",
                     ...(placement === "neck"
-                      ? { top: "22%" }
+                      ? { top: "20%" }
                       : placement === "base"
-                        ? { bottom: "16%" }
-                        : { top: "52%" }),
+                        ? { bottom: "14%" }
+                        : { top: "50%" }),
                     pointerEvents: "none",
-                    maxWidth: "80%",
-                    textAlign: "center",
-                    padding: "6px 14px",
-                    borderRadius: 8,
-                    background:
-                      finishStyle === "gilded-gold"
-                        ? "linear-gradient(135deg, rgba(200, 157, 67, 0.3) 0%, rgba(255, 230, 160, 0.4) 100%)"
-                        : "rgba(0, 0, 0, 0.15)",
-                    backdropFilter: "blur(2px)",
-                    border:
-                      finishStyle === "gilded-gold"
-                        ? "1px dashed #d4af37"
-                        : "1px dashed rgba(255, 255, 255, 0.3)",
+                    width: "280px",
+                    height: "70px",
                     transition: "all .3s ease",
                   }}
                 >
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize:
-                        fontStyle === "calligraphy" ? "1.05rem" : "0.9rem",
-                      fontFamily:
-                        fontStyle === "calligraphy"
-                          ? '"Fraunces", Georgia, serif'
-                          : fontStyle === "serif"
-                            ? 'Georgia, "Times New Roman", serif'
-                            : '"DM Sans", system-ui, sans-serif',
-                      fontStyle:
-                        fontStyle === "calligraphy" ? "italic" : "normal",
-                      fontWeight: 700,
-                      letterSpacing:
-                        fontStyle === "modern" ? "0.08em" : "0.02em",
-                      color:
-                        finishStyle === "gilded-gold"
-                          ? "#fff"
-                          : finishStyle === "cobalt-brush"
-                            ? "#0c2b54"
-                            : "#3a2e28",
-                      textShadow:
-                        finishStyle === "gilded-gold"
-                          ? "0 1px 3px rgba(0,0,0,0.8), 0 0 10px rgba(255,215,0,0.8)"
-                          : finishStyle === "cobalt-brush"
-                            ? "0 1px 2px rgba(255,255,255,0.8)"
-                            : "1px 1px 0px rgba(255,255,255,0.4), -1px -1px 0px rgba(0,0,0,0.4)",
-                    }}
+                  <svg
+                    viewBox="0 0 280 70"
+                    style={{ width: "100%", height: "100%", overflow: "visible" }}
                   >
-                    {engravingText}
-                  </span>
-                  <span
-                    style={{
-                      display: "block",
-                      fontSize: "0.68rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.06em",
-                      color:
-                        finishStyle === "gilded-gold"
-                          ? "#ffd700"
-                          : "var(--muted)",
-                      marginTop: 2,
-                    }}
-                  >
-                    ✦ {t.engraving.previewBadge} ✦
-                  </span>
+                    <defs>
+                      <path
+                        id="ceramicCurvedPath"
+                        d="M 10 32 Q 140 50 270 32"
+                        fill="none"
+                      />
+                      <filter
+                        id="engravedRelief"
+                        x="-10%"
+                        y="-10%"
+                        width="120%"
+                        height="120%"
+                      >
+                        <feDropShadow
+                          dx="0"
+                          dy="1"
+                          stdDeviation="0.8"
+                          floodColor={
+                            finishStyle === "gilded-gold" ? "#000" : "#fff"
+                          }
+                          floodOpacity="0.4"
+                        />
+                      </filter>
+                    </defs>
+                    <text
+                      filter="url(#engravedRelief)"
+                      style={{
+                        fontFamily:
+                          fontStyle === "calligraphy"
+                            ? '"Fraunces", Georgia, serif'
+                            : fontStyle === "serif"
+                              ? 'Georgia, "Times New Roman", serif'
+                              : '"DM Sans", system-ui, sans-serif',
+                        fontSize: fontStyle === "calligraphy" ? "17px" : "15px",
+                        fontWeight: 700,
+                        fontStyle:
+                          fontStyle === "calligraphy" ? "italic" : "normal",
+                        letterSpacing:
+                          fontStyle === "modern" ? "0.08em" : "0.02em",
+                        fill:
+                          finishStyle === "gilded-gold"
+                            ? "#d4af37"
+                            : finishStyle === "cobalt-brush"
+                              ? "#1c3d72"
+                              : "#3d322a",
+                      }}
+                    >
+                      <textPath
+                        href="#ceramicCurvedPath"
+                        startOffset="50%"
+                        textAnchor="middle"
+                      >
+                        {engravingText}
+                      </textPath>
+                    </text>
+                  </svg>
                 </div>
               )}
             </div>

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -10,7 +11,12 @@ const supabaseUrl =
   process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
-const pythonBin = process.env.PYTHON_BIN || "python";
+
+const venvPython = path.resolve(
+  fileURLToPath(new URL("./.venv/Scripts/python.exe", import.meta.url)),
+);
+const pythonBin =
+  process.env.PYTHON_BIN || (existsSync(venvPython) ? venvPython : "python");
 const pollMs = Math.max(1000, Number(process.env.MODEL_WORKER_POLL_MS) || 3000);
 const once = process.argv.includes("--once");
 const generatorPath = fileURLToPath(new URL("./generate.py", import.meta.url));
@@ -44,32 +50,46 @@ function extensionFor(mimeType) {
 
 function runGenerator({
   imagePath,
+  backImagePath,
   outputPath,
   heightCm,
   widthCm,
   shapeMode,
   backTexture,
+  engine = "auto",
+  rimFlare = 1.0,
+  wallThickness = 0.04,
 }) {
   return new Promise((resolve, reject) => {
-    const child = spawn(
-      pythonBin,
-      [
-        generatorPath,
-        "--image",
-        imagePath,
-        "--output",
-        outputPath,
-        "--height-cm",
-        String(heightCm),
-        "--width-cm",
-        String(widthCm),
-        "--shape-mode",
-        shapeMode,
-        "--back-texture",
-        backTexture,
-      ],
-      { windowsHide: true },
-    );
+    const args = [
+      generatorPath,
+      "--image",
+      imagePath,
+      "--output",
+      outputPath,
+      "--height-cm",
+      String(heightCm),
+      "--width-cm",
+      String(widthCm),
+      "--shape-mode",
+      shapeMode,
+      "--back-texture",
+      backTexture,
+      "--engine",
+      engine,
+      "--rim-flare",
+      String(rimFlare),
+      "--wall-thickness",
+      String(wallThickness),
+    ];
+    if (backImagePath) {
+      args.push("--back-image", backImagePath);
+    }
+
+    const child = spawn(pythonBin, args, {
+      windowsHide: true,
+      env: { ...process.env, PYTHONIOENCODING: "utf-8" },
+    });
 
     let stdout = "";
     let stderr = "";
@@ -125,26 +145,52 @@ async function processJob(job) {
     if (!product.height_cm || !product.width_cm)
       throw new Error("Product dimensions are missing.");
 
-    const { data: source, error: sourceError } = await supabase
+    // Fetch all source assets ordered by ordinal
+    const { data: sources, error: sourceError } = await supabase
       .from("product_source_assets")
-      .select("storage_path,mime_type")
+      .select("storage_path,mime_type,ordinal")
       .eq("product_id", job.product_id)
-      .eq("ordinal", 0)
-      .single();
+      .order("ordinal", { ascending: true });
     if (sourceError) throw sourceError;
+    if (!sources || sources.length === 0)
+      throw new Error("No source images found for product.");
 
-    const { data: download, error: downloadError } = await supabase.storage
-      .from("product-source")
-      .download(source.storage_path);
-    if (downloadError) throw downloadError;
+    const frontSource = sources.find((s) => s.ordinal === 0) || sources[0];
+    const backSource = sources.find((s) => s.ordinal === 1);
 
     tempDirectory = await mkdtemp(path.join(tmpdir(), "crafttrust-model-"));
     const inputPath = path.join(
       tempDirectory,
-      `source${extensionFor(source.mime_type)}`,
+      `front${extensionFor(frontSource.mime_type)}`,
     );
     const outputPath = path.join(tempDirectory, "model.glb");
-    await writeFile(inputPath, Buffer.from(await download.arrayBuffer()));
+
+    const { data: frontDownload, error: frontDlError } = await supabase.storage
+      .from("product-source")
+      .download(frontSource.storage_path);
+    if (frontDlError) throw frontDlError;
+    await writeFile(inputPath, Buffer.from(await frontDownload.arrayBuffer()));
+
+    let backImagePath = null;
+    if (backSource) {
+      try {
+        const { data: backDownload, error: backDlError } = await supabase.storage
+          .from("product-source")
+          .download(backSource.storage_path);
+        if (!backDlError && backDownload) {
+          backImagePath = path.join(
+            tempDirectory,
+            `back${extensionFor(backSource.mime_type)}`,
+          );
+          await writeFile(
+            backImagePath,
+            Buffer.from(await backDownload.arrayBuffer()),
+          );
+        }
+      } catch (err) {
+        console.warn("[model-worker] could not download back image:", err);
+      }
+    }
 
     await supabase
       .from("products")
@@ -153,11 +199,13 @@ async function processJob(job) {
 
     await runGenerator({
       imagePath: inputPath,
+      backImagePath,
       outputPath,
       heightCm: product.height_cm,
       widthCm: product.width_cm,
       shapeMode: product.shape_mode,
       backTexture: product.back_texture,
+      engine: job.engine || "auto",
     });
 
     const model = await readFile(outputPath);
@@ -180,6 +228,31 @@ async function processJob(job) {
       .from("product-assets")
       .getPublicUrl(uploadedModelPath);
     const modelUrl = publicAsset.publicUrl;
+
+    // Check if master GLB exists and upload it
+    const masterPath = path.join(tempDirectory, "model-master.glb");
+    if (existsSync(masterPath)) {
+      try {
+        const masterModel = await readFile(masterPath);
+        const masterUploadPath = `${artisan.owner_id}/${job.product_id}/model-master-${version}.glb`;
+        const { error: masterUploadError } = await supabase.storage
+          .from("product-assets")
+          .upload(masterUploadPath, masterModel, {
+            contentType: "model/gltf-binary",
+            cacheControl: "31536000",
+            upsert: false,
+          });
+        if (!masterUploadError) {
+          const { data: masterAsset } = supabase.storage
+            .from("product-assets")
+            .getPublicUrl(masterUploadPath);
+          report.masterModelUrl = masterAsset.publicUrl;
+        }
+      } catch (err) {
+        console.warn("[model-worker] master GLB upload warning:", err);
+      }
+    }
+
     const generationMs = Date.now() - startedAt;
 
     const { error: updateError } = await supabase
@@ -206,7 +279,9 @@ async function processJob(job) {
       .eq("id", job.id);
     if (finishError) throw finishError;
 
-    console.log(`[model-worker] completed ${job.id} in ${generationMs} ms`);
+    console.log(
+      `[model-worker] completed ${job.id} in ${generationMs} ms (${report.engine}, ${report.assetBytes} bytes)`,
+    );
   } catch (error) {
     const message =
       error instanceof Error

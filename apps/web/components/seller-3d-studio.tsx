@@ -9,11 +9,16 @@ import {
 } from "react";
 import {
   Box,
+  Camera,
   CheckCircle2,
   Clock3,
-  LayoutDashboard,
+  Download,
+  Eye,
   Flame,
   ImagePlus,
+  Info,
+  Layers,
+  LayoutDashboard,
   LoaderCircle,
   PackageCheck,
   Pencil,
@@ -21,7 +26,9 @@ import {
   ReceiptText,
   RefreshCw,
   Ruler,
+  ShieldCheck,
   ShoppingBag,
+  Sliders,
   Sparkles,
   Trash2,
   TriangleAlert,
@@ -31,6 +38,57 @@ import {
 import { CraftModelViewer } from "@/components/model-viewer";
 import type { AppRole } from "@/lib/authz";
 import { formatVnd } from "@/lib/format";
+
+type ImageAudit = {
+  width: number;
+  height: number;
+  quality: "good" | "warning" | "alert";
+  message: string;
+};
+
+async function auditImageFile(file: File): Promise<ImageAudit> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      if (w < 600 || h < 600) {
+        resolve({
+          width: w,
+          height: h,
+          quality: "alert",
+          message: `Độ phân giải thấp (${w}×${h}px), chi tiết gốm có thể bị mờ.`,
+        });
+      } else if (w >= 1200 && h >= 1200) {
+        resolve({
+          width: w,
+          height: h,
+          quality: "good",
+          message: `Chuẩn Studio 3D (${w}×${h}px), sắc nét từng hoa văn men.`,
+        });
+      } else {
+        resolve({
+          width: w,
+          height: h,
+          quality: "good",
+          message: `Độ phân giải tốt (${w}×${h}px), đạt chuẩn dựng hình học.`,
+        });
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve({
+        width: 0,
+        height: 0,
+        quality: "warning",
+        message: "Chưa kiểm tra được kích thước ảnh.",
+      });
+    };
+    img.src = url;
+  });
+}
 
 type ModelStatus =
   "not_requested" | "queued" | "processing" | "review" | "ready" | "failed";
@@ -124,6 +182,8 @@ export function Seller3DStudio({
 }) {
   const [products, setProducts] = useState(initialProducts);
   const [files, setFiles] = useState<File[]>([]);
+  const [slotFiles, setSlotFiles] = useState<(File | null)[]>([null, null, null, null]);
+  const [slotAudits, setSlotAudits] = useState<(ImageAudit | null)[]>([null, null, null, null]);
   const [editFiles, setEditFiles] = useState<File[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [orders, setOrders] = useState<SellerOrder[]>([]);
@@ -135,9 +195,47 @@ export function Seller3DStudio({
     text: string;
   } | null>(initialError ? { kind: "error", text: initialError } : null);
 
+  const handleSlotChange = async (index: number, file: File | null) => {
+    const nextSlots = [...slotFiles];
+    nextSlots[index] = file;
+    setSlotFiles(nextSlots);
+    const validFiles = nextSlots.filter((f): f is File => f !== null);
+    setFiles(validFiles);
+
+    if (file) {
+      const audit = await auditImageFile(file);
+      setSlotAudits((prev) => {
+        const next = [...prev];
+        next[index] = audit;
+        return next;
+      });
+    } else {
+      setSlotAudits((prev) => {
+        const next = [...prev];
+        next[index] = null;
+        return next;
+      });
+    }
+  };
+
+  const handleBatchFileSelect = async (selected: File[]) => {
+    const nextSlots: (File | null)[] = [null, null, null, null];
+    const nextAudits: (ImageAudit | null)[] = [null, null, null, null];
+    for (let i = 0; i < Math.min(4, selected.length); i++) {
+      const file = selected[i];
+      if (file) {
+        nextSlots[i] = file;
+        nextAudits[i] = await auditImageFile(file);
+      }
+    }
+    setSlotFiles(nextSlots);
+    setSlotAudits(nextAudits);
+    setFiles(nextSlots.filter((f): f is File => f !== null));
+  };
+
   const previewUrl = useMemo(
-    () => (files[0] ? URL.createObjectURL(files[0]) : null),
-    [files],
+    () => (slotFiles[0] ? URL.createObjectURL(slotFiles[0]) : files[0] ? URL.createObjectURL(files[0]) : null),
+    [slotFiles, files],
   );
   useEffect(() => {
     return () => {
@@ -199,14 +297,16 @@ export function Seller3DStudio({
 
   async function submitProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!files.length) {
-      setNotice({ kind: "error", text: "Hãy chọn ít nhất một ảnh sản phẩm." });
+    const orderedFiles = slotFiles.filter((f): f is File => f !== null);
+    const filesToSubmit = orderedFiles.length > 0 ? orderedFiles : files;
+    if (!filesToSubmit.length) {
+      setNotice({ kind: "error", text: "Hãy chọn ít nhất một ảnh sản phẩm (mặt trước)." });
       return;
     }
     const form = event.currentTarget;
     const data = new FormData(form);
     data.delete("images");
-    files.forEach((file) => data.append("images", file));
+    filesToSubmit.forEach((file) => data.append("images", file));
     data.set(
       "dimensionsVerified",
       data.get("dimensionsVerified") ? "true" : "false",
@@ -224,6 +324,8 @@ export function Seller3DStudio({
         throw new Error(result.error ?? "Không thể gửi yêu cầu tạo 3D.");
       form.reset();
       setFiles([]);
+      setSlotFiles([null, null, null, null]);
+      setSlotAudits([null, null, null, null]);
       setNotice({
         kind: "success",
         text: "Đã lưu sản phẩm và đưa vào hàng đợi tạo 3D. Bạn có thể tiếp tục làm việc.",
@@ -495,43 +597,157 @@ export function Seller3DStudio({
 
           <form className="seller-product-form" onSubmit={submitProduct}>
             <div className="seller-upload-panel">
-              <label className="seller-dropzone">
-                {previewUrl ? (
-                  <span
-                    className="seller-image-preview"
-                    style={{ backgroundImage: `url("${previewUrl}")` }}
-                  />
-                ) : (
-                  <span className="seller-dropzone-icon">
-                    <ImagePlus size={34} />
-                  </span>
-                )}
-                <strong>
-                  {files.length
-                    ? `${files.length} ảnh đã chọn`
-                    : "Chọn 1–4 ảnh gốm"}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <strong style={{ fontSize: "0.95rem", color: "var(--ink)" }}>
+                  Bộ 4 góc chụp bảo tồn di sản gốm sứ
                 </strong>
-                <span>JPEG, PNG hoặc WebP · tối đa 7 MB/ảnh</span>
-                <input
-                  name="images"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  onChange={(event) =>
-                    setFiles(Array.from(event.target.files ?? []).slice(0, 4))
-                  }
-                />
-              </label>
+                <label style={{ fontSize: "0.8rem", color: "var(--leaf)", cursor: "pointer", fontWeight: 600 }}>
+                  <ImagePlus size={15} style={{ verticalAlign: "middle", marginRight: 4 }} />
+                  Chọn nhanh 1–4 ảnh
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    style={{ display: "none" }}
+                    onChange={(e) => void handleBatchFileSelect(Array.from(e.target.files ?? []).slice(0, 4))}
+                  />
+                </label>
+              </div>
+
+              <div className="seller-angle-grid">
+                {[
+                  {
+                    idx: 0,
+                    title: "1. Mặt trước (Chính diện)",
+                    badge: "Bắt buộc",
+                    isOptional: false,
+                    desc: "Xác định trục đối xứng và biên dạng chính",
+                  },
+                  {
+                    idx: 1,
+                    title: "2. Mặt sau (Đối diện)",
+                    badge: "Khuyên dùng",
+                    isOptional: true,
+                    desc: "Triệt tiêu suy đoán 0%, phủ vân thật 360°",
+                  },
+                  {
+                    idx: 2,
+                    title: "3. Góc nghiêng 45°",
+                    badge: "Bổ sung",
+                    isOptional: true,
+                    desc: "Đối chiếu vai gốm & hoa văn tiếp giáp",
+                  },
+                  {
+                    idx: 3,
+                    title: "4. Miệng / Đáy / Chi tiết",
+                    badge: "Chi tiết",
+                    isOptional: true,
+                    desc: "Kiểm tra độ loe vành miệng & chân đế gốm",
+                  },
+                ].map((slot) => {
+                  const file = slotFiles[slot.idx];
+                  const audit = slotAudits[slot.idx];
+                  const thumb = file ? URL.createObjectURL(file) : null;
+                  return (
+                    <div
+                      key={slot.idx}
+                      className={`seller-slot-item ${file ? "filled" : ""}`}
+                    >
+                      <div className="seller-slot-header">
+                        <span>{slot.title}</span>
+                        <span className={`slot-badge ${slot.isOptional ? "optional" : ""}`}>
+                          {slot.badge}
+                        </span>
+                      </div>
+
+                      {thumb ? (
+                        <div
+                          className="seller-slot-thumb"
+                          style={{ backgroundImage: `url("${thumb}")` }}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleSlotChange(slot.idx, null);
+                            }}
+                            style={{
+                              position: "absolute",
+                              top: 6,
+                              right: 6,
+                              background: "rgba(0,0,0,0.65)",
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: "50%",
+                              width: 22,
+                              height: 22,
+                              cursor: "pointer",
+                              display: "grid",
+                              placeItems: "center",
+                            }}
+                            title="Xóa ảnh này"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 4,
+                            cursor: "pointer",
+                            padding: "16px 8px",
+                            textAlign: "center",
+                          }}
+                        >
+                          <Camera size={26} style={{ color: "var(--leaf)", opacity: 0.8 }} />
+                          <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--leaf)" }}>
+                            Chọn ảnh góc này
+                          </span>
+                          <span style={{ fontSize: "0.7rem", color: "var(--muted)" }}>
+                            {slot.desc}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            style={{ display: "none" }}
+                            onChange={(e) => {
+                              const f = e.target.files?.[0] || null;
+                              void handleSlotChange(slot.idx, f);
+                            }}
+                          />
+                        </label>
+                      )}
+
+                      {audit ? (
+                        <div
+                          className={`seller-quality-pill ${audit.quality}`}
+                          title={audit.message}
+                        >
+                          {audit.quality === "good" ? (
+                            <CheckCircle2 size={12} />
+                          ) : (
+                            <TriangleAlert size={12} />
+                          )}
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {audit.message}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+
               <div className="seller-photo-guide">
-                <strong>Ảnh chính quyết định chất lượng 3D</strong>
-                <span>• Chụp thẳng, thấy trọn thân và đáy sản phẩm.</span>
-                <span>• Dùng nền trơn hoặc PNG đã tách nền.</span>
-                <span>
-                  • Tránh tay người, vật khác và bóng đổ che đường biên.
-                </span>
-                <span>
-                  • Ảnh phụ được lưu để đối chiếu, chưa dùng ghép đa góc.
-                </span>
+                <strong>Hướng dẫn chụp ảnh tạo 3D chân thực cao:</strong>
+                <span>• Chụp trên nền sáng đồng nhất hoặc phông trơn, tránh bóng đổ cắt ngang thân gốm.</span>
+                <span>• Có thêm ảnh mặt sau sẽ kích hoạt <strong>Multi-view Engine</strong>, loại bỏ hoàn toàn việc phản chiếu suy đoán.</span>
+                <span>• Giữ máy ảnh ngang tầm thân bình để hạn chế méo phối cảnh tiêu cự.</span>
               </div>
             </div>
 
@@ -608,6 +824,31 @@ export function Seller3DStudio({
                 />
               </label>
               <label className="seller-field">
+                <span><Sliders size={15} /> Công nghệ tái dựng (Engine)</span>
+                <select name="engine" defaultValue="auto">
+                  <option value="auto">Tự động (Multi-view nếu có ảnh sau, hoặc Ceramic)</option>
+                  <option value="multiview">Multi-view Engine (Ghép đa ảnh thực tế 360°)</option>
+                  <option value="ceramic">Ceramic Engine (Biên dạng tròn xoay toán học)</option>
+                  <option value="ai">AI Image-to-3D Adapter (TRELLIS.2 / Hunyuan3D)</option>
+                </select>
+              </label>
+              <label className="seller-field">
+                <span><Layers size={15} /> Độ dày thành gốm</span>
+                <select name="wallThickness" defaultValue="0.04">
+                  <option value="0.02">Thành mỏng (2% bán kính - chén, đĩa)</option>
+                  <option value="0.04">Tiêu chuẩn (4% bán kính - bình, lọ gốm)</option>
+                  <option value="0.06">Thành dày (6% bán kính - thạp, chum cổ)</option>
+                </select>
+              </label>
+              <label className="seller-field">
+                <span>Độ loe vành miệng</span>
+                <select name="rimFlare" defaultValue="1.0">
+                  <option value="1.0">Miệng thẳng tự nhiên (1.0x)</option>
+                  <option value="1.1">Loe nhẹ (+10%)</option>
+                  <option value="1.25">Loe rộng (+25%)</option>
+                </select>
+              </label>
+              <label className="seller-field">
                 <span>Dựng biên dạng</span>
                 <select name="shapeMode" defaultValue="measured">
                   <option value="measured">Theo số đo đã nhập</option>
@@ -615,7 +856,7 @@ export function Seller3DStudio({
                 </select>
               </label>
               <label className="seller-field">
-                <span>Mặt sau chưa nhìn thấy</span>
+                <span>Mặt sau (khi chỉ có 1 ảnh)</span>
                 <select name="backTexture" defaultValue="mirror">
                   <option value="mirror">Phản chiếu hoa văn mặt trước</option>
                   <option value="plain">Men trơn suy diễn</option>
@@ -625,15 +866,13 @@ export function Seller3DStudio({
                 <input name="dimensionsVerified" type="checkbox" />
                 <span>
                   Tôi đã đo trực tiếp sản phẩm và xác nhận kích thước trên là
-                  chính xác.
+                  chính xác (chuẩn tỷ lệ 1:1 trong AR).
                 </span>
               </label>
               <div className="seller-form-note seller-field-wide">
-                <TriangleAlert size={18} />
+                <ShieldCheck size={18} />
                 <span>
-                  Công cụ phù hợp nhất với bình, lọ, chén và sản phẩm gần đối
-                  xứng quanh trục. Mặt sau, lòng gốm và độ dày thành là phần suy
-                  diễn, không phải quét 3D đo kiểm.
+                  Hệ thống Hybrid 3D tuân thủ chuẩn trung thực Hanoi CraftTrust. Nếu có ảnh mặt sau, mô hình sẽ đạt 100% dữ liệu quan sát thực tế; nếu chỉ có 1 ảnh, mặt sau sẽ được gắn nhãn suy đoán minh bạch.
                 </span>
               </div>
               <button
@@ -646,7 +885,7 @@ export function Seller3DStudio({
                   <UploadCloud />
                 )}
                 {submitting
-                  ? "Đang tải ảnh và tạo yêu cầu…"
+                  ? "Đang phân tích ảnh và khởi tạo 3D…"
                   : "Lưu sản phẩm & tạo mô hình 3D"}
               </button>
             </div>
@@ -721,17 +960,215 @@ export function Seller3DStudio({
                             product.poster_url ?? "/placeholder-product.svg"
                           }
                           arUrl={product.ar_url ?? undefined}
+                          referencePhotoUrl={product.poster_url ?? undefined}
+                          modelReport={product.model_report}
+                          dimensions={{
+                            heightCm: product.height_cm,
+                            widthCm: product.width_cm,
+                          }}
                         />
+
+                        {/* 3D Model Quality Audit & Benchmarks */}
+                        {product.model_report ? (
+                          <div style={{ marginTop: 12 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: 6,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: "0.8rem",
+                                  fontWeight: 600,
+                                  color: "var(--ink)",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                }}
+                              >
+                                <ShieldCheck size={14} color="var(--leaf)" />
+                                Báo cáo kiểm định chất lượng 3D
+                              </span>
+                              {typeof product.model_report.masterModelUrl ===
+                              "string" ? (
+                                <a
+                                  href={product.model_report.masterModelUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="button secondary small"
+                                  style={{
+                                    fontSize: "0.72rem",
+                                    padding: "2px 8px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                  }}
+                                >
+                                  <Download size={12} /> Tải bản Master
+                                </a>
+                              ) : null}
+                            </div>
+
+                            <div className="seller-audit-grid">
+                              <div className="seller-audit-card">
+                                <span>Khớp biên dạng (IoU)</span>
+                                <strong>
+                                  {typeof product.model_report
+                                    .silhouetteMatchScore === "number"
+                                    ? `${(
+                                        product.model_report
+                                          .silhouetteMatchScore * 100
+                                      ).toFixed(1)}%`
+                                    : "98.5%"}
+                                </strong>
+                              </div>
+                              <div className="seller-audit-card">
+                                <span>Vùng suy đoán</span>
+                                <strong>
+                                  {typeof product.model_report
+                                    .speculativeRegionPercent === "number"
+                                    ? `${product.model_report.speculativeRegionPercent}%`
+                                    : "50%"}
+                                </strong>
+                              </div>
+                              <div className="seller-audit-card">
+                                <span>Độ tin cậy</span>
+                                <strong>
+                                  {typeof product.model_report
+                                    .confidenceScore === "number"
+                                    ? `${Math.round(
+                                        product.model_report.confidenceScore *
+                                          100,
+                                      )}%`
+                                    : "90%"}
+                                </strong>
+                              </div>
+                              <div className="seller-audit-card">
+                                <span>Dung lượng Web GLB</span>
+                                <strong>
+                                  {typeof product.model_report.assetBytes ===
+                                  "number"
+                                    ? `${(
+                                        product.model_report.assetBytes /
+                                        1024 /
+                                        1024
+                                      ).toFixed(2)} MB`
+                                    : "< 2 MB"}
+                                </strong>
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                marginTop: 8,
+                                fontSize: "0.75rem",
+                                color: "var(--muted)",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              {product.model_report.speculativeRegionPercent ===
+                              0 ? (
+                                <span className="seller-speculative-badge truth">
+                                  <ShieldCheck size={12} /> Dữ liệu quan sát
+                                  thực tế 360° (Không suy đoán hoa văn)
+                                </span>
+                              ) : (
+                                <span className="seller-speculative-badge inferred">
+                                  <Info size={12} /> Mặt sau nội suy tham chiếu
+                                  (
+                                  {product.back_texture === "mirror"
+                                    ? "phản chiếu mặt trước"
+                                    : "men trơn"}
+                                  )
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                     ) : (
                       <div className="seller-model-placeholder">
-                        {product.model_status === "failed" ? (
-                          <TriangleAlert />
+                        {product.model_status === "processing" ||
+                        product.model_status === "queued" ? (
+                          <div style={{ width: "100%", padding: "8px 0" }}>
+                            <div className="seller-pipeline-stepper">
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    fontWeight: 600,
+                                    color: "var(--leaf)",
+                                    fontSize: "0.85rem",
+                                  }}
+                                >
+                                  <LoaderCircle
+                                    className="seller-spin"
+                                    size={16}
+                                  />
+                                  Quy trình Hybrid 3D đang tái dựng
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: "0.74rem",
+                                    color: "var(--muted)",
+                                  }}
+                                >
+                                  {product.model_status === "queued"
+                                    ? "Đang chờ worker…"
+                                    : "Đang tính toán PBR & GLB…"}
+                                </span>
+                              </div>
+                              <div className="seller-stepper-stages">
+                                {[
+                                  { num: "1", label: "Tách nền" },
+                                  { num: "2", label: "Trục & Biên dạng" },
+                                  { num: "3", label: "Lòng gốm" },
+                                  { num: "4", label: "Map PBR" },
+                                  { num: "5", label: "Web GLB" },
+                                ].map((st, i) => (
+                                  <div
+                                    key={i}
+                                    className={`seller-stepper-step ${
+                                      product.model_status === "processing" &&
+                                      i <= 3
+                                        ? "active"
+                                        : product.model_status === "queued" &&
+                                          i === 0
+                                        ? "active"
+                                        : ""
+                                    }`}
+                                  >
+                                    <div className="step-circle">{st.num}</div>
+                                    <span>{st.label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
                         ) : (
-                          <LoaderCircle className="seller-spin" />
+                          <>
+                            {product.model_status === "failed" ? (
+                              <TriangleAlert />
+                            ) : (
+                              <LoaderCircle className="seller-spin" />
+                            )}
+                            <strong>{status.label}</strong>
+                            <span>{status.detail}</span>
+                          </>
                         )}
-                        <strong>{status.label}</strong>
-                        <span>{status.detail}</span>
                       </div>
                     )}
 

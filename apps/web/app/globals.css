@@ -6610,3 +6610,214 @@ h3 {
   }
 }
 
+/* ==========================================================================
+   HANOI CRAFTTRUST HYBRID 3D STUDIO UPGRADE
+   ========================================================================== */
+
+.seller-angle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .seller-angle-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.seller-slot-item {
+  position: relative;
+  border: 1.5px dashed rgba(8, 115, 107, 0.35);
+  border-radius: 16px;
+  background: #fbf9f6;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 160px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.seller-slot-item:hover {
+  border-color: var(--leaf);
+  background: #f4efe6;
+}
+
+.seller-slot-item.filled {
+  border-style: solid;
+  border-color: rgba(35, 92, 67, 0.4);
+  background: #fff;
+}
+
+.seller-slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.seller-slot-header .slot-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(35, 92, 67, 0.1);
+  color: var(--leaf);
+}
+
+.seller-slot-header .slot-badge.optional {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--muted);
+}
+
+.seller-slot-thumb {
+  position: relative;
+  width: 100%;
+  height: 110px;
+  border-radius: 8px;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-color: #f0ece3;
+}
+
+.seller-quality-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.seller-quality-pill.good {
+  background: rgba(35, 92, 67, 0.12);
+  color: #1e6345;
+}
+
+.seller-quality-pill.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.seller-quality-pill.alert {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* 5-Stage Reconstruction Stepper */
+.seller-pipeline-stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #fcfbf9;
+  border: 1px solid rgba(35, 92, 67, 0.15);
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.seller-stepper-stages {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .seller-stepper-stages {
+    grid-template-columns: 1fr;
+  }
+}
+
+.seller-stepper-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  font-size: 0.74rem;
+  color: var(--muted);
+  position: relative;
+}
+
+.seller-stepper-step.active {
+  color: var(--leaf);
+  font-weight: 600;
+}
+
+.seller-stepper-step .step-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.seller-stepper-step.active .step-circle {
+  background: var(--leaf);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(35, 92, 67, 0.18);
+}
+
+.seller-stepper-step.completed .step-circle {
+  background: #1e6345;
+  color: #fff;
+}
+
+/* 3D Audit Quality Metrics Grid */
+.seller-audit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.seller-audit-card {
+  background: #f8f6f0;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.seller-audit-card span {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.seller-audit-card strong {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.seller-speculative-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.seller-speculative-badge.truth {
+  background: rgba(35, 92, 67, 0.12);
+  color: var(--leaf);
+}
+
+.seller-speculative-badge.inferred {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+

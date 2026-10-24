@@ -249,10 +249,17 @@ export async function PATCH(
         ar_url: null,
       })
       .eq("id", id);
-    if (updateError) throw updateError;
+    const engine = String(form.get("engine") ?? "auto").trim();
     const { error: jobError } = await auth.supabase
       .from("model_jobs")
-      .insert({ product_id: id, status: "queued", attempt });
+      .insert({
+        product_id: id,
+        status: "queued",
+        attempt,
+        engine: ["auto", "ceramic", "multiview", "ai", "ai-trellis", "ai-hunyuan"].includes(engine)
+          ? engine
+          : "auto",
+      });
     if (jobError) throw jobError;
 
     const oldSourcePaths = (oldSources ?? []).map((row) => row.storage_path);

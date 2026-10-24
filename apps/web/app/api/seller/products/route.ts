@@ -247,10 +247,17 @@ export async function POST(request: Request) {
       .from("products")
       .update({ poster_url: posterUrl })
       .eq("id", productId);
-    if (posterError) throw posterError;
+    const engine = String(form.get("engine") ?? "auto").trim();
     const { error: jobError } = await auth.supabase
       .from("model_jobs")
-      .insert({ product_id: productId, status: "queued", attempt: 1 });
+      .insert({
+        product_id: productId,
+        status: "queued",
+        attempt: 1,
+        engine: ["auto", "ceramic", "multiview", "ai", "ai-trellis", "ai-hunyuan"].includes(engine)
+          ? engine
+          : "auto",
+      });
     if (jobError) throw jobError;
 
     return NextResponse.json(
