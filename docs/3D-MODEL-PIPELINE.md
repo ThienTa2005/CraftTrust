@@ -45,14 +45,23 @@ Supabase chịu trách nhiệm tài khoản, quyền sở hữu, hàng đợi v�
    MODEL_WORKER_POLL_MS=3000
    ```
 
-4. Chạy riêng website và worker:
+4. Chạy website và worker cùng nhau (giữ terminal này hoạt động):
 
    ```powershell
-   corepack pnpm dev:web
-   corepack pnpm dev:model-worker
+   corepack pnpm dev:3d
    ```
 
 5. Đăng nhập `demo.seller@example.invalid`, mở `/seller`, tạo sản phẩm, chờ trạng thái **Chờ nghệ nhân duyệt**, kiểm tra bản 3D và bấm **Duyệt & xuất bản**.
+
+### Khi sản phẩm kẹt ở hàng đợi
+
+- `dev:web` và `pnpm --filter @craft-trust/web start` chỉ chạy Next.js. Nếu không có worker riêng, tác vụ sẽ giữ `queued` vô thời hạn; tải lại ảnh không khắc phục được.
+- Nếu web đã chạy, mở thêm `corepack pnpm dev:model-worker`. Nếu chạy từ đầu với bản đã build, dùng `corepack pnpm start:3d` để chạy cả hai.
+- Chạy `corepack pnpm model-worker:diagnose` để xem URL cấu hình, các tác vụ gần nhất và các RPC hiện có. Công cụ chỉ đọc và không in khóa bí mật. Web và worker phải dùng cùng Supabase project.
+- Worker đọc `.env.local` ở root, sau đó `services/model-worker/.env.local`; cấu hình riêng của worker được ưu tiên. `PYTHON_BIN` dạng đường dẫn tương đối được tính từ `services/model-worker`.
+- Lỗi `PGRST202` khi nhận tác vụ: kiểm tra đã áp dụng migration `202610250004_digital_passport_trace_and_worker_hardening.sql`, trong đó có `claim_model_job(p_worker_id text)`. Không reset database đang có dữ liệu người dùng để sửa lỗi này.
+- Giao diện lấy bước xử lý từ tác vụ thực và cảnh báo khi yêu cầu chưa được nhận sau 2 phút; cảnh báo không tự tạo tác vụ trùng hoặc đánh dấu ảnh lỗi.
+- `model-worker:once` chỉ xử lý một tác vụ rồi thoát, dành cho kiểm tra. Production cần service worker chạy liên tục và tự khởi động lại khi máy/service khởi động lại; triển khai website một mình không cung cấp worker Python.
 
 ## Dữ liệu và bảo mật
 

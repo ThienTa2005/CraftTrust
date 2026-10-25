@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthorizedUser } from "@/lib/authz";
+import { summarizeModelJobs } from "@/lib/model-job-status";
 
 export const runtime = "nodejs";
 
@@ -88,12 +89,17 @@ export async function GET() {
   const { data, error } = await auth.supabase
     .from("products")
     .select(
-      "id,slug,name,description,price_vnd,stock_quantity,status,poster_url,model_url,ar_url,height_cm,width_cm,dimensions_verified,shape_mode,back_texture,model_status,model_report,model_error,created_at",
+      "id,slug,name,description,price_vnd,stock_quantity,status,poster_url,model_url,ar_url,height_cm,width_cm,dimensions_verified,shape_mode,back_texture,model_status,model_report,model_error,created_at,model_jobs(id,status,created_at,current_step)",
     )
     .eq("artisan_id", artisan.id)
     .order("created_at", { ascending: false });
   if (error) return jsonError(error.message, 500);
-  return NextResponse.json({ products: data ?? [] });
+  return NextResponse.json({
+    products: (data ?? []).map(({ model_jobs, ...product }) => ({
+      ...product,
+      ...summarizeModelJobs(model_jobs ?? []),
+    })),
+  });
 }
 
 export async function POST(request: Request) {

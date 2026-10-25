@@ -103,6 +103,8 @@ Mở <http://localhost:3000>. Website mặc định dùng tiếng Việt và cho
 
 ### 4.1. Bật quy trình tạo sản phẩm 3D
 
+**Web chạy một mình không xử lý hàng đợi 3D.** Sau khi cấu hình Python và worker bên dưới, dùng `corepack pnpm dev:3d` để chạy cả web và worker trong cùng terminal. Với bản đã build, dùng `corepack pnpm start:3d`. Hai lệnh này dành cho máy có cài Python và cấu hình service-role; môi trường demo chỉ xem web vẫn dùng `dev:web`.
+
 Chức năng 3D cần thêm Python worker vì việc tách nền và dựng GLB không chạy trong tiến trình Next.js. Cài Python 3.11+ rồi tạo môi trường riêng:
 
 ```powershell

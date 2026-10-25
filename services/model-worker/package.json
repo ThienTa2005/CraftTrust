@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --env-file-if-exists=../../.env.local --watch worker.mjs",
-    "start": "node --env-file-if-exists=../../.env.local worker.mjs",
-    "once": "node --env-file-if-exists=../../.env.local worker.mjs --once"
+    "dev": "node --env-file-if-exists=../../.env.local --env-file-if-exists=.env.local --watch worker.mjs",
+    "start": "node --env-file-if-exists=../../.env.local --env-file-if-exists=.env.local worker.mjs",
+    "once": "node --env-file-if-exists=../../.env.local --env-file-if-exists=.env.local worker.mjs --once",
+    "diagnose": "node diagnose.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.81.1"

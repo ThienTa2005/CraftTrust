@@ -37,6 +37,7 @@ import {
 import { CraftModelViewer } from "@/components/model-viewer";
 import type { AppRole } from "@/lib/authz";
 import { formatVnd } from "@/lib/format";
+import { modelStages, type ModelJobSummary } from "@/lib/model-job-status";
 
 type ImageAudit = {
   width: number;
@@ -111,6 +112,8 @@ export type SellerProduct = {
   model_status: ModelStatus;
   model_report: Record<string, unknown> | null;
   model_error: string | null;
+  model_job?: ModelJobSummary | null;
+  model_queue_delayed?: boolean;
   created_at: string;
 };
 
@@ -141,7 +144,7 @@ const statusCopy: Record<ModelStatus, { label: string; detail: string }> = {
   not_requested: { label: "Chưa tạo", detail: "Chưa có yêu cầu dựng mô hình." },
   queued: {
     label: "Đang xếp hàng",
-    detail: "Worker sẽ nhận sản phẩm trong ít phút.",
+    detail: "Ảnh đã được lưu, đang chờ dịch vụ tạo 3D nhận xử lý.",
   },
   processing: {
     label: "Đang tạo 3D",
@@ -249,21 +252,30 @@ export function Seller3DStudio({
   );
 
   const refreshProducts = useCallback(async (silent = false) => {
-    const response = await fetch("/api/seller/products", { cache: "no-store" });
-    const result = (await response.json()) as {
-      products?: SellerProduct[];
-      error?: string;
-    };
-    if (!response.ok) {
-      if (!silent)
+    try {
+      const response = await fetch("/api/seller/products", { cache: "no-store" });
+      const result = (await response.json()) as {
+        products?: SellerProduct[];
+        error?: string;
+      };
+      if (!response.ok) {
+        if (!silent)
+          setNotice({
+            kind: "error",
+            text: result.error ?? "Không thể tải sản phẩm.",
+          });
+        return;
+      }
+      setProducts(result.products ?? []);
+      onProductsChange?.(result.products ?? []);
+    } catch {
+      if (!silent) {
         setNotice({
           kind: "error",
-          text: result.error ?? "Không thể tải sản phẩm.",
+          text: "Mất kết nối khi cập nhật tiến độ 3D. Vui lòng thử làm mới.",
         });
-      return;
+      }
     }
-    setProducts(result.products ?? []);
-    onProductsChange?.(result.products ?? []);
   }, [onProductsChange]);
 
   const refreshOrders = useCallback(async () => {
@@ -912,7 +924,17 @@ export function Seller3DStudio({
           {products.length ? (
             <div className="seller-product-list">
               {products.map((product) => {
-                const status = statusCopy[product.model_status];
+                const queueDelayed =
+                  product.model_status === "queued" && product.model_queue_delayed;
+                const status = queueDelayed
+                  ? {
+                      label: "Chờ xử lý lâu",
+                      detail: "Yêu cầu chưa được nhận sau hơn 2 phút. Dịch vụ tạo 3D có thể đang bận hoặc chưa hoạt động. Ảnh đã được lưu; không cần tải lại. Vui lòng liên hệ quản trị viên nếu tình trạng kéo dài.",
+                    }
+                  : statusCopy[product.model_status];
+                const currentStage = modelStages.findIndex(
+                  (stage) => stage.step === product.model_job?.current_step,
+                );
                 const isBusy = busyProduct === product.id;
                 return (
                   <article className="seller-product-row" key={product.id}>
@@ -1121,7 +1143,9 @@ export function Seller3DStudio({
                                     className="seller-spin"
                                     size={16}
                                   />
-                                  Quy trình Hybrid 3D đang tái dựng
+                                  {product.model_status === "queued"
+                                    ? "Đang chờ tạo mô hình 3D"
+                                    : "Đang tạo mô hình 3D"}
                                 </span>
                                 <span
                                   style={{
@@ -1130,31 +1154,24 @@ export function Seller3DStudio({
                                   }}
                                 >
                                   {product.model_status === "queued"
-                                    ? "Đang chờ worker…"
-                                    : "Đang tính toán PBR & GLB…"}
+                                    ? queueDelayed
+                                      ? "Chưa được nhận xử lý"
+                                      : "Đã lưu yêu cầu"
+                                    : modelStages[currentStage]?.label ?? "Đang xử lý…"}
                                 </span>
                               </div>
                               <div className="seller-stepper-stages">
-                                {[
-                                  { num: "1", label: "Tách nền" },
-                                  { num: "2", label: "Trục & Biên dạng" },
-                                  { num: "3", label: "Lòng gốm" },
-                                  { num: "4", label: "Map PBR" },
-                                  { num: "5", label: "Web GLB" },
-                                ].map((st, i) => (
+                                {modelStages.map((st, i) => (
                                   <div
-                                    key={i}
+                                    key={st.step}
                                     className={`seller-stepper-step ${
                                       product.model_status === "processing" &&
-                                      i <= 3
-                                        ? "active"
-                                        : product.model_status === "queued" &&
-                                          i === 0
+                                      i <= currentStage
                                         ? "active"
                                         : ""
                                     }`}
                                   >
-                                    <div className="step-circle">{st.num}</div>
+                                    <div className="step-circle">{i + 1}</div>
                                     <span>{st.label}</span>
                                   </div>
                                 ))}

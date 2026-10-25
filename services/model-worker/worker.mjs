@@ -12,11 +12,15 @@ const supabaseUrl =
 const serviceRoleKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
 
-const venvPython = path.resolve(
-  fileURLToPath(new URL("./.venv/Scripts/python.exe", import.meta.url)),
-);
+const workerDirectory = fileURLToPath(new URL("./", import.meta.url));
+const venvPython = path.join(workerDirectory, ".venv", process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
+const configuredPython = process.env.PYTHON_BIN;
 const pythonBin =
-  process.env.PYTHON_BIN || (existsSync(venvPython) ? venvPython : "python");
+  configuredPython
+    ? (configuredPython.includes("/") || configuredPython.includes("\\")
+        ? path.resolve(workerDirectory, configuredPython)
+        : configuredPython)
+    : (existsSync(venvPython) ? venvPython : "python");
 const pollMs = Math.max(1000, Number(process.env.MODEL_WORKER_POLL_MS) || 3000);
 const once = process.argv.includes("--once");
 const generatorPath = fileURLToPath(new URL("./generate.py", import.meta.url));
@@ -54,12 +58,13 @@ function extensionFor(mimeType) {
 
 async function sendHeartbeat(jobId, step, progress = 0) {
   try {
-    await supabase.rpc("heartbeat_model_job", {
+    const { error } = await supabase.rpc("heartbeat_model_job", {
       p_job_id: jobId,
       p_worker_id: workerId,
       p_step: step,
       p_progress: progress,
     });
+    if (error) throw error;
   } catch (err) {
     // Non-fatal warning
     console.warn(`[model-worker] heartbeat warning for ${jobId}:`, err?.message || err);
@@ -166,11 +171,12 @@ async function reapStaleJobs() {
     const { data: count, error } = await supabase.rpc("reap_stale_model_jobs", {
       p_timeout_minutes: 5,
     });
+    if (error) throw error;
     if (!error && count && count > 0) {
       console.log(`[model-worker] reaped ${count} stale/abandoned jobs`);
     }
   } catch (err) {
-    // Ignore if RPC missing or error
+    console.warn("[model-worker] stale-job check failed:", err?.message || err);
   }
 }
 
@@ -250,10 +256,11 @@ async function processJob(job) {
       }
     }
 
-    await supabase
+    const { error: processingError } = await supabase
       .from("products")
       .update({ model_status: "processing", model_error: null })
       .eq("id", job.product_id);
+    if (processingError) throw processingError;
 
     // Fetch or prepare passport public code for base QR hallmark
     const { data: passport } = await supabase
@@ -411,7 +418,7 @@ async function processJob(job) {
     const message =
       error instanceof Error
         ? error.message.slice(0, 2000)
-        : String(error).slice(0, 2000);
+        : (error?.message || String(error)).slice(0, 2000);
     if (uploadedModelPath) {
       await supabase.storage.from("product-models").remove([uploadedModelPath]).catch(() => {});
     }
@@ -432,6 +439,7 @@ async function processJob(job) {
         .eq("id", job.id),
     ]).catch((err) => console.error("[model-worker] error updating failed status:", err));
     console.error(`[model-worker] failed job ${job.id}: ${message}`);
+    if (once) process.exitCode = 1;
   } finally {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     if (tempDirectory) {

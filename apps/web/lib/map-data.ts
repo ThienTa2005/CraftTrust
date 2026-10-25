@@ -265,7 +265,7 @@ export const CRAFT_MAP_LOCATIONS: CraftMapLocation[] = [
     ],
     openingHoursVi: "07:00 - 17:30 (Hàng ngày)",
     openingHoursEn: "07:00 - 17:30 (Daily)",
-    imageUrl: "https://images.unsplash.com/photo-1508672019048-805b876b67e2?auto=format&fit=crop&w=1000&q=85"
+    imageUrl: "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=1000&q=85"
   },
   {
     id: "loc-den-chu-dong-tu",

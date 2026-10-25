@@ -9,6 +9,9 @@
   "scripts": {
     "dev": "corepack pnpm --recursive --parallel --if-present dev",
     "dev:web": "corepack pnpm --filter @craft-trust/web dev",
+    "dev:3d": "corepack pnpm --parallel --filter @craft-trust/web --filter @craft-trust/model-worker dev",
+    "start:3d": "corepack pnpm --parallel --filter @craft-trust/web --filter @craft-trust/model-worker start",
+    "model-worker:diagnose": "corepack pnpm --filter @craft-trust/model-worker diagnose",
     "dev:model-worker": "corepack pnpm --filter @craft-trust/model-worker dev",
     "model-worker:once": "corepack pnpm --filter @craft-trust/model-worker once",
     "dev:mobile": "corepack pnpm --filter @craft-trust/mobile start",

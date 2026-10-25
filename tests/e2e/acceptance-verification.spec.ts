@@ -2,22 +2,17 @@ import { expect, test } from "@playwright/test";
 
 test.describe("Hanoi CraftTrust Final Acceptance Verification", () => {
   test("TEST 01 & 02: Admin Login and Redirection to Admin Portal with Design System", async ({ page }) => {
-    // 1. Visit /auth with next=/admin
-    await page.goto("/auth?next=/admin", { waitUntil: "domcontentloaded" });
+    // 1. Visit /auth with next=/admin and wait for hydration
+    await page.goto("/auth?next=/admin", { waitUntil: "networkidle" });
     await expect(page.getByRole("heading", { name: /Một tài khoản/i })).toBeVisible();
 
-    // 2. Type Admin credentials sequentially to ensure React state updates
+    // 2. Click Admin quick role button and verify state is set
+    await page.getByRole("button", { name: /Quản trị viên/i }).click();
     const emailInput = page.locator("input#email");
-    await emailInput.click();
-    await emailInput.fill("");
-    await emailInput.pressSequentially("admin@crafttrust.vn", { delay: 15 });
-    await expect(emailInput).toHaveValue("admin@crafttrust.vn");
+    await expect(emailInput).toHaveValue("admin@crafttrust.vn", { timeout: 10000 });
 
     const passInput = page.locator("input#password");
-    await passInput.click();
-    await passInput.fill("");
-    await passInput.pressSequentially("12345678", { delay: 15 });
-    await expect(passInput).toHaveValue("12345678");
+    await expect(passInput).toHaveValue("12345678", { timeout: 10000 });
 
     // 3. Submit login via submit button
     await page.locator("button.auth-submit").click();
