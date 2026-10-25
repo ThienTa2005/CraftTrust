@@ -56,14 +56,24 @@ export default async function AdminPage() {
   }
 
   // 2. Real Products across Platform
-  const { data: productsData } = await auth.supabase
+  let productsData: any[] | null = null;
+  const productsRes = await auth.supabase
     .from("products")
     .select(`
-      id, name, slug, price_vnd, stock_quantity, status, model_status, created_at, poster_url,
-      artisans ( id, name, villages ( id, name ) ),
-      product_model_assets ( id, status, original_filename, file_size )
+      id, name, slug, price_vnd, stock_quantity, status, created_at, poster_url, model_url,
+      artisans ( id, name, villages ( id, name ) )
     `)
     .order("created_at", { ascending: false });
+
+  if (productsRes.data && productsRes.data.length > 0) {
+    productsData = productsRes.data;
+  } else {
+    const fallbackProducts = await auth.supabase
+      .from("products")
+      .select("id, name, slug, price_vnd, stock_quantity, status, created_at, poster_url, model_url")
+      .order("created_at", { ascending: false });
+    productsData = fallbackProducts.data ?? [];
+  }
 
   // 3. Real Merchants / Artisans
   const { data: artisansData } = await auth.supabase

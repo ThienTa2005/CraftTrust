@@ -9,7 +9,7 @@ export async function GET(request:Request) {
  let query=auth.supabase.from("product_model_assets").select("*").order("created_at",{ascending:false});
  if(productId) query=query.eq("product_id",productId);
  const {data,error}=await query.limit(200);
- return NextResponse.json(error?{error:error.message}:{assets:data??[]},{status:error?500:200});
+ return NextResponse.json({ assets: data ?? [] }, { status: 200 });
 }
 export async function POST(request:Request) {
  const auth=await getAuthorizedUser(["admin"]);
