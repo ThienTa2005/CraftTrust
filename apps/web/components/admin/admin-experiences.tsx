@@ -100,7 +100,7 @@ export function AdminExperiences() {
             <option value="" disabled>-- Nhấp để chọn sản phẩm đã có mô hình 3D --</option>
             {products.map((product) => (
               <option key={product.id} value={product.id}>
-                {product.name} · {product.artisan}
+                {product.name} · {product.artisan}{!product.hasModel && !product.modelAssetId ? " (Chưa có 3D)" : ""}
               </option>
             ))}
           </select>

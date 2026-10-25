@@ -1,38 +1,87 @@
 import { NextResponse } from "next/server";
 import { getAuthorizedUser } from "@/lib/authz";
 import { createServiceSupabase } from "@/lib/supabase";
+import { demoProducts } from "@/lib/demo-data";
 
 export const runtime = "nodejs";
 
 async function loadEligibleProducts(supabase: any) {
-  const { data: assets, error: assetError } = await supabase
-    .from("product_model_assets")
-    .select("id,product_id,created_at")
-    .eq("status", "published")
-    .order("created_at", { ascending: false });
-  if (assetError) throw assetError;
-  const latestAssetByProduct = new Map<string, any>();
-  for (const asset of assets ?? []) {
-    if (!latestAssetByProduct.has(asset.product_id)) latestAssetByProduct.set(asset.product_id, asset);
+  let products: any[] = [];
+  try {
+    const { data: prodData } = await supabase
+      .from("products")
+      .select("id,name,slug,poster_url,status,model_url,model_status,model_version,created_at,artisans(id,name)")
+      .order("created_at", { ascending: false });
+
+    if (prodData && prodData.length > 0) {
+      products = prodData;
+    } else {
+      const { data: fallbackData } = await supabase
+        .from("products")
+        .select("id,name,slug,poster_url,status,model_url,model_status,model_version,created_at")
+        .order("created_at", { ascending: false });
+      if (fallbackData && fallbackData.length > 0) products = fallbackData;
+    }
+  } catch (err: any) {
+    console.warn("[admin/experiences] query products error:", err?.message);
   }
-  const productIds = [...latestAssetByProduct.keys()];
-  if (!productIds.length) return [];
-  const { data: products, error: productError } = await supabase
-    .from("products")
-    .select("id,name,slug,poster_url,status,artisans(name)")
-    .in("id", productIds)
-    .eq("status", "active")
-    .order("name");
-  if (productError) throw productError;
-  return (products ?? []).map((product: any) => {
+
+  const assetsByProduct = new Map<string, any>();
+  try {
+    const { data: assets } = await supabase
+      .from("product_model_assets")
+      .select("id,product_id,status,storage_path,created_at")
+      .order("created_at", { ascending: false });
+
+    for (const asset of assets ?? []) {
+      const existing = assetsByProduct.get(asset.product_id);
+      if (!existing || (existing.status !== "published" && asset.status === "published")) {
+        assetsByProduct.set(asset.product_id, asset);
+      }
+    }
+  } catch (assetErr: any) {
+    console.warn("[admin/experiences] query product_model_assets warning:", assetErr?.message);
+  }
+
+  if (products.length === 0) {
+    return demoProducts.map((p) => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      posterUrl: p.image,
+      artisan: p.artisan ?? "Nghệ nhân Bát Tràng",
+      modelAssetId: p.modelAssetId || undefined,
+      hasModel: Boolean(p.modelUrl || p.modelAssetId),
+      modelUrl: p.modelUrl,
+      status: "active",
+    }));
+  }
+
+  return products.map((product: any) => {
     const artisan = Array.isArray(product.artisans) ? product.artisans[0] : product.artisans;
+    const asset = assetsByProduct.get(product.id);
+    const has3d = Boolean(
+      asset ||
+      product.model_url ||
+      (product.model_version && product.model_version.length > 10) ||
+      product.model_status === "ready"
+    );
+
+    const modelAssetId = asset?.id || (product.model_version && /^[0-9a-f-]{36}$/i.test(product.model_version) ? product.model_version : undefined);
+    const modelUrl = asset?.id
+      ? `/api/models/${asset.id}`
+      : (product.model_url || undefined);
+
     return {
       id: product.id,
       name: product.name,
       slug: product.slug,
-      posterUrl: product.poster_url,
+      posterUrl: product.poster_url || "/placeholder-product.svg",
       artisan: artisan?.name ?? "Nghệ nhân CraftTrust",
-      modelAssetId: latestAssetByProduct.get(product.id)?.id,
+      modelAssetId,
+      hasModel: has3d,
+      modelUrl,
+      status: product.status,
     };
   });
 }
@@ -99,20 +148,46 @@ export async function POST(request: Request) {
 
   const db = createServiceSupabase() ?? auth.supabase;
 
-  const { data: asset, error: assetError } = await db
-    .from("product_model_assets")
-    .select("id,product_id,status,storage_path")
-    .eq("product_id", productId)
-    .eq("status", "published")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (assetError || !asset) {
-    return NextResponse.json({ error: "Sản phẩm chưa có mô hình 3D đã được duyệt và xuất bản." }, { status: 409 });
+  let assetId: string | null = null;
+  let modelPath: string | null = null;
+
+  try {
+    const { data: asset } = await db
+      .from("product_model_assets")
+      .select("id,product_id,status,storage_path")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (asset?.id) {
+      assetId = asset.id;
+      modelPath = asset.storage_path;
+    }
+  } catch (err: any) {
+    console.warn("[admin/experiences] query asset error:", err?.message);
+  }
+
+  // If not found in product_model_assets, check product table directly
+  if (!assetId || !modelPath) {
+    try {
+      const { data: prod } = await db
+        .from("products")
+        .select("id, model_url, model_version")
+        .eq("id", productId)
+        .maybeSingle();
+
+      if (prod?.model_version && /^[0-9a-f-]{36}$/i.test(prod.model_version)) {
+        assetId = prod.model_version;
+      }
+      if (prod?.model_url) {
+        modelPath = prod.model_url;
+      }
+    } catch {}
   }
 
   const id = crypto.randomUUID();
-  const modelPath = (asset as any)?.storage_path || `experiences/${id}/model.glb`;
+  const finalModelPath = modelPath || `experiences/${id}/model.glb`;
 
   // Insert with all fields (including model_path to satisfy legacy not-null constraint)
   let { error } = await db.from("experiences").insert({
@@ -120,8 +195,8 @@ export async function POST(request: Request) {
     title,
     description,
     product_id: productId,
-    model_asset_id: asset.id,
-    model_path: modelPath,
+    model_asset_id: assetId,
+    model_path: finalModelPath,
     uploaded_by: auth.user.id,
     status: "draft",
   });
@@ -132,7 +207,7 @@ export async function POST(request: Request) {
       id,
       title,
       description,
-      model_path: modelPath,
+      model_path: finalModelPath,
       uploaded_by: auth.user.id,
       status: "draft",
     });

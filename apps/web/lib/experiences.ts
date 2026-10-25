@@ -20,7 +20,10 @@ export type ExperienceProduct = {
   artisan: string;
   village?: string;
   priceVnd?: number;
-  modelAssetId: string;
+  modelAssetId?: string;
+  hasModel?: boolean;
+  modelUrl?: string;
+  status?: string;
 };
 
 // Require a self-contained GLB: no remote textures or sibling resource files.

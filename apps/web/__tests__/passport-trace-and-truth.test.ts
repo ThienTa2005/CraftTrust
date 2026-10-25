@@ -53,4 +53,17 @@ describe("Digital Heritage Passport & Traceability (Master Prompt P1 & P2)", () 
     expect(urls).toContain("https://ocop.gov.vn/");
     expect(urls).toContain("https://traceviet.mae.gov.vn/");
   });
+
+  it("never returns generic brand logo /brand/source.png as product poster", async () => {
+    const result = await getPassport("CT-BTG-NVA-2026-0085");
+    expect(result.data?.posterUrl).not.toBe("/brand/source.png");
+    expect(result.data?.posterUrl).toContain("http");
+  });
+
+  it("resolves product by slug and provides its own identity without brand logo fallback", async () => {
+    const result = await getPassport("moon-glaze-tea-set");
+    expect(result.data).toBeDefined();
+    expect(result.data?.productName).toContain("Bộ ấm chén");
+    expect(result.data?.posterUrl).not.toBe("/brand/source.png");
+  });
 });

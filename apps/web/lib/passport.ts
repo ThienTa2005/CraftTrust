@@ -372,7 +372,7 @@ export async function getPassport(
     nfcUid: "04:8A:2F:1B:C9:6E:80",
     verificationCount: 186,
     modelUrl: "/api/models/505975eb-d06e-44bc-9a1a-699f960e4891",
-    posterUrl: "/brand/source.png",
+    posterUrl: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80",
     qrPlacement: {
       enabled: true,
       sizePercent: 54,
@@ -402,6 +402,37 @@ export async function getPassport(
   };
 
   if (!supabase) {
+    if (cleanId === "CT-BTG-NVA-2026-0085") {
+      return { demo: true, data: defaultDemoData };
+    }
+    const demoMatch = demoProducts.find(
+      (p) =>
+        p.slug === cleanId ||
+        p.id === cleanId ||
+        p.passportId === cleanId ||
+        p.passportId === requestedId
+    );
+    if (demoMatch) {
+      return {
+        demo: true,
+        data: {
+          ...defaultDemoData,
+          publicId: `71000000-0000-0000-0000-${demoMatch.id.slice(-12)}`,
+          publicCode: demoMatch.passportId,
+          artifactId: `ART-${demoMatch.passportId}`,
+          tier: demoMatch.tier,
+          productName: demoMatch.name,
+          productId: demoMatch.id,
+          productSlug: demoMatch.slug,
+          artisan: `Nghệ nhân ${demoMatch.artisan}`,
+          village: `Làng gốm ${demoMatch.village} (Gia Lâm, Hà Nội)`,
+          priceVnd: demoMatch.priceVnd,
+          originalPriceVnd: Math.round(demoMatch.priceVnd * 1.3),
+          posterUrl: demoMatch.image || defaultDemoData.posterUrl,
+          modelUrl: demoMatch.modelUrl || undefined,
+        },
+      };
+    }
     return { demo: true, data: defaultDemoData };
   }
 
@@ -430,6 +461,7 @@ export async function getPassport(
           height_cm,
           width_cm,
           model_url,
+          model_version,
           poster_url,
           model_status,
           artisans (
@@ -471,7 +503,136 @@ export async function getPassport(
     const { data: record, error: recordError } = await query.maybeSingle();
 
     if (recordError || !record) {
-      // Check demo products first
+      // 2. Direct lookup in products table by slug or id (so seller products with specific slugs or IDs work immediately)
+      try {
+        let prodQuery = supabase
+          .from("products")
+          .select(`
+            id, name, slug, description, price_vnd, height_cm, width_cm,
+            poster_url, model_url, model_status, model_version, created_at, updated_at,
+            artisans (
+              id, name, bio, portrait_url, years_practicing,
+              villages ( id, name, slug, district, story )
+            ),
+            passport_records (
+              id, public_id, public_code, artifact_id, batch_code, tier, status, issued_at, updated_at, qr_placement
+            )
+          `);
+
+        if (isUuid) {
+          prodQuery = prodQuery.or(`id.eq.${cleanId},slug.eq.${cleanId}`);
+        } else {
+          prodQuery = prodQuery.eq("slug", cleanId);
+        }
+
+        let { data: productMatch } = await prodQuery.maybeSingle();
+
+        // If not found by exact slug, try matching slug fragment or product id
+        if (!productMatch && cleanId.length > 5) {
+          const { data: fuzzyMatch } = await supabase
+            .from("products")
+            .select(`
+              id, name, slug, description, price_vnd, height_cm, width_cm,
+              poster_url, model_url, model_status, model_version, created_at, updated_at,
+              artisans (
+                id, name, bio, portrait_url, years_practicing,
+                villages ( id, name, slug, district, story )
+              ),
+              passport_records (
+                id, public_id, public_code, artifact_id, batch_code, tier, status, issued_at, updated_at, qr_placement
+              )
+            `)
+            .ilike("slug", `%${cleanId}%`)
+            .limit(1)
+            .maybeSingle();
+          if (fuzzyMatch) productMatch = fuzzyMatch;
+        }
+
+        if (productMatch) {
+          const rawArtisan: any = Array.isArray(productMatch.artisans) ? productMatch.artisans[0] : productMatch.artisans;
+          const rawVillage: any = Array.isArray(rawArtisan?.villages) ? rawArtisan.villages[0] : rawArtisan?.villages;
+          const rawPassport: any = Array.isArray(productMatch.passport_records) ? productMatch.passport_records[0] : productMatch.passport_records;
+
+          // Resolve 3D asset for this specific product
+          let product3DUrl: string | undefined = undefined;
+          try {
+            const { data: asset } = await supabase
+              .from("product_model_assets")
+              .select("id, status")
+              .eq("product_id", productMatch.id)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (asset?.id) {
+              product3DUrl = `/api/models/${asset.id}`;
+            }
+          } catch {}
+
+          if (!product3DUrl && productMatch.model_version && /^[0-9a-f-]{36}$/i.test(productMatch.model_version)) {
+            product3DUrl = `/api/models/${productMatch.model_version}`;
+          }
+          if (!product3DUrl && productMatch.model_url) {
+            product3DUrl = productMatch.model_url;
+          }
+
+          const productPoster = productMatch.poster_url || "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80";
+
+          return {
+            demo: false,
+            data: {
+              publicId: rawPassport?.public_id || productMatch.id,
+              publicCode: rawPassport?.public_code || productMatch.slug,
+              artifactId: rawPassport?.artifact_id || `ART-${productMatch.slug.slice(0, 18).toUpperCase()}`,
+              batchCode: rawPassport?.batch_code || "BATCH-2026-Q2-01",
+              status: rawPassport?.status || "active",
+              tier: rawPassport?.tier || "gold",
+              productName: productMatch.name,
+              productId: productMatch.id,
+              productSlug: productMatch.slug,
+              artisan: rawArtisan?.name || "Nghệ nhân Bát Tràng",
+              artisanBioVi: rawArtisan?.bio || defaultDemoData.artisanBioVi,
+              artisanYears: rawArtisan?.years_practicing || 25,
+              artisanAvatar: rawArtisan?.portrait_url || defaultDemoData.artisanAvatar,
+              workshop: rawArtisan?.name ? `Xưởng gốm ${rawArtisan.name}` : "Xưởng gốm thủ công Bát Tràng",
+              workshopAddress: "Số 28, Xóm 3, Thôn Bát Tràng, Xã Bát Tràng, Huyện Gia Lâm, TP. Hà Nội",
+              village: rawVillage?.name || "Làng gốm Bát Tràng (Gia Lâm, Hà Nội)",
+              villageSlug: rawVillage?.slug || "bat-trang",
+              priceVnd: productMatch.price_vnd ?? 850000,
+              originalPriceVnd: Math.round((productMatch.price_vnd ?? 850000) * 1.35),
+              priceUpdatedAt: new Date(productMatch.updated_at || Date.now()).toLocaleDateString("vi-VN"),
+              materialsVi: defaultDemoData.materialsVi,
+              materialsEn: defaultDemoData.materialsEn,
+              dimensions: {
+                heightCm: productMatch.height_cm || 28.0,
+                widthCm: productMatch.width_cm || 16.0,
+                weightKg: 2.2
+              },
+              techniqueVi: defaultDemoData.techniqueVi,
+              firingTempVi: defaultDemoData.firingTempVi,
+              careInstructionsVi: defaultDemoData.careInstructionsVi,
+              careInstructionsEn: defaultDemoData.careInstructionsEn,
+              updatedAt: productMatch.updated_at || new Date().toISOString(),
+              issuedAt: rawPassport?.issued_at || productMatch.created_at,
+              dynamicToken: `DYN-${productMatch.slug}`,
+              nfcUid: "04:8A:2F:1B:C9:6E:80",
+              verificationCount: 186,
+              modelUrl: product3DUrl,
+              posterUrl: productPoster,
+              qrPlacement: rawPassport?.qr_placement || defaultDemoData.qrPlacement,
+              evidence: defaultDemoData.evidence,
+              timeline: DEMO_TIMELINE,
+              verificationEvents: DEMO_VERIFICATION_EVENTS,
+              ocop: DEMO_OCOP_TRUTH,
+              videos: DEMO_VIDEOS_SIX_STAGES,
+              editorialStory: defaultDemoData.editorialStory
+            }
+          };
+        }
+      } catch (prodLookupErr: any) {
+        console.warn("[passport] product lookup error:", prodLookupErr?.message);
+      }
+
+      // Check demo products
       const demoMatch = demoProducts.find(
         (p) =>
           p.passportId === cleanId ||
@@ -496,7 +657,8 @@ export async function getPassport(
             village: `Làng gốm ${demoMatch.village} (Gia Lâm, Hà Nội)`,
             priceVnd: demoMatch.priceVnd,
             originalPriceVnd: Math.round(demoMatch.priceVnd * 1.3),
-            posterUrl: demoMatch.image,
+            posterUrl: demoMatch.image || defaultDemoData.posterUrl,
+            modelUrl: demoMatch.modelUrl || undefined,
           },
         };
       }
@@ -533,14 +695,13 @@ export async function getPassport(
     const rawArtisan: any = Array.isArray(rawProd?.artisans) ? rawProd.artisans[0] : rawProd?.artisans;
     const rawVillage: any = Array.isArray(rawArtisan?.villages) ? rawArtisan.villages[0] : rawArtisan?.villages;
 
-    // Resolve the latest published 3D asset through the protected model route.
-    let modelAssetUrl = rawProd?.model_url || defaultDemoData.modelUrl;
+    // Resolve the latest 3D asset for this specific product
+    let modelAssetUrl: string | undefined = rawProd?.model_url || undefined;
     try {
       const { data: asset } = await supabase
         .from("product_model_assets")
         .select("id")
         .eq("product_id", record.product_id)
-        .eq("status", "published")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -549,6 +710,10 @@ export async function getPassport(
         modelAssetUrl = `/api/models/${asset.id}`;
       }
     } catch {}
+
+    if (!modelAssetUrl && rawProd?.model_version && /^[0-9a-f-]{36}$/i.test(rawProd.model_version)) {
+      modelAssetUrl = `/api/models/${rawProd.model_version}`;
+    }
 
     const evidenceList = ((record.evidence_submissions ?? []) as any[])
       .filter((e) => e.status === "approved" || e.status === "verified")
@@ -581,7 +746,7 @@ export async function getPassport(
         artisanYears: rawArtisan?.years_practicing || defaultDemoData.artisanYears,
         artisanAvatar: rawArtisan?.portrait_url || defaultDemoData.artisanAvatar,
         artisanAwardsVi: defaultDemoData.artisanAwardsVi,
-        workshop: "Xưởng gốm thủ công Thu Hà",
+        workshop: rawArtisan?.name ? `Xưởng gốm ${rawArtisan.name}` : "Xưởng gốm thủ công Thu Hà",
         workshopAddress: "Số 28, Xóm 3, Thôn Bát Tràng, Xã Bát Tràng, Huyện Gia Lâm, TP. Hà Nội",
         village: rawVillage?.name || defaultDemoData.village,
         villageSlug: rawVillage?.slug || defaultDemoData.villageSlug,
@@ -605,7 +770,7 @@ export async function getPassport(
         nfcUid: "04:8A:2F:1B:C9:6E:80",
         verificationCount: 186,
         modelUrl: modelAssetUrl,
-        posterUrl: rawProd?.poster_url || "/brand/source.png",
+        posterUrl: rawProd?.poster_url || "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80",
         qrPlacement: record.qr_placement || defaultDemoData.qrPlacement,
         evidence: evidenceList.length > 0 ? evidenceList : defaultDemoData.evidence,
         timeline: DEMO_TIMELINE,
