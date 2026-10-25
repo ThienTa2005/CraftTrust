@@ -140,8 +140,8 @@ export function AdminExperiences() {
         {items.map((item) => (
           <article className="experience-card" key={item.id}>
             {item.product?.posterUrl && (
-              <div className="experience-card-media" style={{ aspectRatio: "16 / 10", position: "relative", width: "100%", borderRadius: 12, overflow: "hidden", background: "#f5f0e6" }}>
-                <Image src={item.product.posterUrl} fill alt={item.product.name} style={{ objectFit: "cover" }} />
+              <div className="experience-card-media" style={{ aspectRatio: "16 / 10", position: "relative", width: "100%", borderRadius: 12, overflow: "hidden", background: "radial-gradient(circle at 50% 50%, #ffffff 0%, #f6f2ea 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Image src={item.product.posterUrl} fill alt={item.product.name} style={{ objectFit: "contain", padding: 8 }} />
               </div>
             )}
             <span className="badge" style={{ marginTop: 12, width: "fit-content" }}>{item.status === "published" ? "Đã xuất bản" : "Bản nháp"}</span>

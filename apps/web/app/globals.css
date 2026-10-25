@@ -614,11 +614,15 @@
   width: 100%;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: #f5f0e6;
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f6f2ea 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .experience-card-img {
-  object-fit: cover;
+  object-fit: contain !important;
+  padding: 10px;
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1774,8 +1778,11 @@ h3 {
 .detail-media > img {
   width: 100%;
   aspect-ratio: 4 / 4.5;
-  object-fit: cover;
+  object-fit: contain;
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f6f2ea 100%);
+  padding: 16px;
   border-radius: 26px;
+  border: 1px solid var(--line);
   box-shadow: var(--shadow-md);
   transition: transform 0.6s var(--ease-out-expo);
 }
@@ -3136,14 +3143,19 @@ h3 {
   position: relative;
   overflow: hidden;
   border-radius: 30px;
-  background: #d7ddd8;
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f6f2ea 100%);
+  border: 1px solid var(--line);
   box-shadow: var(--shadow-md);
   cursor: crosshair;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .product-image-lens > img {
   width: 100%;
   aspect-ratio: 4 / 4.5;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 16px;
   transition: transform 0.7s var(--ease-out-expo);
 }
 .product-image-lens:hover > img {
@@ -5394,11 +5406,14 @@ h3 {
 }
 
 .buyer-cart-popover-item img {
-  width: 44px;
-  height: 44px;
-  border-radius: 6px;
-  object-fit: cover;
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  object-fit: contain !important;
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f6f2ea 100%);
   border: 1px solid var(--line);
+  padding: 3px;
+  flex-shrink: 0;
 }
 
 .buyer-cart-popover-item .item-info {
@@ -5763,10 +5778,128 @@ h3 {
 .craft-map-viewport-panel {
   position: relative;
   min-height: 600px;
+  height: 600px;
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid var(--line);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  background: #f4efe6; /* Warm parchment map base to prevent blank white flash */
+}
+
+.craft-map-leaflet-wrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+}
+
+.craft-map-viewport-panel .leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  background: #f4efe6 !important;
+  outline: none;
+}
+
+/* Loading Badge Overlay */
+.craft-map-loading-overlay {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 800;
+  background: rgba(16, 34, 59, 0.9);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  animation: fade-in 0.2s ease;
+}
+
+/* Error Fallback Card Overlay */
+.craft-map-error-overlay {
+  position: absolute;
+  inset: 14px;
+  z-index: 850;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  border: 1px solid #e5c3b2;
+  border-radius: 16px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+/* Tile Provider Switcher */
+.craft-map-tile-switcher {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 700;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  padding: 3px;
+  border-radius: 12px;
+  border: 1px solid #dcd7cc;
+  display: flex;
+  gap: 3px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.craft-map-tile-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #555;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.craft-map-tile-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #10223b;
+}
+
+.craft-map-tile-btn.active {
+  background: #10223b;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(16, 34, 59, 0.25);
+}
+
+/* Quick Legend Overlay */
+.craft-map-legend-overlay {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 700;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid #dcd7cc;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: min(240px, 60vw);
 }
 
 .craft-map-inspector-card {
@@ -5846,8 +5979,8 @@ h3 {
   }
 
   .craft-map-viewport-panel {
-    min-height: 380px;
-    height: clamp(340px, 48vh, 460px);
+    min-height: 400px;
+    height: clamp(380px, 50vh, 480px);
   }
 
   .craft-map-coords-grid {
@@ -5861,6 +5994,35 @@ h3 {
 
   .craft-map-action-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .craft-map-viewport-panel {
+    min-height: 350px;
+    height: clamp(350px, 46vh, 430px);
+    border-radius: 16px;
+  }
+
+  .craft-map-tile-switcher {
+    bottom: 8px;
+    left: 8px;
+  }
+
+  .craft-map-tile-btn {
+    padding: 4px 7px;
+    font-size: 0.68rem;
+  }
+
+  .craft-map-legend-overlay {
+    top: 8px;
+    right: 8px;
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+
+  .craft-map-legend-coords {
+    display: none;
   }
 }
 
@@ -6020,12 +6182,23 @@ h3 {
 
 .flash-product-card .card-thumb-wrap {
   position: relative;
-  height: 200px;
+  height: 250px;
   width: 100%;
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #fbf8f3 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .flash-product-card .card-thumb-wrap img {
-  object-fit: cover;
+  object-fit: contain !important;
+  padding: 14px;
+  transition: transform 0.4s var(--ease-out-expo, ease);
+}
+
+.flash-product-card:hover .card-thumb-wrap img {
+  transform: scale(1.05);
 }
 
 .flash-card-body {
@@ -6230,11 +6403,14 @@ h3 {
 }
 
 .order-thumb {
-  width: 54px;
-  height: 54px;
+  width: 58px;
+  height: 58px;
   border-radius: 8px;
-  object-fit: cover;
+  object-fit: contain !important;
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f6f2ea 100%);
   border: 1px solid var(--line);
+  padding: 4px;
+  flex-shrink: 0;
 }
 
 .buyer-order-item-row .item-text {
@@ -7082,9 +7258,12 @@ h3 {
 .table-thumb {
   width: 48px;
   height: 48px;
-  border-radius: 6px;
-  object-fit: cover;
+  border-radius: 8px;
+  object-fit: contain !important;
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f6f2ea 100%);
   border: 1px solid #e2e8f0;
+  padding: 3px;
+  flex-shrink: 0;
 }
 
 .seller-status-pill {

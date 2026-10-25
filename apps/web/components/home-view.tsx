@@ -535,13 +535,6 @@ export function HomeView({ products, demo, error }: HomeViewProps) {
             </button>
             <button
               type="button"
-              className={`discover-tab ${discoverTab === "gold" ? "active" : ""}`}
-              onClick={() => setDiscoverTab("gold")}
-            >
-              ✨ {locale === "vi" ? "Hộ Chiếu Vàng" : "Gold Passport"}
-            </button>
-            <button
-              type="button"
               className={`discover-tab ${discoverTab === "tea" ? "active" : ""}`}
               onClick={() => setDiscoverTab("tea")}
             >

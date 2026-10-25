@@ -15,7 +15,6 @@ export function ProductCard({ product }: { product: Product }) {
     locale === "en" && product.nameEn ? product.nameEn : product.name;
   const village =
     locale === "en" && product.villageEn ? product.villageEn : product.village;
-  const tierLabel = t.passport.tierLabels[product.tier] ?? product.tier;
 
   return (
     <article className="card">
@@ -45,10 +44,6 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="card-body">
           <div className="card-meta">
             <span>{village}</span>
-            <span className={`badge ${product.tier}`}>
-              <BadgeCheck size={12} />
-              {tierLabel}
-            </span>
           </div>
           <h3>{title}</h3>
           <p>

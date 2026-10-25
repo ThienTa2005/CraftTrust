@@ -44,10 +44,6 @@ export function MarketplaceView({
         id: "cobalt",
         label: locale === "vi" ? "Dòng men lam" : "Cobalt glaze",
       },
-      {
-        id: "gold",
-        label: locale === "vi" ? "Hạng Vàng (Gold)" : "Gold passport",
-      },
     ],
     [locale],
   );

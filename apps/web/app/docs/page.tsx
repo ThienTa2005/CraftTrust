@@ -19,11 +19,9 @@ export default function TrustDocsPage() {
         <div className="grid three" style={{ marginTop: 34 }}>
           <article className="panel">
             <BadgeCheck size={28} style={{ color: "var(--leaf)", marginBottom: 12 }} />
-            <h3>Cấp bậc Hộ chiếu (Đồng, Bạc, Vàng)</h3>
+            <h3>Hồ sơ Hộ chiếu Di sản Số</h3>
             <p>
-              <strong>Hạng Đồng:</strong> Định danh nghệ nhân và xác thực nguồn gốc làng nghề.<br />
-              <strong>Hạng Bạc:</strong> Đầy đủ chuẩn Đồng, kèm hồ sơ vật liệu tự nhiên và quy trình tạo tác thủ công.<br />
-              <strong>Hạng Vàng:</strong> Chuẩn Bạc cộng thêm trích dẫn tư liệu di sản chuẩn mực và chứng thư thẩm duyệt của chuyên gia giám định.
+              Mỗi tác phẩm lưu trữ định danh nghệ nhân, xác thực xuất xứ làng nghề, nhật ký quy trình tạo tác thủ công, cùng tư liệu di sản chuẩn mực và chứng thư thẩm duyệt của hội đồng chuyên gia.
             </p>
           </article>
 
@@ -40,7 +38,7 @@ export default function TrustDocsPage() {
             <CircleAlert size={28} style={{ color: "#d97706", marginBottom: 12 }} />
             <h3>Ranh giới & Trách nhiệm minh bạch</h3>
             <p>
-              Cấp độ Hộ chiếu phản ánh mức độ hoàn thiện của hồ sơ bằng chứng được phê duyệt;
+              Hồ sơ Hộ chiếu phản ánh mức độ hoàn thiện của tư liệu bằng chứng được phê duyệt;
               không thay thế giấy giám định cổ vật hay định giá thương mại nằm ngoài các tài liệu lưu trữ đã được xác minh.
             </p>
           </article>
@@ -60,9 +58,9 @@ export default function TrustDocsPage() {
       <div className="grid three" style={{ marginTop: 34 }}>
         <article className="panel">
           <BadgeCheck size={28} style={{ color: "var(--leaf)", marginBottom: 12 }} />
-          <h3>Evidence tiers</h3>
+          <h3>Digital Heritage Passport Standard</h3>
           <p>
-            <strong>Bronze:</strong> Identity and origin. <strong>Silver:</strong> Bronze plus natural materials and process documentation. <strong>Gold:</strong> Silver plus approved heritage citations and independent verifier attestation.
+            Each piece records verified artisan identity, craft village origin, material sourcing, process documentation, and accredited heritage citations approved by independent experts.
           </p>
         </article>
 
@@ -78,7 +76,7 @@ export default function TrustDocsPage() {
           <CircleAlert size={28} style={{ color: "#d97706", marginBottom: 12 }} />
           <h3>Boundaries</h3>
           <p>
-            Tiers reflect reviewed evidence coverage. They are not legal certification, antique appraisal, or guarantees beyond the cited evidence and verified sources.
+            Passports reflect reviewed evidence coverage. They are not legal certification, antique appraisal, or guarantees beyond the cited evidence and verified sources.
           </p>
         </article>
       </div>

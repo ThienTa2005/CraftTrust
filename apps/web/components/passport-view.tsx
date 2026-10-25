@@ -28,8 +28,6 @@ import { formatVnd } from "@/lib/format";
 import type { PassportView as PassportData } from "@/lib/passport";
 import { useLanguage } from "@/lib/i18n/context";
 
-const rank = { unverified: 0, bronze: 1, silver: 2, gold: 3 } as const;
-
 export function PassportView({
   passport,
   demo,
@@ -53,12 +51,6 @@ export function PassportView({
   const [view3D, setView3D] = useState<boolean>(Boolean(passport.modelUrl));
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const viewerRef = useRef<any>(null);
-
-  const tierKey = (
-    passport.tier in t.passport.tierLabels ? passport.tier : "unverified"
-  ) as keyof typeof t.passport.tierLabels;
-  const tierLabel = t.passport.tierLabels[tierKey];
-  const currentRank = rank[passport.tier as keyof typeof rank] ?? 0;
 
   const currentVideo =
     passport.videos.find((v) => v.id === activeVideoId) ?? passport.videos[0];
@@ -202,10 +194,6 @@ export function PassportView({
               flexWrap: "wrap",
             }}
           >
-            <span className={`badge ${passport.tier}`}>
-              <BadgeCheck size={14} />
-              {tierLabel}
-            </span>
             <span
               style={{
                 display: "inline-flex",

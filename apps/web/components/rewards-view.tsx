@@ -519,13 +519,22 @@ export function RewardsView() {
               >
                 <div>
                   <div
-                    style={{ position: "relative", width: "100%", height: 180 }}
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      height: 180,
+                      background: "radial-gradient(circle at 50% 50%, #ffffff 0%, #f6f2ea 100%)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                    }}
                   >
                     <Image
                       src={reward.image}
                       alt={reward.titleVi}
                       fill
-                      style={{ objectFit: "cover" }}
+                      style={{ objectFit: "contain", padding: 10 }}
                     />
                     <span
                       style={{

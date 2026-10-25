@@ -157,18 +157,24 @@ export function CartView({
                       <div
                         style={{
                           position: "relative",
-                          width: 56,
-                          height: 56,
+                          width: 64,
+                          height: 64,
                           borderRadius: 10,
                           overflow: "hidden",
+                          background: "radial-gradient(circle at 50% 50%, #ffffff 0%, #f6f2ea 100%)",
+                          border: "1px solid var(--line)",
+                          flexShrink: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
                         <Image
                           src={item.image}
                           alt={displayName}
                           fill
-                          sizes="56px"
-                          style={{ objectFit: "cover" }}
+                          sizes="64px"
+                          style={{ objectFit: "contain", padding: 4 }}
                         />
                       </div>
                     )}

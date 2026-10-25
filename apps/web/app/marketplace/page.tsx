@@ -13,12 +13,10 @@ export default async function MarketplacePage({
 }) {
   const products = await getProducts();
   const params = await searchParams;
-  const isGold = params.tier === "gold" || params.cat === "gold" || params.category === "gold";
-  const initialFilter = isGold
-    ? "gold"
-    : ["tea", "vase", "cobalt", "gold"].includes(params.cat ?? params.category ?? "")
-      ? (params.cat ?? params.category)!
-      : "all";
+  const rawCategory = params.cat ?? params.category ?? "";
+  const initialFilter = ["tea", "vase", "cobalt"].includes(rawCategory)
+    ? rawCategory
+    : "all";
 
   return (
     <MarketplaceView

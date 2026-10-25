@@ -4,29 +4,83 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  AlertTriangle,
   Compass,
   ExternalLink,
+  Layers,
+  Loader2,
   LocateFixed,
   MapPin,
   Navigation,
+  RefreshCw,
   Search,
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { CRAFT_MAP_LOCATIONS, TOUR_ITINERARIES } from "@/lib/map-data";
 import type { CraftMapLocation } from "@craft-trust/contracts";
 
+export interface TileProvider {
+  id: string;
+  name: string;
+  shortLabel: string;
+  url: string;
+  attribution: string;
+  subdomains?: string[];
+  maxZoom: number;
+}
+
+export const TILE_PROVIDERS: TileProvider[] = [
+  {
+    id: "esri-street",
+    name: "Bản đồ Du lịch (Esri World Street)",
+    shortLabel: "Du lịch",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution:
+      'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, USGS, Intermap',
+    maxZoom: 18,
+  },
+  {
+    id: "osm-standard",
+    name: "Bản đồ Chi tiết (OpenStreetMap)",
+    shortLabel: "Chi tiết",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+    subdomains: ["a", "b", "c"],
+    maxZoom: 19,
+  },
+  {
+    id: "esri-topo",
+    name: "Bản đồ Địa hình & Làng nghề (Esri Topo)",
+    shortLabel: "Địa hình",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution:
+      'Tiles &copy; Esri &mdash; Source: Esri, FAO, NOAA, USGS',
+    maxZoom: 18,
+  },
+];
+
 export function RealInteractiveMap() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const leafletRef = useRef<any>(null);
+  const tileLayerRef = useRef<any>(null);
   const markersRef = useRef<Record<string, any>>({});
   const polylineRef = useRef<any>(null);
+  const tileTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const inspectorCardRef = useRef<HTMLDivElement>(null);
+
+  const [currentProviderIndex, setCurrentProviderIndex] = useState<number>(0);
+  const [tileLoading, setTileLoading] = useState<boolean>(true);
+  const [tileLoadError, setTileLoadError] = useState<boolean>(false);
+  const [tileNotice, setTileNotice] = useState<string | null>(null);
 
   const [selectedLocationId, setSelectedLocationId] = useState<string>("loc-bat-trang");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedTourId, setSelectedTourId] = useState<string | null>(null);
-  const [locating, setLocating] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
+  const [locating, setLocating] = useState<boolean>(false);
+  const [mapReady, setMapReady] = useState<boolean>(false);
 
   const selectedLocation =
     CRAFT_MAP_LOCATIONS.find((loc) => loc.id === selectedLocationId) ??
@@ -37,28 +91,47 @@ export function RealInteractiveMap() {
     : null;
 
   // Filter locations by search, category, and selected tour
-  const filteredLocations = useMemo(() => CRAFT_MAP_LOCATIONS.filter((loc) => {
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchName = loc.nameVi.toLowerCase().includes(q) || loc.nameEn.toLowerCase().includes(q);
-      const matchDist = loc.district.toLowerCase().includes(q);
-      const matchCat = loc.categoryVi.toLowerCase().includes(q);
-      if (!matchName && !matchDist && !matchCat) return false;
-    }
+  const filteredLocations = useMemo(() => {
+    return CRAFT_MAP_LOCATIONS.filter((loc) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName =
+          loc.nameVi.toLowerCase().includes(q) ||
+          loc.nameEn.toLowerCase().includes(q);
+        const matchDist = loc.district.toLowerCase().includes(q);
+        const matchCat = loc.categoryVi.toLowerCase().includes(q);
+        if (!matchName && !matchDist && !matchCat) return false;
+      }
 
-    if (selectedCategory === "villages" && loc.type !== "craft_village") return false;
-    if (selectedCategory === "attractions" && loc.type !== "tourism_attraction") return false;
-    if (selectedCategory === "gom" && !loc.categoryVi.toLowerCase().includes("gốm")) return false;
-    if (selectedCategory === "lua" && !loc.categoryVi.toLowerCase().includes("lụa")) return false;
-    if (selectedCategory === "maytre" && !loc.categoryVi.toLowerCase().includes("mây tre")) return false;
-    if (selectedCategory === "moc" && !loc.categoryVi.toLowerCase().includes("mộc")) return false;
-    if (selectedCategory === "huong" && !loc.categoryVi.toLowerCase().includes("hương")) return false;
-    if (selectedCategory === "non" && !loc.categoryVi.toLowerCase().includes("nón")) return false;
+      if (selectedCategory === "villages" && loc.type !== "craft_village")
+        return false;
+      if (selectedCategory === "attractions" && loc.type !== "tourism_attraction")
+        return false;
+      if (selectedCategory === "gom" && !loc.categoryVi.toLowerCase().includes("gốm"))
+        return false;
+      if (selectedCategory === "lua" && !loc.categoryVi.toLowerCase().includes("lụa"))
+        return false;
+      if (
+        selectedCategory === "maytre" &&
+        !loc.categoryVi.toLowerCase().includes("mây tre")
+      )
+        return false;
+      if (selectedCategory === "moc" && !loc.categoryVi.toLowerCase().includes("mộc"))
+        return false;
+      if (
+        selectedCategory === "huong" &&
+        !loc.categoryVi.toLowerCase().includes("hương")
+      )
+        return false;
+      if (selectedCategory === "non" && !loc.categoryVi.toLowerCase().includes("nón"))
+        return false;
 
-    if (selectedTour && !selectedTour.locationIds.includes(loc.id)) return false;
+      if (selectedTour && !selectedTour.locationIds.includes(loc.id))
+        return false;
 
-    return true;
-  }), [searchQuery, selectedCategory, selectedTour]);
+      return true;
+    });
+  }, [searchQuery, selectedCategory, selectedTour]);
 
   function getPinEmoji(loc: CraftMapLocation) {
     if (loc.id === "loc-bat-trang") return "🏺";
@@ -71,10 +144,106 @@ export function RealInteractiveMap() {
     return "📍";
   }
 
-  const inspectorCardRef = useRef<HTMLDivElement>(null);
+  // Robust Tile Layer Switching & Health Monitoring
+  const mountTileLayer = useCallback((providerIndex: number) => {
+    if (!mapInstanceRef.current || !leafletRef.current) return;
+    const L = leafletRef.current;
+    const map = mapInstanceRef.current;
 
+    if (tileTimeoutRef.current) {
+      clearTimeout(tileTimeoutRef.current);
+      tileTimeoutRef.current = null;
+    }
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+      tileLayerRef.current = null;
+    }
+
+    const provider = TILE_PROVIDERS[providerIndex];
+    if (!provider) return;
+
+    setCurrentProviderIndex(providerIndex);
+    setTileLoading(true);
+    setTileLoadError(false);
+
+    let loadedCount = 0;
+    let errorCount = 0;
+
+    const layerOptions: any = {
+      attribution: provider.attribution,
+      maxZoom: provider.maxZoom,
+      subdomains: provider.subdomains ?? ["a", "b", "c"],
+      crossOrigin: true,
+    };
+
+    if (provider.id.includes("carto")) {
+      layerOptions.detectRetina = true;
+    }
+
+    const newLayer = L.tileLayer(provider.url, layerOptions);
+
+    newLayer.on("tileloadstart", () => {
+      setTileLoading(true);
+    });
+
+    newLayer.on("tileload", () => {
+      loadedCount++;
+      if (tileTimeoutRef.current) {
+        clearTimeout(tileTimeoutRef.current);
+        tileTimeoutRef.current = null;
+      }
+      setTileLoading(false);
+      setTileLoadError(false);
+      setTileNotice(null);
+    });
+
+    newLayer.on("tileerror", () => {
+      errorCount++;
+      // If 4+ tiles fail and none has loaded yet, auto-switch to next fallback tier
+      if (errorCount >= 4 && loadedCount === 0) {
+        if (tileTimeoutRef.current) {
+          clearTimeout(tileTimeoutRef.current);
+          tileTimeoutRef.current = null;
+        }
+
+        if (providerIndex < TILE_PROVIDERS.length - 1) {
+          const nextIndex = providerIndex + 1;
+          const nextProv = TILE_PROVIDERS[nextIndex];
+          setTileNotice(
+            `Máy chủ ${provider.shortLabel} phản hồi chậm, đang chuyển sang ${nextProv?.shortLabel ?? "dự phòng"}...`
+          );
+          mountTileLayer(nextIndex);
+        } else {
+          setTileLoading(false);
+          setTileLoadError(true);
+        }
+      }
+    });
+
+    // 8-second safety timeout: If network stalls completely and 0 tiles load
+    tileTimeoutRef.current = setTimeout(() => {
+      if (loadedCount === 0) {
+        if (providerIndex < TILE_PROVIDERS.length - 1) {
+          const nextIndex = providerIndex + 1;
+          const nextProv = TILE_PROVIDERS[nextIndex];
+          setTileNotice(
+            `Hết thời gian chờ máy chủ ${provider.shortLabel}, đang kết nối ${nextProv?.shortLabel ?? "dự phòng"}...`
+          );
+          mountTileLayer(nextIndex);
+        } else {
+          setTileLoading(false);
+          setTileLoadError(true);
+        }
+      }
+    }, 8000);
+
+    newLayer.addTo(map);
+    tileLayerRef.current = newLayer;
+  }, []);
+
+  // Render map markers and tour routes
   const renderMarkers = useCallback((L: any, map: any) => {
-    // Clear existing markers
     Object.values(markersRef.current).forEach((m) => m.remove());
     markersRef.current = {};
 
@@ -116,25 +285,57 @@ export function RealInteractiveMap() {
         iconAnchor: [60, 18],
       });
 
-      const marker = L.marker([loc.coordinates.lat, loc.coordinates.lng], { icon: customIcon })
+      const popupHtml = `
+        <div style="font-family: system-ui, sans-serif; min-width: 170px; padding: 2px;">
+          <strong style="display: block; font-size: 13px; color: #10223b; margin-bottom: 2px;">
+            ${emoji} ${loc.nameVi}
+          </strong>
+          <span style="display: block; font-size: 11px; color: #b65f3d; font-weight: 600; margin-bottom: 6px;">
+            ${loc.categoryVi}
+          </span>
+          <p style="margin: 0 0 6px; font-size: 11px; color: #555; line-height: 1.35;">
+            ${loc.summaryVi.slice(0, 80)}...
+          </p>
+          <a href="https://www.google.com/maps/dir/?api=1&destination=${loc.coordinates.lat},${loc.coordinates.lng}" 
+             target="_blank" rel="noopener noreferrer" 
+             style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; background: #10223b; color: #fff; padding: 4px 8px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+            Chỉ đường Google Maps →
+          </a>
+        </div>
+      `;
+
+      const marker = L.marker([loc.coordinates.lat, loc.coordinates.lng], {
+        icon: customIcon,
+      })
         .addTo(map)
+        .bindPopup(popupHtml, { offset: [0, -10] })
         .on("click", () => {
           setSelectedLocationId(loc.id);
-          map.panTo([loc.coordinates.lat, loc.coordinates.lng], { animate: true });
-          if (typeof window !== "undefined" && window.innerWidth < 960 && inspectorCardRef.current) {
-            inspectorCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+          map.panTo([loc.coordinates.lat, loc.coordinates.lng], {
+            animate: true,
+          });
+          if (
+            typeof window !== "undefined" &&
+            window.innerWidth < 960 &&
+            inspectorCardRef.current
+          ) {
+            inspectorCardRef.current.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
           }
         });
 
       markersRef.current[loc.id] = marker;
     });
 
-    // Draw tour polyline if tour is selected
+    // Draw tour polyline if a tour is selected
     if (selectedTour) {
       const tourPoints: [number, number][] = [];
       selectedTour.locationIds.forEach((id) => {
         const found = CRAFT_MAP_LOCATIONS.find((l) => l.id === id);
-        if (found) tourPoints.push([found.coordinates.lat, found.coordinates.lng]);
+        if (found)
+          tourPoints.push([found.coordinates.lat, found.coordinates.lng]);
       });
 
       if (tourPoints.length > 1) {
@@ -148,39 +349,55 @@ export function RealInteractiveMap() {
     }
   }, [filteredLocations, selectedLocationId, selectedTour]);
 
-  // Initialize Leaflet only once with reliable subdomains, ResizeObserver and size invalidation.
+  // Leaflet initialization with race condition prevention and resize handling
   useEffect(() => {
+    let isMounted = true;
     let t1: any = null;
     let t2: any = null;
+    let t3: any = null;
     let ro: ResizeObserver | null = null;
 
     async function initMap() {
       if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-      const L = await import("leaflet");
-      const map = L.map(mapContainerRef.current, {
+      const container = mapContainerRef.current;
+      // Clean up any stale leaflet id on the container before recreating
+      if ((container as any)._leaflet_id) {
+        delete (container as any)._leaflet_id;
+      }
+
+      const L = leafletRef.current ?? (await import("leaflet"));
+      if (!isMounted || !mapContainerRef.current || mapInstanceRef.current) return;
+
+      leafletRef.current = L;
+
+      if ((container as any)._leaflet_id) {
+        delete (container as any)._leaflet_id;
+      }
+
+      const map = L.map(container, {
         center: [20.95, 105.80],
         zoom: 11,
         zoomControl: true,
         scrollWheelZoom: true,
       });
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-        subdomains: ["a", "b", "c"],
-      }).addTo(map);
-
       mapInstanceRef.current = map;
       setMapReady(true);
 
-      // Force size invalidation on init & after layout settles to prevent blank grey map
+      // Mount primary tile provider with fallback monitoring
+      mountTileLayer(0);
+
+      // Multiple staggered size invalidations to ensure proper rendering after layout settlement
       t1 = setTimeout(() => {
         if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
-      }, 150);
+      }, 100);
       t2 = setTimeout(() => {
         if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
-      }, 600);
+      }, 400);
+      t3 = setTimeout(() => {
+        if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
+      }, 900);
 
       if (typeof ResizeObserver !== "undefined" && mapContainerRef.current) {
         ro = new ResizeObserver(() => {
@@ -196,27 +413,36 @@ export function RealInteractiveMap() {
       if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
     };
     window.addEventListener("resize", handleWindowResize);
+    window.addEventListener("orientationchange", handleWindowResize);
 
     return () => {
+      isMounted = false;
       clearTimeout(t1);
       clearTimeout(t2);
+      clearTimeout(t3);
+      if (tileTimeoutRef.current) {
+        clearTimeout(tileTimeoutRef.current);
+        tileTimeoutRef.current = null;
+      }
       window.removeEventListener("resize", handleWindowResize);
+      window.removeEventListener("orientationchange", handleWindowResize);
       ro?.disconnect();
+
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
+      if (mapContainerRef.current && (mapContainerRef.current as any)._leaflet_id) {
+        delete (mapContainerRef.current as any)._leaflet_id;
+      }
     };
-  }, []);
+  }, [mountTileLayer]);
 
+  // Update markers when filtered locations or selected location change
   useEffect(() => {
-    async function update() {
-      if (!mapReady || !mapInstanceRef.current) return;
-      const L = await import("leaflet");
-      renderMarkers(L, mapInstanceRef.current);
-      mapInstanceRef.current.invalidateSize();
-    }
-    void update();
+    if (!mapReady || !mapInstanceRef.current || !leafletRef.current) return;
+    renderMarkers(leafletRef.current, mapInstanceRef.current);
+    mapInstanceRef.current.invalidateSize();
   }, [mapReady, renderMarkers]);
 
   // Handle fly to location
@@ -224,13 +450,22 @@ export function RealInteractiveMap() {
     setSelectedLocationId(id);
     const loc = CRAFT_MAP_LOCATIONS.find((l) => l.id === id);
     if (loc && mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo([loc.coordinates.lat, loc.coordinates.lng], 14, {
-        duration: 1.2,
-      });
+      mapInstanceRef.current.flyTo(
+        [loc.coordinates.lat, loc.coordinates.lng],
+        14,
+        { duration: 1.2 }
+      );
       mapInstanceRef.current.invalidateSize();
     }
-    if (typeof window !== "undefined" && window.innerWidth < 960 && inspectorCardRef.current) {
-      inspectorCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (
+      typeof window !== "undefined" &&
+      window.innerWidth < 960 &&
+      inspectorCardRef.current
+    ) {
+      inspectorCardRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     }
   };
 
@@ -246,8 +481,8 @@ export function RealInteractiveMap() {
         const { latitude, longitude } = pos.coords;
         setLocating(false);
 
-        if (mapInstanceRef.current) {
-          const L = await import("leaflet");
+        if (mapInstanceRef.current && leafletRef.current) {
+          const L = leafletRef.current;
           const userIcon = L.divIcon({
             html: `<div style="width: 18px; height: 18px; background: #2563eb; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 10px rgba(37,99,235,0.8); animation: pulse-soft 1.5s infinite;"></div>`,
             iconSize: [24, 24],
@@ -266,6 +501,11 @@ export function RealInteractiveMap() {
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
+  };
+
+  const handleRetryTileLoad = () => {
+    setTileLoadError(false);
+    mountTileLayer(0);
   };
 
   const googleMapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${selectedLocation.coordinates.lat},${selectedLocation.coordinates.lng}`;
@@ -290,7 +530,14 @@ export function RealInteractiveMap() {
         }}
       >
         {/* Search Input */}
-        <div style={{ position: "relative", minWidth: "min(100%, 180px)", flex: 1, maxWidth: "100%" }}>
+        <div
+          style={{
+            position: "relative",
+            minWidth: "min(100%, 220px)",
+            flex: 1,
+            maxWidth: "100%",
+          }}
+        >
           <Search
             size={16}
             style={{
@@ -341,7 +588,9 @@ export function RealInteractiveMap() {
                 style={{
                   padding: "7px 14px",
                   borderRadius: 999,
-                  border: isCatActive ? "1px solid #10223b" : "1px solid #e0dcd5",
+                  border: isCatActive
+                    ? "1px solid #10223b"
+                    : "1px solid #e0dcd5",
                   background: isCatActive ? "#10223b" : "#fff",
                   color: isCatActive ? "#fff" : "var(--ink)",
                   fontSize: "0.8rem",
@@ -371,34 +620,176 @@ export function RealInteractiveMap() {
 
       {/* Main Map Viewport & Details Layout */}
       <div className="craft-map-main-grid">
-        {/* Real Leaflet Map Container */}
+        {/* Real Leaflet Map Container with Canvas Fallbacks */}
         <div className="craft-map-viewport-panel">
-          <div ref={mapContainerRef} style={{ width: "100%", height: "100%", minHeight: 380 }} />
+          <div ref={mapContainerRef} className="craft-map-leaflet-wrapper" />
+
+          {/* Loading Skeleton / Badge */}
+          {tileLoading && !tileLoadError && (
+            <div className="craft-map-loading-overlay">
+              <Loader2 size={15} className="spinner-icon" />
+              <span>Đang tải dữ liệu bản đồ di sản...</span>
+            </div>
+          )}
+
+          {/* Fallback Notice Toast */}
+          {tileNotice && (
+            <div
+              style={{
+                position: "absolute",
+                top: 56,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 800,
+                background: "rgba(182, 95, 61, 0.95)",
+                color: "#fff",
+                padding: "6px 14px",
+                borderRadius: 999,
+                fontSize: "0.76rem",
+                fontWeight: 600,
+                boxShadow: "0 4px 14px rgba(0,0,0,0.2)",
+                whiteSpace: "nowrap",
+                pointerEvents: "none",
+              }}
+            >
+              {tileNotice}
+            </div>
+          )}
+
+          {/* Error Fallback Card if all tile servers fail */}
+          {tileLoadError && (
+            <div className="craft-map-error-overlay">
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  background: "rgba(182, 95, 61, 0.12)",
+                  color: "var(--terracotta)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <AlertTriangle size={26} />
+              </div>
+
+              <div>
+                <strong
+                  style={{
+                    display: "block",
+                    fontSize: "1.05rem",
+                    color: "#10223b",
+                    marginBottom: 4,
+                  }}
+                >
+                  Không thể kết nối máy chủ bản đồ trực tuyến
+                </strong>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "0.84rem",
+                    color: "var(--muted)",
+                    lineHeight: 1.5,
+                    maxWidth: 440,
+                  }}
+                >
+                  Đường truyền mạng hoặc kết nối vệ tinh tạm thời gián đoạn.
+                  Tọa độ địa lý của <strong>{selectedLocation.nameVi}</strong> và
+                  các làng nghề vẫn sẵn sàng để tra cứu hoặc chỉ đường.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 10,
+                  justifyContent: "center",
+                  marginTop: 6,
+                }}
+              >
+                <button
+                  type="button"
+                  className="button primary small"
+                  onClick={handleRetryTileLoad}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                >
+                  <RefreshCw size={14} />
+                  <span>Thử tải lại bản đồ</span>
+                </button>
+
+                <a
+                  href={googleMapsDirectionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="button secondary small"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                >
+                  <Navigation size={14} />
+                  <span>Mở chỉ đường Google Maps</span>
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Tile Layer Provider Switcher */}
+          <div className="craft-map-tile-switcher" title="Đổi máy chủ bản đồ">
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "0 4px",
+                color: "#6b7280",
+              }}
+            >
+              <Layers size={13} />
+            </span>
+            {TILE_PROVIDERS.map((prov, idx) => (
+              <button
+                key={prov.id}
+                type="button"
+                className={`craft-map-tile-btn ${
+                  currentProviderIndex === idx ? "active" : ""
+                }`}
+                onClick={() => mountTileLayer(idx)}
+              >
+                {prov.shortLabel}
+              </button>
+            ))}
+          </div>
 
           {/* Quick Legend Overlay */}
-          <div
-            style={{
-              position: "absolute",
-              top: 14,
-              right: 14,
-              zIndex: 500,
-              background: "rgba(255, 255, 255, 0.92)",
-              backdropFilter: "blur(6px)",
-              padding: "8px 12px",
-              borderRadius: 12,
-              fontSize: "0.74rem",
-              border: "1px solid #e5e0d4",
-              display: "flex",
-              flexDirection: "column",
-              gap: 4,
-            }}
-          >
+          <div className="craft-map-legend-overlay">
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#b65f3d" }} />
-              <strong>Đang chọn:</strong> {selectedLocation.nameVi}
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: "#b65f3d",
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  fontSize: "0.76rem",
+                  fontWeight: 700,
+                  color: "#10223b",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {selectedLocation.nameVi}
+              </span>
             </div>
-            <div style={{ color: "var(--muted)" }}>
-              {selectedLocation.coordinates.lat.toFixed(4)}, {selectedLocation.coordinates.lng.toFixed(4)}
+            <div
+              className="craft-map-legend-coords"
+              style={{ color: "var(--muted)", fontSize: "0.7rem" }}
+            >
+              {selectedLocation.coordinates.lat.toFixed(4)}°N,{" "}
+              {selectedLocation.coordinates.lng.toFixed(4)}°E
             </div>
           </div>
         </div>
@@ -421,6 +812,7 @@ export function RealInteractiveMap() {
                 src={selectedLocation.imageUrl}
                 alt={selectedLocation.nameVi}
                 fill
+                sizes="(max-width: 960px) 100vw, 40vw"
                 style={{ objectFit: "cover" }}
               />
               <span
@@ -441,29 +833,84 @@ export function RealInteractiveMap() {
               </span>
             </div>
 
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 10,
+              }}
+            >
               <div>
-                <h3 style={{ margin: "0 0 4px", fontSize: "1.35rem", color: "#10223b", fontFamily: "Fraunces" }}>
+                <h3
+                  style={{
+                    margin: "0 0 4px",
+                    fontSize: "1.35rem",
+                    color: "#10223b",
+                    fontFamily: "Fraunces",
+                  }}
+                >
                   {selectedLocation.nameVi}
                 </h3>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem", color: "var(--terracotta)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: "0.82rem",
+                    color: "var(--terracotta)",
+                  }}
+                >
                   <MapPin size={14} />
                   <span>{selectedLocation.district}, TP. Hà Nội</span>
-                  <span>· {selectedLocation.distanceKmFromCenter} km từ Trung tâm</span>
+                  <span>
+                    · {selectedLocation.distanceKmFromCenter} km từ Trung tâm
+                  </span>
                 </div>
               </div>
             </div>
 
-            <p style={{ margin: "14px 0", fontSize: "0.86rem", color: "var(--ink)", lineHeight: 1.55 }}>
+            <p
+              style={{
+                margin: "14px 0",
+                fontSize: "0.86rem",
+                color: "var(--ink)",
+                lineHeight: 1.55,
+              }}
+            >
               {selectedLocation.summaryVi}
             </p>
 
             {/* Highlights */}
-            <div style={{ background: "var(--paper)", padding: "12px 14px", borderRadius: 12, marginBottom: 16 }}>
-              <span style={{ display: "block", fontSize: "0.75rem", textTransform: "uppercase", color: "var(--muted)", fontWeight: 700, marginBottom: 6 }}>
+            <div
+              style={{
+                background: "var(--paper)",
+                padding: "12px 14px",
+                borderRadius: 12,
+                marginBottom: 16,
+              }}
+            >
+              <span
+                style={{
+                  display: "block",
+                  fontSize: "0.75rem",
+                  textTransform: "uppercase",
+                  color: "var(--muted)",
+                  fontWeight: 700,
+                  marginBottom: 6,
+                }}
+              >
                 Điểm Trải Nghiệm Nổi Bật
               </span>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: "0.82rem", color: "var(--muted)", lineHeight: 1.5 }}>
+              <ul
+                style={{
+                  margin: 0,
+                  paddingLeft: 18,
+                  fontSize: "0.82rem",
+                  color: "var(--muted)",
+                  lineHeight: 1.5,
+                }}
+              >
                 {selectedLocation.highlightsVi.map((h, i) => (
                   <li key={i}>{h}</li>
                 ))}
@@ -471,12 +918,23 @@ export function RealInteractiveMap() {
             </div>
 
             {/* Verified Coordinate Details */}
-            {/* Verified Coordinate Details */}
             <div className="craft-map-coords-grid">
-              <div className="craft-coord-cell">📍 Vĩ độ: <strong>{selectedLocation.coordinates.lat}° N</strong></div>
-              <div className="craft-coord-cell">🧭 Kinh độ: <strong>{selectedLocation.coordinates.lng}° E</strong></div>
-              <div className="craft-coord-cell">🕒 Giờ mở cửa: <strong>{selectedLocation.openingHoursVi}</strong></div>
-              <div className="craft-coord-cell">📞 Hotline: <strong>{selectedLocation.contactHotline}</strong></div>
+              <div className="craft-coord-cell">
+                📍 Vĩ độ:{" "}
+                <strong>{selectedLocation.coordinates.lat}° N</strong>
+              </div>
+              <div className="craft-coord-cell">
+                🧭 Kinh độ:{" "}
+                <strong>{selectedLocation.coordinates.lng}° E</strong>
+              </div>
+              <div className="craft-coord-cell">
+                🕒 Mở cửa:{" "}
+                <strong>{selectedLocation.openingHoursVi}</strong>
+              </div>
+              <div className="craft-coord-cell">
+                📞 Hotline:{" "}
+                <strong>{selectedLocation.contactHotline}</strong>
+              </div>
             </div>
           </div>
 
@@ -485,7 +943,7 @@ export function RealInteractiveMap() {
             <a
               href={googleMapsDirectionsUrl}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="button primary craft-map-primary-cta"
             >
               <Navigation size={16} />
@@ -502,10 +960,7 @@ export function RealInteractiveMap() {
                   <span>Xem Làng nghề</span>
                 </Link>
               ) : (
-                <Link
-                  href="/marketplace"
-                  className="button secondary"
-                >
+                <Link href="/marketplace" className="button secondary">
                   <Compass size={15} />
                   <span>Xem tác phẩm</span>
                 </Link>
@@ -544,7 +999,9 @@ export function RealInteractiveMap() {
                 style={{
                   padding: "12px 14px",
                   borderRadius: 14,
-                  border: isSelected ? "2px solid #b65f3d" : "1px solid var(--line)",
+                  border: isSelected
+                    ? "2px solid #b65f3d"
+                    : "1px solid var(--line)",
                   background: isSelected ? "rgba(182, 95, 61, 0.05)" : "#fff",
                   cursor: "pointer",
                   display: "flex",
@@ -563,16 +1020,42 @@ export function RealInteractiveMap() {
                     flexShrink: 0,
                   }}
                 >
-                  <Image src={loc.imageUrl} alt={loc.nameVi} fill style={{ objectFit: "cover" }} />
+                  <Image
+                    src={loc.imageUrl}
+                    alt={loc.nameVi}
+                    fill
+                    sizes="54px"
+                    style={{ objectFit: "cover" }}
+                  />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <strong style={{ display: "block", fontSize: "0.88rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: "0.88rem",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
                     {loc.nameVi}
                   </strong>
-                  <span style={{ display: "block", fontSize: "0.75rem", color: "var(--muted)" }}>
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: "0.75rem",
+                      color: "var(--muted)",
+                    }}
+                  >
                     {loc.categoryVi}
                   </span>
-                  <span style={{ fontSize: "0.72rem", color: "var(--terracotta)", fontWeight: 600 }}>
+                  <span
+                    style={{
+                      fontSize: "0.72rem",
+                      color: "var(--terracotta)",
+                      fontWeight: 600,
+                    }}
+                  >
                     {loc.distanceKmFromCenter} km từ Trung tâm
                   </span>
                 </div>

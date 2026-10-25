@@ -30,7 +30,6 @@ export function ProductDetailView({
       : product.description;
   const village =
     locale === "en" && product.villageEn ? product.villageEn : product.village;
-  const tierLabel = t.passport.tierLabels[product.tier] ?? product.tier;
 
   return (
     <section className="shell detail">
@@ -49,11 +48,7 @@ export function ProductDetailView({
 
       <div className="detail-copy">
         <DataNotice demo={demo} error={error} />
-        <span className={`badge ${product.tier}`}>
-          <BadgeCheck size={13} />
-          {tierLabel}
-        </span>
-        <h1 style={{ marginTop: 16 }}>{title}</h1>
+        <h1>{title}</h1>
         <div className="price">{formatVnd(product.priceVnd)}</div>
         <p>{description}</p>
 
@@ -77,7 +72,7 @@ export function ProductDetailView({
             </strong>
           </div>
           <div className="fact">
-            <span>{t.product.passportTier}</span>
+            <span>{locale === "vi" ? "Hồ sơ hộ chiếu số" : "Digital passport"}</span>
             {product.passportId ? <Link href={`/passport/${product.passportId}`}>
               <strong>
                 {product.passportId} <ExternalLink size={13} />
@@ -92,20 +87,6 @@ export function ProductDetailView({
           isDemo={demo}
           disabled={product.stock < 1}
         />
-
-
-        <div className="panel" style={{ marginTop: 28 }}>
-          <strong>
-            {locale === "vi"
-              ? "Ý nghĩa của cấp độ hộ chiếu"
-              : "What the tier means"}
-          </strong>
-          <p style={{ color: "var(--muted)", marginBottom: 0 }}>
-            {locale === "vi"
-              ? "Cấp độ hộ chiếu phản ánh mức độ đầy đủ của hồ sơ bằng chứng được hội đồng thẩm định phê duyệt (Đồng: nguồn gốc cơ bản; Bạc: chi tiết quy trình chế tác; Vàng: kiểm định độc lập & trích dẫn tư liệu chuẩn mực). Cấp độ này không thay thế giấy kiểm định nghệ thuật hay bảo hộ thương mại độc quyền."
-              : "Passport tiers reflect approved evidence coverage. They are computed by the database review workflow and do not certify quality, sustainability, or legal origin beyond the cited evidence."}
-          </p>
-        </div>
       </div>
     </section>
   );

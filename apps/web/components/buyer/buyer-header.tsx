@@ -16,6 +16,7 @@ import {
   Glasses,
   MapPin,
   Layers,
+  ShieldCheck,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLanguage } from "@/lib/i18n/context";
@@ -29,17 +30,7 @@ export function BuyerHeader() {
   const { locale } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
-  const [currentTier, setCurrentTier] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      setCurrentTier(params.get("tier"));
-    }
-  }, [pathname]);
-
-  const isAllProductsActive = pathname === "/marketplace" && currentTier !== "gold";
-  const isGoldActive = pathname === "/marketplace" && currentTier === "gold";
+  const isAllProductsActive = pathname === "/marketplace";
   const isExperiencesActive = pathname.startsWith("/experiences");
   const isMapActive = pathname.startsWith("/map");
   const isRewardsActive = pathname.startsWith("/rewards");
@@ -287,7 +278,6 @@ export function BuyerHeader() {
                   <option value="tea">{locale === "vi" ? "Ấm chén trà" : "Tea Ware"}</option>
                   <option value="vase">{locale === "vi" ? "Bình & Đồ trưng bày" : "Vases & Decor"}</option>
                   <option value="cobalt">{locale === "vi" ? "Men lam Bát Tràng" : "Cobalt Glaze"}</option>
-                  <option value="gold">{locale === "vi" ? "Hộ chiếu Vàng" : "Gold Passport"}</option>
                 </select>
               </div>
 
@@ -426,12 +416,6 @@ export function BuyerHeader() {
             <span>{locale === "vi" ? "Tất cả sản phẩm" : "All Products"}</span>
           </Link>
           <Link
-            href="/marketplace?tier=gold"
-            className={`buyer-subnav-item highlight-tier ${isGoldActive ? "active-indicator" : ""}`}
-          >
-            <span>✨ {locale === "vi" ? "Hộ Chiếu Vàng (Gold)" : "Gold Passport"}</span>
-          </Link>
-          <Link
             href="/experiences"
             className={`buyer-subnav-item ${isExperiencesActive ? "active-indicator" : ""}`}
           >
@@ -495,56 +479,92 @@ export function BuyerHeader() {
 
       {/* QUICK PASSPORT MODAL */}
       {passportModalOpen && (
-        <div className="modal-backdrop" onClick={() => setPassportModalOpen(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
-            <div className="modal-header">
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <QrCode size={22} style={{ color: "var(--terracotta)" }} />
-                <h3>{locale === "vi" ? "Tra cứu Hộ chiếu di sản số" : "Digital Passport Lookup"}</h3>
+        <div
+          className="modal-backdrop passport-lookup-backdrop"
+          onClick={() => setPassportModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="quick-passport-modal-title"
+        >
+          <div
+            className="modal-card passport-lookup-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header passport-lookup-header">
+              <div className="passport-lookup-title-group">
+                <span className="passport-lookup-icon-badge">
+                  <QrCode size={22} />
+                </span>
+                <div>
+                  <h3 id="quick-passport-modal-title">
+                    {locale === "vi" ? "Tra cứu Hộ chiếu di sản số" : "Digital Passport Lookup"}
+                  </h3>
+                  <span className="passport-lookup-subtitle">
+                    {locale === "vi" ? "Minh chứng xuất xứ & Chuỗi cung ứng số" : "Origin Verification & Digital Heritage"}
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
-                className="modal-close"
+                className="modal-close passport-lookup-close"
                 onClick={() => setPassportModalOpen(false)}
+                aria-label={locale === "vi" ? "Đóng hộp thoại" : "Close modal"}
               >
                 <X size={18} />
               </button>
             </div>
-            <p style={{ fontSize: "0.9rem", color: "var(--muted)", margin: "8px 0 16px" }}>
+
+            <p className="passport-lookup-desc">
               {locale === "vi"
                 ? "Nhập mã định danh hộ chiếu hoặc quét mã QR/NFC được gắn trên tác phẩm gốm sứ để kiểm tra minh chứng xuất xứ."
                 : "Enter passport public ID or scan NFC chip attached to the ceramic artwork to verify origin evidence."}
             </p>
-            <form onSubmit={handlePassportLookup} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <input
-                type="text"
-                value={passportQuery}
-                onChange={(e) => setPassportQuery(e.target.value)}
-                placeholder="VD: CT-BTG-NVA-2026-0085"
-                required
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 8,
-                  border: "1px solid var(--line)",
-                  fontSize: "1rem",
-                  fontFamily: "monospace",
-                }}
-              />
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+
+            <form onSubmit={handlePassportLookup} className="passport-lookup-form">
+              <div className="passport-lookup-input-wrap">
+                <label htmlFor="quick-passport-input" className="passport-lookup-label">
+                  {locale === "vi" ? "Mã định danh tác phẩm (Passport ID):" : "Artwork Passport ID:"}
+                </label>
+                <div className="passport-lookup-input-inner">
+                  <input
+                    id="quick-passport-input"
+                    type="text"
+                    value={passportQuery}
+                    onChange={(e) => setPassportQuery(e.target.value)}
+                    placeholder="VD: CT-BTG-NVA-2026-0085"
+                    required
+                    autoFocus
+                    className="passport-lookup-input"
+                  />
+                </div>
+              </div>
+
+              <div className="passport-lookup-actions">
                 <button
                   type="button"
-                  className="button secondary small"
+                  className="passport-lookup-suggest-btn"
                   onClick={() => {
                     setPassportQuery("CT-BTG-NVA-2026-0085");
                   }}
                 >
-                  {locale === "vi" ? "Mã gợi ý" : "Suggested ID"}
+                  <Sparkles size={14} />
+                  <span>{locale === "vi" ? "Mã gợi ý: CT-BTG-NVA-2026-0085" : "Suggested: CT-BTG-NVA-2026-0085"}</span>
                 </button>
-                <button type="submit" className="button terracotta small">
-                  {locale === "vi" ? "Tra cứu ngay" : "Lookup"}
+                <button type="submit" className="button terracotta passport-lookup-submit">
+                  <Search size={16} />
+                  <span>{locale === "vi" ? "Tra cứu ngay" : "Lookup"}</span>
                 </button>
               </div>
             </form>
+
+            <div className="passport-lookup-footer-note">
+              <ShieldCheck size={16} />
+              <span>
+                {locale === "vi"
+                  ? "Xác thực trực tiếp với dữ liệu blockchain & NFC lưu trữ trên CraftTrust."
+                  : "Verified directly with blockchain & NFC data secured on CraftTrust."}
+              </span>
+            </div>
           </div>
         </div>
       )}
