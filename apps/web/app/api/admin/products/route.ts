@@ -75,6 +75,8 @@ export async function GET() {
   }
 
   // 4. Map products
+  const { data: referenceMedia } = await auth.supabase.from("product_media")
+    .select("product_id,url,alt").eq("kind", "image").order("sort_order");
   const mapped = rawProducts.map((p: any) => {
     const artisan = Array.isArray(p.artisans) ? p.artisans[0] : p.artisans;
     const village = Array.isArray(artisan?.villages) ? artisan.villages[0] : artisan?.villages;
@@ -108,6 +110,7 @@ export async function GET() {
       modelStatus,
       activeAssetId: activeAsset?.id,
       assets,
+      referencePhotos: (referenceMedia ?? []).filter(photo => photo.product_id === p.id).map(photo => ({ url: photo.url, alt: photo.alt ?? "Ảnh gốc" })),
     };
   });
 

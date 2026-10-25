@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory() as directory:
         report = run_pipeline(
             front_path=str(front_path), output_path=str(output),
             height_cm=28, width_cm=16, back_path=back_image,
-            shape_mode="measured", engine_request="auto",
+            shape_mode="measured", engine_request="auto", back_azimuth=180 if back_image else None,
         )
         document = validate_glb_structure(str(output))
         assert document.get("meshes") and document.get("scenes")

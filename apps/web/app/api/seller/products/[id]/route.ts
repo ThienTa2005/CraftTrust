@@ -1,3 +1,4 @@
+import { parseSourceViews, parseRequestedEngine, type CameraView } from "@/lib/model-source-views";
 import { NextResponse } from "next/server";
 import { getAuthorizedUser } from "@/lib/authz";
 
@@ -98,6 +99,17 @@ export async function PATCH(
     .getAll("images")
     .filter((entry): entry is File => entry instanceof File && entry.size > 0);
 
+  let sourceViews: CameraView[];
+  let engine: string;
+  try {
+    sourceViews = parseSourceViews(form.get("sourceViews"), images.length);
+    engine = parseRequestedEngine(form.get("engine"));
+    if (engine === "multiview" && images.length && sourceViews.filter(v => v.azimuth !== null).length < 2)
+      throw new Error("Limited Multi-view cần ít nhất hai ảnh chụp ngang thân.");
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Góc chụp không hợp lệ.");
+  }
+
   if (name.length < 3 || name.length > 140)
     return jsonError("Tên sản phẩm phải từ 3–140 ký tự.");
   if (description.length < 20 || description.length > 5000)
@@ -164,8 +176,8 @@ export async function PATCH(
     .eq("product_id", id)
     .eq("kind", "image");
   const revision = crypto.randomUUID().slice(0, 8);
-  const sourceRows: Array<Record<string, string | number>> = [];
-  const mediaRows: Array<Record<string, string | number>> = [];
+  const sourceRows: Array<Record<string, string | number | null>> = [];
+  const mediaRows: Array<Record<string, string | number | null>> = [];
   const newSourcePaths: string[] = [];
   const newPublicPaths: string[] = [];
   let posterUrl = "";
@@ -200,6 +212,8 @@ export async function PATCH(
         mime_type: image.type,
         byte_size: image.size,
         ordinal: index,
+        camera_direction: sourceViews[index]!.direction,
+        camera_azimuth: sourceViews[index]!.azimuth,
       });
       mediaRows.push({
         product_id: id,
@@ -248,16 +262,14 @@ export async function PATCH(
         ar_url: null,
       })
       .eq("id", id);
-    const engine = String(form.get("engine") ?? "auto").trim();
+    if (updateError) throw updateError;
     const { error: jobError } = await auth.supabase
       .from("model_jobs")
       .insert({
         product_id: id,
         status: "queued",
         attempt,
-        engine: ["auto", "ceramic", "multiview", "ai", "ai-trellis", "ai-hunyuan"].includes(engine)
-          ? engine
-          : "auto",
+        engine,
       });
     if (jobError) throw jobError;
 

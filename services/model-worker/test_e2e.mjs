@@ -79,6 +79,8 @@ im.save(r'${testImgPath}')
     mime_type: "image/png",
     byte_size: imgBuffer.byteLength,
     ordinal: 0,
+    camera_direction: "FRONT",
+    camera_azimuth: 0,
   });
   console.log("[2/5] Source image uploaded to product-source bucket:", sourcePath);
 

@@ -1,5 +1,7 @@
 # Quy trình sản phẩm gốm 3D
 
+> Cập nhật kiểm toán 25/10/2026: xem [thay đổi pipeline](3d-reconstruction-audit/PIPELINE_CHANGES.md), [kết quả test](3d-reconstruction-audit/TEST_RESULTS.md) và [artifact trước/sau](3d-reconstruction-audit/BEFORE_AFTER.md). Tài liệu phía dưới mô tả luồng legacy; API mới yêu cầu metadata hướng camera và migration `202610250008_model_camera_and_quality.sql` trước khi deploy. Generated model còn thiếu dữ liệu bị chặn publish; không còn confidence/quan sát 360° suy ra từ hai ảnh. Migration chưa được áp dụng vào production.
+
 ## Mục tiêu
 
 Nghệ nhân đăng sản phẩm cùng ảnh và kích thước thật. Hệ thống tạo file GLB ở tiến trình nền, đưa bản dựng về cho nghệ nhân kiểm tra, rồi mới công khai cho người mua. Trang chi tiết sản phẩm hiện có sẽ tự bật khung xoay 3D khi sản phẩm đã có `model_url`.

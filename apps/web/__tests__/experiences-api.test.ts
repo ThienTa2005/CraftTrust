@@ -91,9 +91,11 @@ it.each<AppRole>(["artisan", "seller"])("preserves %s photo uploads and product 
   const png = new Uint8Array(256);
   png.set([0x89, 0x50, 0x4e, 0x47]);
   form.set("images", new File([png], "pot.png", { type: "image/png" }));
+  form.set("sourceViews", JSON.stringify([{ direction: "FRONT" }]));
   expect((await createSellerProduct(new Request("http://localhost/api/seller/products", { method: "POST", body: form }))).status).toBe(201);
   expect(state.database.from).toHaveBeenCalledWith("model_jobs");
   expect(state.database.from().insert).toHaveBeenCalledWith(expect.objectContaining({ status: "queued", engine: "auto" }));
   expect(state.database.from).not.toHaveBeenCalledWith("experiences");
   expect(state.database.storage.from).toHaveBeenCalledWith("product-source");
+  expect(state.database.from().insert).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ camera_direction: "FRONT", camera_azimuth: 0 })]));
 });

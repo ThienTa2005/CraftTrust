@@ -34,6 +34,12 @@ export async function PATCH(request:Request) {
  if(auth.reason || !auth.supabase) return NextResponse.json({error:auth.reason},{status:auth.user?403:401});
  const body=await request.json().catch(()=>null);
  if(!body || !/^[0-9a-f-]{36}$/i.test(body.id) || !["configure","publish","archive","reject"].includes(body.action)) return NextResponse.json({error:"Invalid model operation"},{status:400});
+ if(body.action === "publish") {
+  const {data:asset,error:assetError}=await auth.supabase.from("product_model_assets").select("origin,quality_report").eq("id",body.id).single();
+  if(assetError) return NextResponse.json({error:assetError.message},{status:400});
+  if(asset.origin === "generated" && (asset.quality_report?.reportVersion !== 3 || asset.quality_report?.publicationBlocked !== false))
+   return NextResponse.json({error:"Mô hình sinh tự động chưa đủ kiểm chứng để xuất bản. Xem báo cáo, bổ sung ảnh hoặc tải GLB đã sửa thủ công."},{status:409});
+ }
  const settings=body.action==="configure"?modelConfigSchema.safeParse(body.settings):null;
  if(settings && !settings.success) return NextResponse.json({error:settings.error.issues.map(e=>e.message).join("; ")},{status:400});
  const {data,error}=await auth.supabase.rpc("manage_product_model",{p_id:body.id,p_action:body.action,p_settings:settings?.success?settings.data:null});

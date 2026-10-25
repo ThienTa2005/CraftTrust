@@ -1,26 +1,9 @@
-"""Advanced 3D Ceramic & Multi-view Hybrid Reconstruction Engine for Hanoi CraftTrust.
-
-Features:
-1. Ceramic Parametric Lathe with anatomical pottery zones (lip/flare, neck, shoulder, belly, foot ring, inner cavity).
-2. Multi-view Texture Fusion: Blends front and back photographs with seamless cosine cross-fade on UV boundaries.
-3. True PBR Material Generation:
-   - Base Color Map: Calibrated diffuse texture.
-   - Roughness Map: High-gloss glaze (0.18) vs matte unglazed foot ring (0.85).
-   - Normal Map: Sobel gradient from luminance with micro-clay relief.
-4. Metric Real-world Scale (height_cm, width_cm) calibrated for WebXR AR.
-5. Dual Output: Web-optimized (<2MB) and Master High-Fidelity GLB.
-6. Objective Quality Benchmark Metrics:
-   - True Silhouette IoU (reprojected 3D mesh vs 2D photo mask).
-   - Dimension verification error.
-   - Explicit Speculative Region Percentage (0% for multi-view, 50% for single-view).
-7. AI Adapter Integration with fallback.
-"""
+"""CPU ceramic approximation with mask-constrained limited-view textures. Not a relief scan."""
 
 import argparse
 import io
 import json
 import math
-import os
 import struct
 import sys
 import time
@@ -40,87 +23,17 @@ from typing import Any, Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 from PIL import Image, ImageOps
-from scipy.interpolate import UnivariateSpline
-from scipy.ndimage import distance_transform_edt, gaussian_filter1d, grey_closing, median_filter
+from scipy.ndimage import gaussian_filter1d, grey_opening, median_filter
+from scipy.stats import theilslopes
 
 from ai_adapter import Hybrid3DManager
 
 MAX_WEB_BYTES = 2_000_000
 
 
-def segment_object(image: Image.Image) -> Tuple[np.ndarray, np.ndarray]:
-    """Isolates craft object from background using alpha channel or GrabCut with morphological refinement."""
-    if image.mode == "P" and "transparency" in image.info:
-        image = image.convert("RGBA")
-    rgb = np.array(image.convert("RGB"))
-    height, width = rgb.shape[:2]
-
-    if image.mode == "RGBA":
-        alpha = np.array(image.getchannel("A"))
-        mask = (alpha > 96).astype(np.uint8) if alpha.min() < 220 else None
-    else:
-        mask = None
-
-    if mask is None:
-        scale = min(1.0, 700 / max(height, width))
-        small = cv2.resize(rgb, (max(32, int(width * scale)), max(32, int(height * scale))))
-        sh, sw = small.shape[:2]
-
-        def padding(arr):
-            uniform = np.max(np.abs(arr.astype(float) - arr[0, 0].astype(float)), axis=(1, 2)) < 8
-            count = int(np.argmax(~uniform)) if (~uniform).any() else 0
-            if count < len(arr) * 0.025 or count >= len(arr) * 0.3:
-                return 0
-            changed = (
-                np.max(
-                    np.abs(arr[min(count + 2, len(arr) - 1)].astype(float) - arr[0, 0].astype(float)),
-                    axis=1,
-                )
-                > 12
-            )
-            return count if changed.mean() > 0.75 else 0
-
-        x0 = padding(small.transpose(1, 0, 2))
-        x1 = sw - padding(small[:, ::-1].transpose(1, 0, 2))
-        y0 = padding(small)
-        y1 = sh - padding(small[::-1])
-        crop = small[y0:y1, x0:x1].copy()
-        ch, cw = crop.shape[:2]
-        labels = np.zeros((ch, cw), np.uint8)
-        inset_x = max(1, int(cw * (0.008 if x0 or x1 < sw else 0.025)))
-        inset_y = max(1, int(ch * 0.025))
-        rect = (inset_x, inset_y, cw - 2 * inset_x, ch - 2 * inset_y)
-        cv2.setRNGSeed(0)
-        cv2.grabCut(
-            crop,
-            labels,
-            rect,
-            np.zeros((1, 65), np.float64),
-            np.zeros((1, 65), np.float64),
-            6,
-            cv2.GC_INIT_WITH_RECT,
-        )
-        mask = np.zeros((sh, sw), np.uint8)
-        mask[y0:y1, x0:x1] = np.where((labels == 2) | (labels == 0), 0, 1).astype(np.uint8)
-        mask = cv2.resize(mask, (width, height), interpolation=cv2.INTER_NEAREST)
-
-    count, labels, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
-    if count < 2:
-        raise ValueError("Không tách được vật thể. Hãy thử ảnh nền trơn hoặc PNG đã tách nền.")
-    center = width / 2
-    candidates = [
-        i for i in range(1, count) if stats[i, cv2.CC_STAT_AREA] > width * height * 0.015
-    ]
-    if not candidates:
-        raise ValueError("Vật thể quá nhỏ trong ảnh. Hãy chụp gần hơn.")
-    best = max(
-        candidates,
-        key=lambda i: stats[i, cv2.CC_STAT_AREA]
-        - abs((stats[i, 0] + stats[i, 2] / 2) - center) * height * 0.13,
-    )
-    mask = (labels == best).astype(np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
-    return rgb, mask
+from segmentation import segment_object
+from texture_projection import project_textures
+from quality_validation import compact_parts, validate_mesh
 
 
 def extract_ceramic_profile(
@@ -148,7 +61,13 @@ def extract_ceramic_profile(
     right = np.interp(ys, ys[valid], right[valid])
     centers = (left + right) / 2
     region = (ys >= top + (bottom - top) * 0.35) & (ys <= top + (bottom - top) * 0.85)
-    keep = region.copy()
+    # A dragon/handle can bias least-squares initialization enough that it is
+    # never rejected. Seed with a high-breakdown line fit instead.
+    fit_rows = np.flatnonzero(region)[::max(1, int(region.sum()) // 128)]
+    slope, intercept, _, _ = theilslopes(centers[fit_rows], ys[fit_rows])
+    residual = centers - (slope * ys + intercept)
+    tolerance = max(3.0, 3 * float(np.median(np.abs(residual[region] - np.median(residual[region])))))
+    keep = region & (np.abs(residual - np.median(residual[region])) <= tolerance)
     for _ in range(4):
         slope, intercept = np.polyfit(ys[keep], centers[keep], 1)
         residual = centers - (slope * ys + intercept)
@@ -197,12 +116,20 @@ def extract_ceramic_profile(
         raise ValueError("Biên dạng không liên tục. Hãy dùng ảnh chụp thẳng hoặc PNG tách nền.")
     radius = np.interp(ys, ys[good], radius[good])
     window = max(3, int(len(ys) * 0.018) | 1)
-    radius = grey_closing(median_filter(radius, size=3), size=window)
+    # A protruding ornament is not a ring around the whole pot. Use the
+    # nearer silhouette side, then remove narrow positive excursions.
+    radius = np.minimum(radius, np.minimum(axis - left, right - axis))
+    radius = grey_opening(median_filter(radius, size=5), size=max(window, int(len(ys) * 0.06) | 1))
+    # First/last scanlines can contain only a few antialiased pixels on a
+    # tilted ellipse. Do not collapse the mouth or foot to that tiny chord.
+    edge_rows = max(3, int(len(ys) * 0.012))
+    radius[:edge_rows] = np.median(radius[edge_rows:2 * edge_rows])
+    radius[-edge_rows:] = np.median(radius[-2 * edge_rows:-edge_rows])
 
     # 128 vertical profile sample rings
     samples = np.linspace(bottom, top, 128)
     radii = np.interp(samples, ys, radius)
-    radii = gaussian_filter1d(radii, 1.2, mode="nearest")
+    radii = gaussian_filter1d(radii, 2.5, mode="nearest")
 
     # Apply rim flare factor to top 5% rings if specified
     if abs(rim_flare - 1.0) > 0.01:
@@ -263,13 +190,12 @@ def generate_pbr_maps(
     )
     base_color_bytes = base_color_io.getvalue()
 
-    # 2. Metallic-Roughness Map (glTF: Green = Roughness, Blue = Metallic)
-    # Ceramics have zero metallic (Blue = 0).
-    # Glaze body has high specular smoothness (Roughness ~ 0.20 = 51/255).
-    # Unglazed foot ring (bottom 6% of height) has matte clay roughness (Roughness ~ 0.85 = 217/255).
-    roughness = np.full((h, w), 52, dtype=np.uint8)
+    # Display assumptions only: RGB photos do not measure a material BRDF.
+    # glTF packs roughness in green and metallic in blue.
+    # Neutral display roughness; a lit photograph cannot measure glaze BRDF.
+    roughness = np.full((h, w), 166, dtype=np.uint8)
     foot_rows = max(4, int(h * 0.06))
-    foot_gradient = np.linspace(217, 52, foot_rows).astype(np.uint8)
+    foot_gradient = np.linspace(217, 166, foot_rows).astype(np.uint8)
     roughness[:foot_rows, :] = foot_gradient[:, None]
 
     # Subtle roughness variance from glaze micro-texture
@@ -283,19 +209,9 @@ def generate_pbr_maps(
     Image.fromarray(mr_image).save(mr_io, format="PNG", optimize=True)
     mr_bytes = mr_io.getvalue()
 
-    # 3. Normal Map: Derived from luminance gradients + micro-clay surface relief
-    # Computes Sobel derivatives dL/dx, dL/dy
-    dx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
-    dy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
-    strength = 0.35 if is_master else 0.25
-    norm_x = -dx * strength
-    norm_y = -dy * strength
-    norm_z = np.ones_like(norm_x) * 255.0
-    length = np.sqrt(norm_x**2 + norm_y**2 + norm_z**2)
-    nx = np.clip(((norm_x / length) * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8)
-    ny = np.clip(((norm_y / length) * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8)
-    nz = np.clip(((norm_z / length) * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8)
-    normal_map = np.stack([nx, ny, nz], axis=-1)
+    # RGB intensity contains pigment and illumination, not measured depth.
+    # A neutral normal map avoids presenting painted motifs as recovered relief.
+    normal_map = np.full((h, w, 3), (128, 128, 255), dtype=np.uint8)
 
     normal_io = io.BytesIO()
     Image.fromarray(normal_map).save(
@@ -309,108 +225,18 @@ def generate_pbr_maps(
     return base_color_bytes, mr_bytes, normal_bytes
 
 
-def fuse_multiview_textures(
-    front_rgb: np.ndarray,
-    front_cx: np.ndarray,
-    front_samples: np.ndarray,
-    front_radii: np.ndarray,
-    front_top: int,
-    front_bottom: int,
-    back_rgb: Optional[np.ndarray] = None,
-    size: int = 768,
-    back_mode: str = "mirror",
-) -> Tuple[np.ndarray, bool]:
-    """Unrolls cylindrical surface coordinate map and fuses front/back images with seamless cosine transition.
-
-    Returns: (fused_rgb_array, is_fully_observed)
-    """
-    yy = np.linspace(front_bottom, front_top, size).astype(np.float32)
-    u = np.linspace(0, 1, size).astype(np.float32)
-    # theta: -pi (back seam) -> 0 (front center) -> +pi (back seam)
-    theta = (u * 2 - 1) * np.pi
-    sample_radius = np.interp(yy, front_samples[::-1], front_radii[::-1])
-    centers = (
-        np.full(size, front_cx)
-        if np.ndim(front_cx) == 0
-        else np.interp(yy, front_samples[::-1], front_cx[::-1])
-    )
-    mx = (
-        centers[:, None]
-        + np.sin(theta)[None, :] * np.maximum(1, sample_radius[:, None] - 1.5)
-    ).astype(np.float32)
-    my = np.broadcast_to(yy[:, None], mx.shape).copy()
-
-    # Front sampling
-    src_y = np.arange(front_rgb.shape[0])
-    src_center = (
-        np.full(len(src_y), front_cx)
-        if np.ndim(front_cx) == 0
-        else np.interp(src_y, front_samples[::-1], front_cx[::-1])
-    )
-    src_radius = np.interp(src_y, front_samples[::-1], front_radii[::-1])
-    foreground = (
-        np.abs(np.arange(front_rgb.shape[1])[None, :] - src_center[:, None]) <= src_radius[:, None]
-    ) & (src_y[:, None] >= front_top) & (src_y[:, None] <= front_bottom)
-
-    nearest = distance_transform_edt(~foreground, return_distances=False, return_indices=True)
-    front_filled = front_rgb[nearest[0], nearest[1]]
-    front_sampled = cv2.remap(front_filled, mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
-
-    if back_rgb is None:
-        # Single image mode
-        if back_mode == "mirror":
-            return front_sampled, False
-
-        # Inferred plain glaze on back: smooth cosine blend
-        glaze_tone = np.array([246, 244, 236], dtype=np.float32)
-        abs_theta = np.abs(theta)
-        t_start = np.pi * 0.38
-        t_end = np.pi * 0.56
-        weight = np.clip((t_end - abs_theta) / (t_end - t_start), 0.0, 1.0)
-        weight = weight[None, :, None]
-        blended = (
-            front_sampled.astype(np.float32) * weight
-            + glaze_tone[None, None, :] * (1.0 - weight)
-        ).clip(0, 255).astype(np.uint8)
-        return blended, False
-
-    # Multi-view mode with true back photograph
-    # Map back image: back camera center aligns with theta = +pi or -pi
-    back_h, back_w = back_rgb.shape[:2]
-    back_scale = front_rgb.shape[0] / max(1, back_h)
-    back_resized = cv2.resize(back_rgb, (int(back_w * back_scale), front_rgb.shape[0]))
-    b_cx = back_resized.shape[1] / 2
-    # Angle relative to back center (cos(theta - pi) = -cos(theta))
-    theta_back = np.where(theta >= 0, theta - np.pi, theta + np.pi)
-    b_mx = (
-        b_cx + np.sin(theta_back)[None, :] * np.maximum(1, sample_radius[:, None] - 1.5)
-    ).astype(np.float32)
-    b_my = my.copy()
-    back_sampled = cv2.remap(
-        back_resized, b_mx, b_my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE
-    )
-
-    # Color/brightness equalization between front and back shots
-    front_mean = np.mean(front_sampled, axis=(0, 1))
-    back_mean = np.mean(back_sampled, axis=(0, 1))
-    gain = np.clip(front_mean / np.maximum(back_mean, 1.0), 0.75, 1.35)
-    back_calibrated = (back_sampled.astype(np.float32) * gain[None, None, :]).clip(0, 255)
-
-    # Cosine cross-fade between front (|theta| <= pi/2) and back (|theta| > pi/2)
-    # Transition band: [pi*0.42, pi*0.58] (approx 28 degree blend)
-    abs_theta = np.abs(theta)
-    t0 = np.pi * 0.42
-    t1 = np.pi * 0.58
-    alpha_front = np.clip((t1 - abs_theta) / (t1 - t0), 0.0, 1.0)
-    alpha_front = (1.0 - np.cos(alpha_front * np.pi)) * 0.5  # smooth s-curve
-    alpha_front = alpha_front[None, :, None]
-
-    fused = (
-        front_sampled.astype(np.float32) * alpha_front
-        + back_calibrated * (1.0 - alpha_front)
-    ).clip(0, 255).astype(np.uint8)
-
-    return fused, True
+def fuse_multiview_textures(front_rgb, front_cx, front_samples, front_radii,
+    front_top, front_bottom, back_rgb=None, size=768, back_mode="plain", *,
+    front_mask, back_mask=None, back_azimuth=None):
+    """Compatibility entry point; masks and explicit back direction are mandatory."""
+    views = [{"rgb": front_rgb, "mask": front_mask, "direction": "FRONT", "azimuth": 0,
+              "profile": (front_cx, front_top, front_bottom, front_samples, front_radii)}]
+    if back_rgb is not None:
+        if back_mask is None or back_azimuth is None:
+            raise ValueError("Back mask and camera azimuth are required")
+        views.append({"rgb": back_rgb, "mask": back_mask, "direction": "BACK", "azimuth": back_azimuth,
+                      "profile": extract_ceramic_profile(back_mask)})
+    return project_textures(views, front_radii / (front_bottom - front_top), size)
 
 
 def construct_pottery_mesh(
@@ -463,6 +289,8 @@ def construct_pottery_mesh(
     thickness_profile = np.linspace(t_base, t_lip, rings)
     inner_y = np.linspace(t_base, real_height, rings)
     raw_inner_r = np.interp(inner_y, yvalues, radii) - thickness_profile
+    if t_base >= real_height or np.any(raw_inner_r <= 0.002):
+        raise ValueError("Wall thickness exceeds the vessel radius/height; inner and outer surfaces would intersect.")
     inner_r = np.maximum(raw_inner_r, 0.002)
     inner_grad = np.gradient(inner_r, inner_y)
     inner_start = len(positions)
@@ -556,7 +384,7 @@ def construct_pottery_mesh(
             np.asarray(base_qr_indices, dtype="<u2"),
         ),
     ]
-    return parts, total_vertices, total_triangles
+    return compact_parts(parts), total_vertices, total_triangles
 
 
 def generate_base_qr_texture(trace_url: str, public_code: str, size: int = 512) -> bytes:
@@ -655,6 +483,12 @@ def export_glb_file(
                 "mode": 4,
             }
         )
+        if mat_idx == 1:
+            # Analytic tangent of the outer surface in increasing U direction.
+            radial_length = np.linalg.norm(pos[:, [0, 2]], axis=1)
+            tangents = np.column_stack((pos[:, 2] / radial_length,
+                np.zeros(len(pos)), -pos[:, 0] / radial_length, np.ones(len(pos)))).astype("<f4")
+            primitives[-1]["attributes"]["TANGENT"] = make_accessor(tangents, "VEC4", 5126, 34962)
 
     # Pack Texture Buffers: 0: Base Color, 1: MetallicRoughness, 2: Normal Map
     img_bc_idx = add_data(base_color_bytes)
@@ -714,7 +548,7 @@ def export_glb_file(
     model: Dict[str, Any] = {
         "asset": {
             "version": "2.0",
-            "generator": "Hanoi CraftTrust Hybrid-3D v2.2",
+            "generator": "CraftTrust Ceramic CPU v3.0",
             "extras": {
                 **metadata_extras,
                 "heightCm": height_cm,
@@ -750,231 +584,131 @@ def export_glb_file(
     return len(glb_data)
 
 
-def run_pipeline(
-    front_path: str,
-    output_path: str,
-    height_cm: float,
-    width_cm: float,
-    back_path: Optional[str] = None,
-    shape_mode: str = "measured",
-    back_texture: str = "mirror",
-    engine_request: str = "auto",
-    rim_flare: float = 1.0,
-    wall_thickness: float = 0.04,
-    public_code: str = "CT-BTG-NVA-2026-0085",
-    trace_url: str = "https://craft-trust.vercel.app/trace/CT-BTG-NVA-2026-0085",
-) -> Dict[str, Any]:
-    """Executes the complete Hybrid 3D Reconstruction Pipeline."""
-    start_time = time.perf_counter()
-
-    if not all(math.isfinite(v) and 3.0 <= v <= 250.0 for v in (height_cm, width_cm)):
+def run_pipeline(front_path, output_path, height_cm, width_cm, back_path=None,
+    shape_mode="measured", back_texture="plain", engine_request="auto", rim_flare=1.0,
+    wall_thickness=0.04, public_code="", trace_url="", *, views_json=None,
+    back_azimuth=None, profile_json=None):
+    start = time.perf_counter()
+    if not all(math.isfinite(v) and 3 <= v <= 250 for v in (height_cm, width_cm)):
         raise ValueError("Kích thước sản phẩm phải nằm trong khoảng 3–250 cm.")
-
-    # 1. Resolve Engine via Hybrid3DManager
+    if not 0.01 <= wall_thickness <= 0.15 or not 0.8 <= rim_flare <= 1.2:
+        raise ValueError("Độ dày thành hoặc hệ số miệng không hợp lệ.")
+    if shape_mode not in ("photo", "measured"):
+        raise ValueError("Invalid shape mode")
+    records = [{"path": front_path, "direction": "FRONT", "azimuth": 0}]
+    if views_json:
+        records = json.loads(Path(views_json).read_text(encoding="utf-8"))
+    elif back_path:
+        if back_azimuth is None:
+            raise ValueError("Cần xác nhận hướng camera ảnh sau (--back-azimuth); không suy ra từ thứ tự upload.")
+        records.append({"path": back_path, "direction": "BACK", "azimuth": back_azimuth})
+    if not isinstance(records, list) or not records:
+        raise ValueError("Danh sách góc chụp không hợp lệ.")
     manager = Hybrid3DManager()
-    has_back = bool(back_path and os.path.exists(back_path))
-    engine_id, fallback_msg, base_confidence = manager.resolve_engine(engine_request, has_back)
-
-    # 2. Process Front Image
-    front_img = ImageOps.exif_transpose(Image.open(front_path))
-    if max(front_img.size) > 3000:
-        front_img.thumbnail((3000, 3000))
-    front_rgb, front_mask = segment_object(front_img)
-
-    # 3. Process Back Image if present
-    back_rgb = None
-    if has_back:
-        try:
-            back_img = ImageOps.exif_transpose(Image.open(back_path))
-            if max(back_img.size) > 3000:
-                back_img.thumbnail((3000, 3000))
-            back_rgb, _ = segment_object(back_img)
-        except Exception as exc:
-            print(f"[pipeline] Warning: could not segment back image: {exc}", file=sys.stderr)
-            back_rgb = None
-            has_back = False
-
-    # 4. Extract Parametric Lathe Silhouette
-    cx, top, bottom, samples, radii = extract_ceramic_profile(
-        front_mask, rim_flare=rim_flare, wall_thickness_ratio=wall_thickness
-    )
-    photo_width_cm = height_cm * (2.0 * float(max(radii))) / max(1, bottom - top)
-    actual_width_cm = width_cm if shape_mode == "measured" else photo_width_cm
-
-    # 5. Compute Objective Silhouette Match IoU
-    silhouette_iou = compute_silhouette_iou(front_mask, cx, samples, radii, top, bottom)
-    dim_error_percent = round(abs(actual_width_cm - width_cm) / width_cm * 100, 2)
-    speculative_percent = 0.0 if has_back else 50.0
-
-    # 6. Build High-Fidelity Geometry (sides=96 for smooth cylindrical curves)
-    mesh_parts, v_count, tri_count = construct_pottery_mesh(
-        radii,
-        height_cm,
-        actual_width_cm,
-        sides=96,
-        wall_thickness_ratio=wall_thickness,
-    )
-
-    # 7. Multi-view Texture Synthesis and PBR Generation
-    # Web target size: 768 or 640 to stay strictly < 2MB
-    web_tex_size = 768
-    fused_tex, is_observed = fuse_multiview_textures(
-        front_rgb,
-        cx,
-        samples,
-        radii,
-        top,
-        bottom,
-        back_rgb=back_rgb,
-        size=web_tex_size,
-        back_mode=back_texture,
-    )
-    base_color_bytes, mr_bytes, normal_bytes = generate_pbr_maps(fused_tex, is_master=False)
-
-    metadata_extras = {
-        "engine": engine_id,
-        "engineVersion": "2.2",
-        "method": "Hybrid Ceramic & Multi-view PBR",
-        "hasBackPhoto": has_back,
-        "speculativeRegionPercent": speculative_percent,
-        "silhouetteMatchScore": silhouette_iou,
-        "dimensionErrorPercent": dim_error_percent,
-        "pbrChannels": ["baseColor", "roughness", "normal"],
-    }
-
-    # 7.5 Generate authentic bottom ceramic QR hallmark seal
-    base_qr_bytes = generate_base_qr_texture(trace_url, public_code)
-
-    # Write Web-Optimized GLB with embedded bottom QR
-    web_bytes = export_glb_file(
-        output_path,
-        mesh_parts,
-        base_color_bytes,
-        mr_bytes,
-        normal_bytes,
-        height_cm,
-        actual_width_cm,
-        metadata_extras,
-        base_qr_bytes=base_qr_bytes,
-    )
-
-    # If exceeding 2MB, try with size 640
-    if web_bytes > MAX_WEB_BYTES:
-        fused_tex, _ = fuse_multiview_textures(
-            front_rgb,
-            cx,
-            samples,
-            radii,
-            top,
-            bottom,
-            back_rgb=back_rgb,
-            size=640,
-            back_mode=back_texture,
-        )
-        base_color_bytes, mr_bytes, normal_bytes = generate_pbr_maps(fused_tex, is_master=False)
-        web_bytes = export_glb_file(
-            output_path,
-            mesh_parts,
-            base_color_bytes,
-            mr_bytes,
-            normal_bytes,
-            height_cm,
-            actual_width_cm,
-            metadata_extras,
-            base_qr_bytes=base_qr_bytes,
-        )
-
-    # 8. Write Master High-Resolution GLB
-    master_path = str(Path(output_path).with_name(f"{Path(output_path).stem}-master.glb"))
-    try:
-        master_mesh, _, _ = construct_pottery_mesh(
-            radii,
-            height_cm,
-            actual_width_cm,
-            sides=128,
-            wall_thickness_ratio=wall_thickness,
-        )
-        master_fused, _ = fuse_multiview_textures(
-            front_rgb,
-            cx,
-            samples,
-            radii,
-            top,
-            bottom,
-            back_rgb=back_rgb,
-            size=1536,
-            back_mode=back_texture,
-        )
-        m_bc, m_mr, m_norm = generate_pbr_maps(master_fused, is_master=True)
-        master_bytes = export_glb_file(
-            master_path,
-            master_mesh,
-            m_bc,
-            m_mr,
-            m_norm,
-            height_cm,
-            actual_width_cm,
-            {**metadata_extras, "tier": "master-high-res"},
-            base_qr_bytes=base_qr_bytes,
-        )
-    except Exception as exc:
-        print(f"[pipeline] Warning: master export failed: {exc}", file=sys.stderr)
-        master_path = None
-        master_bytes = None
-
-    elapsed_ms = round((time.perf_counter() - start_time) * 1000)
-
-    # Compute Composite Confidence Score
-    confidence_score = round(
-        0.55 * silhouette_iou
-        + 0.30 * (1.0 - speculative_percent / 100.0)
-        + 0.15 * min(1.0, max(front_img.size) / 1200.0),
-        3,
-    )
-
+    engine_id, _, _ = manager.resolve_engine(engine_request, len(records) > 1)
+    if engine_id == "high-fidelity":
+        from multiview_reconstruction import reconstruct
+        return reconstruct(records, output_path, height_cm, width_cm)
+    if len(records) > 4:
+        raise ValueError("Limited multi-view hỗ trợ 1–4 ảnh; dùng High Fidelity với bộ ảnh chồng lấp.")
+    views, references = [], []
+    directions = {"FRONT": 0, "BACK": 180, "LEFT": 270, "RIGHT": 90}
+    for record in records:
+        direction = str(record.get("direction", "UNKNOWN")).upper()
+        if direction not in (*directions, "CUSTOM", "TOP", "BOTTOM"):
+            raise ValueError("Ảnh thiếu hướng camera. Hãy khai báo FRONT/BACK/LEFT/RIGHT/TOP/BOTTOM/CUSTOM.")
+        image = ImageOps.exif_transpose(Image.open(record["path"]))
+        image.thumbnail((3000, 3000))
+        rgb, mask = segment_object(image)
+        if direction in ("TOP", "BOTTOM"):
+            references.append({"direction": direction, "usedFor": "review-only; projection unsupported"})
+            continue
+        angle = record.get("azimuth", directions.get(direction))
+        if not isinstance(angle, (float, int)) or not math.isfinite(angle) or not 0 <= angle < 360:
+            raise ValueError("Góc camera phải là số từ 0 đến dưới 360 độ.")
+        profile = extract_ceramic_profile(mask, rim_flare=rim_flare)
+        views.append({"rgb": rgb, "mask": mask, "profile": profile, "direction": direction, "azimuth": angle})
+    if not views or not any(v["direction"] == "FRONT" for v in views):
+        raise ValueError("Cần một ảnh FRONT đầy đủ thân sản phẩm.")
+    if len({v["azimuth"] for v in views}) != len(views):
+        raise ValueError("Các ảnh dựng thân phải có góc camera khác nhau.")
+    # Both front and back silhouettes constrain the base envelope. Relief is
+    # excluded where a narrower observation exists; unseen depth is unverified.
+    normalized = [v["profile"][4] / (v["profile"][2] - v["profile"][1]) for v in views]
+    radius = gaussian_filter1d(np.min(normalized, axis=0), 1.0)
+    if profile_json:
+        manual = np.asarray(json.loads(Path(profile_json).read_text()), dtype=float)
+        if manual.ndim != 1 or len(manual) < 8 or not np.isfinite(manual).all() or np.any(manual <= 0) or np.any(manual > 1):
+            raise ValueError("Manual profile must contain >=8 positive radius/height samples <=1.")
+        radius = np.interp(np.linspace(0, 1, 128), np.linspace(0, 1, len(manual)), manual)
+    photo_width = height_cm * 2 * float(radius.max())
+    actual_width = width_cm if shape_mode == "measured" else photo_width
+    # Use the final scaled geometry for all texture projections and reprojections.
+    final_radius = radius * (actual_width / photo_width)
+    ious = {}
+    for i, view in enumerate(views):
+        cx, top, bottom, samples, _ = view["profile"]
+        ious[f'{view["direction"]}-{i}'] = compute_silhouette_iou(view["mask"], cx, samples,
+            final_radius * (bottom - top), top, bottom)
+    texture, provenance, metrics = project_textures(views, final_radius)
+    parts, _, _ = construct_pottery_mesh(final_radius, height_cm, actual_width, sides=80, wall_thickness_ratio=wall_thickness)
+    topology = validate_mesh(parts)
+    warnings = ["Chưa đủ dữ liệu để xác định độ chính xác 3D.",
+        "Hình học thân tròn xoay là suy diễn; rồng và hoa văn nổi chưa được tái dựng hình học.",
+        "Lòng bình, độ dày, miệng và đáy chưa có số đo kiểm chứng.",
+        "Camera trực giao là giả định; góc do người dùng khai báo chưa được hiệu chuẩn."]
+    if min(ious.values()) < 0.80:
+        warnings.append("Biên dạng dựng lại lệch ảnh tham chiếu; cần sửa số đo/biên dạng hoặc đổi engine.")
+    if metrics["seamQuality"]["needsReview"]:
+        warnings.append("Đường chuyển texture có chênh lệch lớn; cần thêm ảnh góc bên.")
+    if references:
+        warnings.append("Ảnh TOP/BOTTOM chỉ dùng đối chiếu, chưa dùng dựng hình.")
     report = {
-        "engine": engine_id,
-        "engineVersion": "2.2",
-        "method": "Hybrid Ceramic Multi-view with PBR Materials",
-        "requestedEngine": engine_request,
-        "fallbackApplied": bool(fallback_msg),
-        "fallbackReason": fallback_msg,
-        "shapeMode": shape_mode,
-        "backTextureMode": "observed_multiview" if has_back else back_texture,
-        "hasBackPhoto": has_back,
-        "speculativeRegionPercent": speculative_percent,
-        "silhouetteMatchScore": silhouette_iou,
-        "dimensionErrorPercent": dim_error_percent,
-        "confidenceScore": confidence_score,
-        "meshTopology": {
-            "vertices": v_count,
-            "triangles": tri_count,
-            "isManifold": True,
-            "hasCavity": True,
-        },
-        "pbrChannels": ["baseColor", "roughness", "normal"],
-        "assetBytes": web_bytes,
-        "under2MB": web_bytes < MAX_WEB_BYTES,
-        "masterAssetBytes": master_bytes,
-        "masterAssetPath": master_path,
-        "generationMs": elapsed_ms,
-        "modelMeasurements": {"heightCm": height_cm, "widthCm": actual_width_cm},
+        "reportVersion": 3, "engine": "ceramic-cpu", "engineVersion": "3.0",
+        "mode": "limited-multiview" if len(views) > 1 else "single-image",
+        "method": "inferred rotational base + mask-constrained texture projection",
+        "requestedEngine": engine_request, "fallbackApplied": False,
+        "shapeMode": shape_mode, "hasBackPhoto": any(v["direction"] == "BACK" for v in views),
+        "inputViewCount": len(records), "projectedViewCount": len(views), "referenceOnlyViews": references,
+        **metrics, "silhouetteMatchScore": min(ious.values()), "silhouetteByView": ious,
+        "silhouetteScope": "final scaled outer silhouette; observed views only; orthographic assumption",
+        "dimensionErrorPercent": round(abs(actual_width - width_cm) / width_cm * 100, 2),
+        "confidenceScore": None, "physicalAccuracy": None, "observedGeometry": False,
+        "reliefGeometry": "not-reconstructed", "normalMap": "neutral; not measured relief",
+        "meshTopology": topology, "qualityStatus": "NEEDS_REVIEW", "publicationBlocked": True,
+        "reviewReasons": warnings, "singleImageLimit": warnings[0],
+        "verifiedMeasurements": [], "modelMeasurements": {"heightCm": height_cm, "widthCm": actual_width},
         "inputMeasurements": {"heightCm": height_cm, "widthCm": width_cm},
-        "singleImageLimit": (
-            "Đã sử dụng ảnh chụp mặt sau thực tế để phủ vân 360°, không có vùng suy đoán."
-            if has_back
-            else (
-                "Hoa văn mặt sau được phản chiếu từ mặt trước (vùng suy đoán 50%)."
-                if back_texture == "mirror"
-                else "Mặt sau là men trơn suy diễn (vùng suy đoán 50%)."
-            )
-        ),
+        "measurementSource": "user-declared; not independently verified",
+        "manualProfile": bool(profile_json), "pbrChannels": ["baseColor", "roughness", "neutral-normal"],
     }
-
-    report_path = Path(output_path).with_suffix(".json")
-    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    out = Path(output_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    qr = generate_base_qr_texture(trace_url, public_code) if trace_url and public_code else None
+    if qr is None:
+        # Keep bottom material present without fabricating a passport identity.
+        canvas = Image.new("RGBA", (16, 16), (180, 170, 150, 255))
+        buf = io.BytesIO()
+        canvas.save(buf, format="PNG")
+        qr = buf.getvalue()
+    bc, mr, nm = generate_pbr_maps(texture)
+    web_bytes = export_glb_file(str(out), parts, bc, mr, nm, height_cm, actual_width, report, qr)
+    if web_bytes > MAX_WEB_BYTES:
+        raise ValueError(f"GLB vượt ngân sách Web 2 MB ({web_bytes} bytes).")
+    master_tex, _, _ = project_textures(views, final_radius, 1536)
+    master_parts, _, _ = construct_pottery_mesh(final_radius, height_cm, actual_width, sides=128, wall_thickness_ratio=wall_thickness)
+    validate_mesh(master_parts)
+    mbc, mmr, mnm = generate_pbr_maps(master_tex, True)
+    master_path = out.with_name(out.stem + "-master.glb")
+    master_bytes = export_glb_file(str(master_path), master_parts, mbc, mmr, mnm, height_cm, actual_width, report, qr)
+    Image.fromarray(texture).save(out.with_name(out.stem + "-texture.png"))
+    Image.fromarray(provenance * 50).save(out.with_name(out.stem + "-provenance.png"))
+    for i, v in enumerate(views):
+        Image.fromarray(v["mask"] * 255).save(out.with_name(out.stem + f"-mask-{i}.png"))
+    report.update(assetBytes=web_bytes, under2MB=True, masterAssetBytes=master_bytes,
+        masterAssetPath=str(master_path), generationMs=round((time.perf_counter() - start) * 1000))
+    out.with_suffix(".json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False))
-
     return report
 
 
@@ -982,6 +716,9 @@ def parse_arguments(argv=None):
     parser = argparse.ArgumentParser(description="Hanoi CraftTrust Hybrid 3D Engine")
     parser.add_argument("--image", required=True, help="Front photograph")
     parser.add_argument("--back-image", default=None, help="Optional back photograph")
+    parser.add_argument("--views-json", help="JSON array of path/direction/azimuth camera views")
+    parser.add_argument("--back-azimuth", type=float, help="Confirmed back camera angle in degrees")
+    parser.add_argument("--profile-json", help="Manual bottom-to-top normalized radius samples")
     parser.add_argument("--output", required=True, help="Target output GLB path")
     parser.add_argument("--height-cm", type=float, required=True)
     parser.add_argument("--width-cm", type=float, required=True)
@@ -991,15 +728,15 @@ def parse_arguments(argv=None):
         "--engine",
         # Original model_jobs rows used this name before the CLI was renamed.
         type=lambda value: "ceramic" if value == "ceramic-cpu" else value,
-        choices=["auto", "ceramic", "multiview", "ai", "ai-trellis", "ai-hunyuan", "ai-triposr"],
+        choices=["auto", "ceramic", "multiview", "high-fidelity", "ai", "ai-trellis", "ai-hunyuan", "ai-triposr"],
         default="auto",
     )
     parser.add_argument("--rim-flare", type=float, default=1.0)
     parser.add_argument("--wall-thickness", type=float, default=0.04)
-    parser.add_argument("--public-code", default="CT-BTG-NVA-2026-0085", help="Digital passport public code")
+    parser.add_argument("--public-code", default="", help="Digital passport public code")
     parser.add_argument(
         "--trace-url",
-        default="https://craft-trust.vercel.app/trace/CT-BTG-NVA-2026-0085",
+        default="",
         help="Digital passport trace URL encoded into base QR seal",
     )
 
@@ -1010,6 +747,9 @@ if __name__ == "__main__":
     args = parse_arguments()
 
     run_pipeline(
+        views_json=args.views_json,
+        back_azimuth=args.back_azimuth,
+        profile_json=args.profile_json,
         front_path=args.image,
         output_path=args.output,
         height_cm=args.height_cm,

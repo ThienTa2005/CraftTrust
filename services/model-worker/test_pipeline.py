@@ -93,9 +93,11 @@ def main():
     print(f"      Hardware detected: {hw}")
     caps = mgr.list_engine_capabilities()
     assert len(caps) >= 3, "Catalog must list ceramic, multiview, and AI engines"
-    resolved_engine, reason, conf = mgr.resolve_engine("ai", False)
-    assert resolved_engine == "ceramic", f"Expected ceramic fallback, got {resolved_engine}"
-    print(f"      Resolved engine fallback: {resolved_engine} (confidence: {conf})")
+    try:
+        mgr.resolve_engine("ai", False)
+        raise AssertionError("Unavailable AI must fail explicitly")
+    except RuntimeError:
+        pass
 
     # 2. Test Single-View Reconstruction Pipeline
     print("[2/4] Testing Single-View Pipeline...")
@@ -121,8 +123,11 @@ def main():
 
         assert os.path.exists(out_glb), "GLB output file was not created"
         assert report_single["assetBytes"] < 2_000_000, "Web GLB must be < 2MB"
-        assert report_single["speculativeRegionPercent"] == 50.0, "Single view must flag 50% speculative region"
-        assert report_single["silhouetteMatchScore"] > 0.80, f"Low IoU: {report_single['silhouetteMatchScore']}"
+        assert report_single["speculativeRegionPercent"] > 50, "Grazing angles and hidden surfaces remain unsupported"
+        # This fixture's declared 16/28 ratio is much wider than its 160/430
+        # pixel silhouette. The score must reflect the exported geometry now.
+        assert 0 < report_single["silhouetteMatchScore"] < 0.80
+        assert any("Biên dạng" in reason for reason in report_single["reviewReasons"])
         validate_glb_structure(out_glb)
         print(f"      Single-view OK: {report_single['assetBytes']} bytes, IoU={report_single['silhouetteMatchScore']}")
 
@@ -135,14 +140,15 @@ def main():
             height_cm=28.0,
             width_cm=16.0,
             back_path=back_path,
+            back_azimuth=180,
             shape_mode="measured",
             back_texture="mirror",
             engine_request="auto",
         )
 
         assert report_multi["hasBackPhoto"] is True, "Must register back photo"
-        assert report_multi["speculativeRegionPercent"] == 0.0, "Multi-view speculative region must be 0%"
-        assert report_multi["confidenceScore"] > report_single["confidenceScore"], "Multi-view must have higher confidence"
+        assert report_multi["speculativeRegionPercent"] > 0, "Two views do not prove 360 degree coverage"
+        assert report_multi["confidenceScore"] is None and report_single["confidenceScore"] is None
         validate_glb_structure(out_multi)
         print(f"      Multi-view OK: {report_multi['assetBytes']} bytes, Confidence={report_multi['confidenceScore']}")
 
