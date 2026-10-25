@@ -7,6 +7,7 @@ const schema = z.object({
   phone: z.string().min(7).max(24),
   address: z.string().min(5).max(300),
   city: z.string().min(2).max(100),
+  artisanNote: z.string().max(1000).optional().nullable(),
   idempotencyKey: z.string().uuid(),
 });
 
@@ -34,12 +35,13 @@ export async function POST(request: Request) {
       { error: "Sign in before checkout." },
       { status: 401 },
     );
-  const { idempotencyKey, recipient, phone, address, city } = input.data;
+  const { idempotencyKey, recipient, phone, address, city, artisanNote } = input.data;
   const shippingAddress = {
     recipient_name: recipient,
     phone,
     address_line: address,
     city,
+    artisan_note: artisanNote?.trim() || undefined,
   };
   const { data, error } = await supabase.rpc("checkout_test_cart", {
     p_shipping_address: shippingAddress,

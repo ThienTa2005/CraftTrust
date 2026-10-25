@@ -1,3 +1,4 @@
+import { parseSourceViews, parseRequestedEngine, type CameraView } from "@/lib/model-source-views";
 import { NextResponse } from "next/server";
 import { getAuthorizedUser } from "@/lib/authz";
 import { summarizeModelJobs } from "@/lib/model-job-status";
@@ -132,6 +133,17 @@ export async function POST(request: Request) {
     .getAll("images")
     .filter((entry): entry is File => entry instanceof File);
 
+  let sourceViews: CameraView[];
+  let engine: string;
+  try {
+    sourceViews = parseSourceViews(form.get("sourceViews"), images.length);
+    engine = parseRequestedEngine(form.get("engine"));
+    if (engine === "multiview" && images.length && sourceViews.filter(v => v.azimuth !== null).length < 2)
+      throw new Error("Limited Multi-view cần ít nhất hai ảnh chụp ngang thân.");
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Góc chụp không hợp lệ.");
+  }
+
   if (name.length < 3 || name.length > 140)
     return jsonError("Tên sản phẩm phải từ 3–140 ký tự.");
   if (description.length < 20 || description.length > 5000) {
@@ -191,8 +203,8 @@ export async function POST(request: Request) {
   if (productError) return jsonError(productError.message, 500);
 
   try {
-    const sourceRows: Array<Record<string, string | number>> = [];
-    const mediaRows: Array<Record<string, string | number>> = [];
+    const sourceRows: Array<Record<string, string | number | null>> = [];
+    const mediaRows: Array<Record<string, string | number | null>> = [];
     let posterUrl = "";
 
     for (const [index, image] of images.entries()) {
@@ -229,6 +241,8 @@ export async function POST(request: Request) {
         mime_type: image.type,
         byte_size: image.size,
         ordinal: index,
+        camera_direction: sourceViews[index]!.direction,
+        camera_azimuth: sourceViews[index]!.azimuth,
       });
       mediaRows.push({
         product_id: productId,
@@ -251,7 +265,6 @@ export async function POST(request: Request) {
       .from("products")
       .update({ poster_url: posterUrl })
       .eq("id", productId);
-    const engine = String(form.get("engine") ?? "auto").trim();
     if (posterError) throw posterError;
     const { error: jobError } = await auth.supabase
       .from("model_jobs")
@@ -259,9 +272,7 @@ export async function POST(request: Request) {
         product_id: productId,
         status: "queued",
         attempt: 1,
-        engine: ["auto", "ceramic", "multiview", "ai", "ai-trellis", "ai-hunyuan"].includes(engine)
-          ? engine
-          : "auto",
+        engine,
       });
     if (jobError) throw jobError;
 

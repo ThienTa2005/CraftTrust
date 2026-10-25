@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useTransition } from "react";
+import Image from "next/image";
 import {
   Box,
   CheckCircle2,
@@ -43,6 +44,7 @@ interface ProductItem {
   modelStatus: string;
   activeAssetId?: string;
   assets?: any[];
+  referencePhotos?: { url: string; alt: string }[];
 }
 
 export function Admin3DManager() {
@@ -659,6 +661,18 @@ export function Admin3DManager() {
                 )}
               </div>
 
+              {activeAsset?.quality_report && <div className="studio-message" role="status">
+                <strong>{vi ? "Kiểm định mô hình: cần xem xét" : "Model validation: review required"}</strong>
+                <p>{vi ? "Chưa đủ dữ liệu để xác định độ chính xác 3D." : "Insufficient evidence to determine physical 3D accuracy."}</p>
+                {Array.isArray(activeAsset.quality_report.reviewReasons) && activeAsset.quality_report.reviewReasons.map((reason: string, i: number) => <p key={i}>{reason}</p>)}
+              </div>}
+              <div className="studio-message">
+                <strong>{vi ? "Ảnh gốc đối chiếu" : "Reference photographs"}</strong>
+                <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
+                  {(selectedProduct.referencePhotos ?? []).map(photo => <a href={photo.url} key={photo.url} target="_blank" rel="noreferrer"><Image unoptimized src={photo.url} alt={photo.alt} height={220} width={150} style={{ objectFit: "contain" }} /></a>)}
+                </div>
+              </div>
+
               {/* CONFIGURATION TABS / FORMS */}
               <div className="admin-config-panels">
                 {/* 1. Metric Dimensions & AR */}
@@ -965,7 +979,7 @@ export function Admin3DManager() {
                       type="button"
                       className="button terracotta"
                       onClick={() => void handlePublishModel()}
-                      disabled={saving || !activeAsset}
+                      disabled={saving || !activeAsset || (activeAsset.origin === "generated" && activeAsset.quality_report?.publicationBlocked !== false)}
                     >
                       <Sparkles size={16} />
                       <span>{vi ? "Phê Duyệt & Xuất Bản Lên Sàn" : "Approve & Publish"}</span>

@@ -8,6 +8,7 @@ import {
   RotateCcw,
   Search,
   ShoppingBag,
+  Sparkles,
   Truck,
 } from "lucide-react";
 import { getDemoOrders, type DemoOrder, addToDemoCart } from "@/lib/cart-store";
@@ -99,8 +100,6 @@ export function OrdersView({
 
       {error ? <div className="error-banner">{error}</div> : null}
 
-
-
       {/* Shopee-Style Order Tabs */}
       <div className="buyer-orders-tab-bar" style={{ marginTop: 24 }}>
         {statusTabs.map((tab) => (
@@ -141,56 +140,126 @@ export function OrdersView({
           }}
         >
           {hasBackend
-            ? backendOrders.map((order: any) => (
-                <article className="panel buyer-order-card" key={order.id}>
-                  <div className="buyer-order-card-header">
-                    <div className="shop-badge">
-                      <ShoppingBag size={16} />
-                      <strong>Xưởng Gốm Bát Tràng</strong>
+            ? backendOrders.map((order: any) => {
+                const artisanNote =
+                  order.shipping_address?.artisan_note ||
+                  order.shipping_address?.note ||
+                  order.artisan_note;
+                const shipping = order.shipping_address;
+
+                return (
+                  <article className="panel buyer-order-card" key={order.id}>
+                    <div className="buyer-order-card-header">
+                      <div className="shop-badge">
+                        <ShoppingBag size={16} />
+                        <strong>Xưởng Gốm Bát Tràng</strong>
+                      </div>
+                      <span className="buyer-order-status-pill success">
+                        {order.status}
+                      </span>
                     </div>
-                    <span className="buyer-order-status-pill success">
-                      {order.status}
-                    </span>
-                  </div>
 
-                  <p
-                    style={{
-                      color: "var(--muted)",
-                      fontSize: "0.85rem",
-                      margin: "8px 0 12px",
-                    }}
-                  >
-                    {t.orders.orderId} #{order.id.slice(0, 8)} ·{" "}
-                    {new Intl.DateTimeFormat(
-                      locale === "vi" ? "vi-VN" : "en-GB",
-                      { dateStyle: "medium" },
-                    ).format(new Date(order.created_at))}
-                  </p>
+                    <p
+                      style={{
+                        color: "var(--muted)",
+                        fontSize: "0.85rem",
+                        margin: "8px 0 12px",
+                      }}
+                    >
+                      {t.orders.orderId} #{order.id.slice(0, 8)} ·{" "}
+                      {new Intl.DateTimeFormat(
+                        locale === "vi" ? "vi-VN" : "en-GB",
+                        { dateStyle: "medium" },
+                      ).format(new Date(order.created_at))}
+                    </p>
 
-                  <div className="buyer-order-items-list">
-                    {order.order_items.map((item: any) => (
-                      <div className="buyer-order-item-row" key={item.id}>
-                        <div className="item-text">
-                          <strong>{item.product_name}</strong>
-                          <small>Số lượng: × {item.quantity}</small>
+                    <div className="buyer-order-items-list">
+                      {order.order_items.map((item: any) => (
+                        <div className="buyer-order-item-row" key={item.id}>
+                          <div className="item-text">
+                            <strong>{item.product_name}</strong>
+                            <small>Số lượng: × {item.quantity}</small>
+                            {item.personalization && (
+                              <div
+                                style={{
+                                  marginTop: 4,
+                                  fontSize: "0.8rem",
+                                  color: "var(--terracotta)",
+                                  background: "var(--paper)",
+                                  padding: "3px 8px",
+                                  borderRadius: 4,
+                                  border: "1px dashed var(--gold)",
+                                  display: "inline-block",
+                                }}
+                              >
+                                <strong>✨ {locale === "vi" ? "Khắc chữ:" : "Engraved:"}</strong> &ldquo;{item.personalization.text}&rdquo;
+                              </div>
+                            )}
+                          </div>
+                          <strong className="item-price">
+                            {formatVnd(item.quantity * item.unit_price_vnd)}
+                          </strong>
                         </div>
-                        <strong className="item-price">
-                          {formatVnd(item.quantity * item.unit_price_vnd)}
+                      ))}
+                    </div>
+
+                    {artisanNote && (
+                      <div
+                        style={{
+                          marginTop: 12,
+                          padding: "10px 14px",
+                          borderRadius: 8,
+                          background: "linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, rgba(180, 83, 9, 0.04) 100%)",
+                          border: "1px dashed var(--gold, #d97706)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            color: "var(--terracotta, #c2410c)",
+                            fontWeight: 600,
+                            fontSize: "0.84rem",
+                          }}
+                        >
+                          <Sparkles size={14} />
+                          <span>{locale === "vi" ? "Yêu cầu chế tác cho Nghệ nhân:" : "Artisan crafting request:"}</span>
+                        </div>
+                        <p
+                          style={{
+                            margin: "4px 0 0",
+                            fontSize: "0.92rem",
+                            fontStyle: "italic",
+                            color: "var(--ink, #1f2937)",
+                            fontWeight: 500,
+                          }}
+                        >
+                          &ldquo;{artisanNote}&rdquo;
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="buyer-order-card-footer">
+                      {shipping && (
+                        <div className="delivery-info">
+                          <Truck size={15} />
+                          <span>
+                            {locale === "vi" ? "Giao tới:" : "Ship to:"}{" "}
+                            {shipping.recipient_name} ({shipping.phone}) · {shipping.address_line}, {shipping.city}
+                          </span>
+                        </div>
+                      )}
+                      <div className="total-display">
+                        <span>{t.orders.total}:</span>
+                        <strong className="total-vnd">
+                          {formatVnd(order.subtotal_vnd)}
                         </strong>
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="buyer-order-card-footer">
-                    <div className="total-display">
-                      <span>{t.orders.total}:</span>
-                      <strong className="total-vnd">
-                        {formatVnd(order.subtotal_vnd)}
-                      </strong>
                     </div>
-                  </div>
-                </article>
-              ))
+                  </article>
+                );
+              })
             : filteredDemoOrders.map((order) => (
                 <article className="panel buyer-order-card" key={order.id}>
                   <div className="buyer-order-card-header">
@@ -298,6 +367,43 @@ export function OrdersView({
                       );
                     })}
                   </div>
+
+                  {order.artisanNote && (
+                    <div
+                      style={{
+                        marginTop: 12,
+                        padding: "10px 14px",
+                        borderRadius: 8,
+                        background: "linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, rgba(180, 83, 9, 0.04) 100%)",
+                        border: "1px dashed var(--gold, #d97706)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          color: "var(--terracotta, #c2410c)",
+                          fontWeight: 600,
+                          fontSize: "0.84rem",
+                        }}
+                      >
+                        <Sparkles size={14} />
+                        <span>{locale === "vi" ? "Yêu cầu chế tác cho Nghệ nhân:" : "Artisan crafting request:"}</span>
+                      </div>
+                      <p
+                        style={{
+                          margin: "4px 0 0",
+                          fontSize: "0.92rem",
+                          fontStyle: "italic",
+                          color: "var(--ink, #1f2937)",
+                          fontWeight: 500,
+                        }}
+                      >
+                        &ldquo;{order.artisanNote}&rdquo;
+                      </p>
+                    </div>
+                  )}
 
                   {/* Order Footer & Actions */}
                   <div className="buyer-order-card-footer">

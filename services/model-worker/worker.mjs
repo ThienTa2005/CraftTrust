@@ -6,6 +6,7 @@ import { tmpdir, hostname } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
+import { validateSourceViews, validateGenerationReport } from "./source-views.mjs";
 import { normalizeSupabaseUrl } from "./supabase-config.mjs";
 
 const supabaseUrl = normalizeSupabaseUrl(
@@ -75,7 +76,7 @@ async function sendHeartbeat(jobId, step, progress = 0) {
 
 function runGenerator({
   imagePath,
-  backImagePath,
+  viewsJsonPath,
   outputPath,
   heightCm,
   widthCm,
@@ -84,8 +85,8 @@ function runGenerator({
   engine = "auto",
   rimFlare = 1.0,
   wallThickness = 0.04,
-  publicCode = "CT-BTG-NVA-2026-0085",
-  traceUrl = "https://craft-trust.vercel.app/trace/CT-BTG-NVA-2026-0085",
+  publicCode = "",
+  traceUrl = "",
 }) {
   return new Promise((resolve, reject) => {
     const args = [
@@ -113,9 +114,7 @@ function runGenerator({
       "--trace-url",
       traceUrl,
     ];
-    if (backImagePath) {
-      args.push("--back-image", backImagePath);
-    }
+    args.push("--views-json", viewsJsonPath);
 
     const child = spawn(pythonBin, args, {
       windowsHide: true,
@@ -214,49 +213,27 @@ async function processJob(job) {
     // Fetch all source assets ordered by ordinal
     const { data: sources, error: sourceError } = await supabase
       .from("product_source_assets")
-      .select("storage_path,mime_type,ordinal")
+      .select("storage_path,mime_type,ordinal,camera_direction,camera_azimuth")
       .eq("product_id", job.product_id)
       .order("ordinal", { ascending: true });
     if (sourceError) throw sourceError;
     if (!sources || sources.length === 0)
       throw new Error("No source photographs found for this product.");
 
-    const frontSource = sources.find((s) => s.ordinal === 0) || sources[0];
-    const backSource = sources.find((s) => s.ordinal === 1);
-
+    const sourceViews = validateSourceViews(sources);
     tempDirectory = await mkdtemp(path.join(tmpdir(), "crafttrust-model-"));
-    const inputPath = path.join(
-      tempDirectory,
-      `front${extensionFor(frontSource.mime_type)}`,
-    );
     const outputPath = path.join(tempDirectory, "model.glb");
-
-    const { data: frontDownload, error: frontDlError } = await supabase.storage
-      .from("product-source")
-      .download(frontSource.storage_path);
-    if (frontDlError) throw frontDlError;
-    await writeFile(inputPath, Buffer.from(await frontDownload.arrayBuffer()));
-
-    let backImagePath = null;
-    if (backSource) {
-      try {
-        const { data: backDownload, error: backDlError } = await supabase.storage
-          .from("product-source")
-          .download(backSource.storage_path);
-        if (!backDlError && backDownload) {
-          backImagePath = path.join(
-            tempDirectory,
-            `back${extensionFor(backSource.mime_type)}`,
-          );
-          await writeFile(
-            backImagePath,
-            Buffer.from(await backDownload.arrayBuffer()),
-          );
-        }
-      } catch (err) {
-        console.warn("[model-worker] could not download back image:", err?.message || err);
-      }
+    const manifest = [];
+    for (const [index, source] of sourceViews.entries()) {
+      const imagePath = path.join(tempDirectory, `view-${index}${extensionFor(source.mime_type)}`);
+      const { data, error } = await supabase.storage.from("product-source").download(source.storage_path);
+      if (error || !data) throw error || new Error(`Source ${index} could not be downloaded.`);
+      await writeFile(imagePath, Buffer.from(await data.arrayBuffer()));
+      manifest.push({ path: imagePath, direction: source.direction, azimuth: source.azimuth });
     }
+    const inputPath = manifest.find(v => v.direction === "FRONT").path;
+    const viewsJsonPath = path.join(tempDirectory, "views.json");
+    await writeFile(viewsJsonPath, JSON.stringify(manifest));
 
     const { error: processingError } = await supabase
       .from("products")
@@ -271,9 +248,9 @@ async function processJob(job) {
       .eq("product_id", job.product_id)
       .maybeSingle();
 
-    const publicCode = passport?.public_code || "CT-BTG-NVA-2026-0085";
+    const publicCode = passport?.public_code || "";
     const appBaseUrl = process.env.APP_BASE_URL || "https://craft-trust.vercel.app";
-    const traceUrl = `${appBaseUrl.replace(/\/$/, "")}/trace/${publicCode}`;
+    const traceUrl = publicCode ? `${appBaseUrl.replace(/\/$/, "")}/trace/${publicCode}` : "";
 
     // Step: reconstructing
     await sendHeartbeat(job.id, "reconstructing", 30);
@@ -285,7 +262,7 @@ async function processJob(job) {
 
     await runGenerator({
       imagePath: inputPath,
-      backImagePath,
+      viewsJsonPath,
       outputPath,
       heightCm: product.height_cm,
       widthCm: product.width_cm,
@@ -311,12 +288,9 @@ async function processJob(job) {
     }
 
     const reportPath = path.join(tempDirectory, "model.json");
-    let report = {};
-    if (existsSync(reportPath)) {
-      try {
-        report = JSON.parse(await readFile(reportPath, "utf8"));
-      } catch {}
-    }
+    if (!existsSync(reportPath)) throw new Error("Generator did not produce an audit report.");
+    const report = JSON.parse(await readFile(reportPath, "utf8"));
+    validateGenerationReport(report, model);
 
     // Step: uploading
     await sendHeartbeat(job.id, "uploading", 90);
@@ -342,17 +316,19 @@ async function processJob(job) {
       file_size: model.byteLength,
       origin: "generated",
       status: "pending_review",
+      review_state: "NEEDS_REVIEW",
+      quality_report: report,
       uploaded_by: artisan.owner_id,
       settings: {
-        heightCm: product.height_cm,
-        widthCm: product.width_cm,
+        heightCm: report.modelMeasurements.heightCm,
+        widthCm: report.modelMeasurements.widthCm,
         scale: 1,
         orientation: [0, 0, 0],
         cameraOrbit: "0deg 75deg auto",
-        arEnabled: true,
+        arEnabled: false,
         regions: [],
         qrPlacement: {
-          enabled: true,
+          enabled: Boolean(publicCode),
           sizePercent: 60,
           rotation: 0,
           position: [0, 0],

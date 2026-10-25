@@ -56,6 +56,8 @@ im.save(r'${frontImg.replace(/\\/g, "/")}')
     mime_type: "image/png",
     byte_size: imgBuf.byteLength,
     ordinal: 0,
+    camera_direction: "FRONT",
+    camera_azimuth: 0,
   });
 
   console.log("Uploaded source photograph for product 0001.");

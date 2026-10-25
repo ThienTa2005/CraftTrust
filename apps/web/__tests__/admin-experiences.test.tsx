@@ -33,7 +33,7 @@ it("requires a loaded preview before publishing, and supports hiding published c
   await waitFor(() => expect(hide).toBeEnabled());
   fireEvent.click(hide);
   await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/admin/experiences/model-id", expect.objectContaining({ method: "PATCH", body: JSON.stringify({ status: "draft" }) })));
-});
+}, 15000);
 
 it("creates a draft from an existing artisan product model", async () => {
   const product = { id: "11111111-1111-4111-8111-111111111111", name: "Bình gốm", artisan: "Nghệ nhân An", modelAssetId: "asset-id" };

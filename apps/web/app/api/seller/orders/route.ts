@@ -34,7 +34,7 @@ export async function GET() {
   const { data: items, error: itemError } = await auth.supabase
     .from("order_items")
     .select(
-      "id,order_id,product_id,product_name,quantity,unit_price_vnd,line_total_vnd,created_at",
+      "id,order_id,product_id,product_name,quantity,unit_price_vnd,line_total_vnd,personalization,fulfillment_status,created_at",
     )
     .in("product_id", productIds)
     .order("created_at", { ascending: false });

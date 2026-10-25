@@ -134,6 +134,9 @@ export interface TranslationDictionary {
     addressPlaceholder: string;
     city: string;
     cityDefault: string;
+    artisanNoteLabel: string;
+    artisanNotePlaceholder: string;
+    artisanNoteHelp: string;
     placeOrder: string;
     placingOrder: string;
     orderSuccess: string;

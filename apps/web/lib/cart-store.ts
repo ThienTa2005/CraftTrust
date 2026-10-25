@@ -22,6 +22,7 @@ export interface DemoOrder {
   phone: string;
   address: string;
   city: string;
+  artisanNote?: string | undefined;
   items: DemoCartItem[];
   subtotalVnd: number;
   status: "test_submitted";

@@ -13,6 +13,7 @@ export interface SellerOrderItem {
   quantity: number;
   unit_price_vnd: number;
   line_total_vnd: number;
+  personalization?: { text: string; finish: string; fontSizeMm?: number } | null;
 }
 
 export interface SellerOrderRecord {
@@ -20,7 +21,7 @@ export interface SellerOrderRecord {
   status: string;
   subtotal_vnd: number;
   payment_mode: string;
-  shipping_address: string;
+  shipping_address: string | Record<string, any>;
   created_at: string;
   seller_items: SellerOrderItem[];
 }

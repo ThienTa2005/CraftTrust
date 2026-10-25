@@ -16,7 +16,6 @@ import {
   Flame,
   ImagePlus,
   Info,
-  Layers,
   LayoutDashboard,
   LoaderCircle,
   PackageCheck,
@@ -34,6 +33,7 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
+import { ModelCameraFields } from "@/components/model-camera-fields";
 import { CraftModelViewer } from "@/components/model-viewer";
 import type { AppRole } from "@/lib/authz";
 import { formatVnd } from "@/lib/format";
@@ -66,14 +66,14 @@ async function auditImageFile(file: File): Promise<ImageAudit> {
           width: w,
           height: h,
           quality: "good",
-          message: `Chuẩn Studio 3D (${w}×${h}px), sắc nét từng hoa văn men.`,
+          message: `Độ phân giải ${w}×${h}px; cần kiểm tra nét và góc chụp.`,
         });
       } else {
         resolve({
           width: w,
           height: h,
           quality: "good",
-          message: `Độ phân giải tốt (${w}×${h}px), đạt chuẩn dựng hình học.`,
+          message: `Độ phân giải ${w}×${h}px; chưa đánh giá độ chính xác 3D.`,
         });
       }
     };
@@ -321,6 +321,10 @@ export function Seller3DStudio({
     const data = new FormData(form);
     data.delete("images");
     filesToSubmit.forEach((file) => data.append("images", file));
+    data.set("sourceViews", JSON.stringify(slotFiles.flatMap((file, index) => file ? [{
+      direction: data.get(`camera-direction-${index}`),
+      azimuth: data.get(`camera-azimuth-${index}`) ? Number(data.get(`camera-azimuth-${index}`)) : null,
+    }] : [])));
     data.set(
       "dimensionsVerified",
       data.get("dimensionsVerified") ? "true" : "false",
@@ -395,6 +399,10 @@ export function Seller3DStudio({
     const data = new FormData(event.currentTarget);
     data.delete("images");
     editFiles.forEach((file) => data.append("images", file));
+    data.set("sourceViews", JSON.stringify(editFiles.map((_, index) => ({
+      direction: data.get(`edit-camera-direction-${index}`),
+      azimuth: data.get(`edit-camera-azimuth-${index}`) ? Number(data.get(`edit-camera-azimuth-${index}`)) : null,
+    }))));
     data.set(
       "dimensionsVerified",
       data.get("dimensionsVerified") ? "true" : "false",
@@ -643,7 +651,7 @@ export function Seller3DStudio({
                     title: "2. Mặt sau (Đối diện)",
                     badge: "Khuyên dùng",
                     isOptional: true,
-                    desc: "Triệt tiêu suy đoán 0%, phủ vân thật 360°",
+                    desc: "Thêm texture mặt sau; hai bên vẫn thiếu dữ liệu",
                   },
                   {
                     idx: 2,
@@ -738,6 +746,7 @@ export function Seller3DStudio({
                         </label>
                       )}
 
+                      {file && <ModelCameraFields index={slot.idx} name={file.name} />}
                       {audit ? (
                         <div
                           className={`seller-quality-pill ${audit.quality}`}
@@ -761,7 +770,7 @@ export function Seller3DStudio({
               <div className="seller-photo-guide">
                 <strong>Hướng dẫn chụp ảnh tạo 3D chân thực cao:</strong>
                 <span>• Chụp trên nền sáng đồng nhất hoặc phông trơn, tránh bóng đổ cắt ngang thân gốm.</span>
-                <span>• Có thêm ảnh mặt sau sẽ kích hoạt <strong>Multi-view Engine</strong>, loại bỏ hoàn toàn việc phản chiếu suy đoán.</span>
+                <span>• Khai báo hướng cho từng ảnh. <strong>Limited Multi-view</strong> ghép texture trên thân tròn xoay suy diễn; chưa dựng chính xác chi tiết nổi.</span>
                 <span>• Giữ máy ảnh ngang tầm thân bình để hạn chế méo phối cảnh tiêu cự.</span>
               </div>
             </div>
@@ -841,53 +850,31 @@ export function Seller3DStudio({
               <label className="seller-field">
                 <span><Sliders size={15} /> Công nghệ tái dựng (Engine)</span>
                 <select name="engine" defaultValue="auto">
-                  <option value="auto">Tự động (Multi-view nếu có ảnh sau, hoặc Ceramic)</option>
-                  <option value="multiview">Multi-view Engine (Ghép đa ảnh thực tế 360°)</option>
+                  <option value="auto">Ceramic CPU với texture theo các góc đã khai báo</option>
+                  <option value="multiview">Limited Multi-view (2–4 ảnh, thân tròn xoay suy diễn)</option>
                   <option value="ceramic">Ceramic Engine (Biên dạng tròn xoay toán học)</option>
-                  <option value="ai">AI Image-to-3D Adapter (TRELLIS.2 / Hunyuan3D)</option>
-                </select>
-              </label>
-              <label className="seller-field">
-                <span><Layers size={15} /> Độ dày thành gốm</span>
-                <select name="wallThickness" defaultValue="0.04">
-                  <option value="0.02">Thành mỏng (2% bán kính - chén, đĩa)</option>
-                  <option value="0.04">Tiêu chuẩn (4% bán kính - bình, lọ gốm)</option>
-                  <option value="0.06">Thành dày (6% bán kính - thạp, chum cổ)</option>
-                </select>
-              </label>
-              <label className="seller-field">
-                <span>Độ loe vành miệng</span>
-                <select name="rimFlare" defaultValue="1.0">
-                  <option value="1.0">Miệng thẳng tự nhiên (1.0x)</option>
-                  <option value="1.1">Loe nhẹ (+10%)</option>
-                  <option value="1.25">Loe rộng (+25%)</option>
+                  <option value="ai" disabled>AI Image-to-3D (chưa có hạ tầng inference)</option>
                 </select>
               </label>
               <label className="seller-field">
                 <span>Dựng biên dạng</span>
-                <select name="shapeMode" defaultValue="measured">
+                <select name="shapeMode" defaultValue="photo">
                   <option value="measured">Theo số đo đã nhập</option>
                   <option value="photo">Ước lượng rộng từ ảnh</option>
                 </select>
               </label>
-              <label className="seller-field">
-                <span>Mặt sau (khi chỉ có 1 ảnh)</span>
-                <select name="backTexture" defaultValue="mirror">
-                  <option value="mirror">Phản chiếu hoa văn mặt trước</option>
-                  <option value="plain">Men trơn suy diễn</option>
-                </select>
-              </label>
+              <p className="seller-field">Vùng chưa chụp chỉ được ngoại suy từ pixel gần nhất và đánh dấu thiếu dữ liệu. Độ dày thành là giả định, không phải số đo.</p>
               <label className="seller-check seller-field-wide">
                 <input name="dimensionsVerified" type="checkbox" />
                 <span>
                   Tôi đã đo trực tiếp sản phẩm và xác nhận kích thước trên là
-                  chính xác (chuẩn tỷ lệ 1:1 trong AR).
+                  chính xác (dùng làm số đo tham chiếu).
                 </span>
               </label>
               <div className="seller-form-note seller-field-wide">
                 <ShieldCheck size={18} />
                 <span>
-                  Hệ thống Hybrid 3D tuân thủ chuẩn trung thực Hanoi CraftTrust. Nếu có ảnh mặt sau, mô hình sẽ đạt 100% dữ liệu quan sát thực tế; nếu chỉ có 1 ảnh, mặt sau sẽ được gắn nhãn suy đoán minh bạch.
+                  Bản dựng tròn xoay chỉ phù hợp sản phẩm gần đối xứng. Hai ảnh không xác minh được hình học 360° hoặc rồng nổi. Mô hình cần kiểm duyệt; sản phẩm có quai hoặc hình dáng bất đối xứng cần GLB xử lý thủ công hoặc bộ ảnh dựng đa góc đầy đủ.
                 </span>
               </div>
               <button
@@ -1042,34 +1029,26 @@ export function Seller3DStudio({
                                 <span>Khớp biên dạng (IoU)</span>
                                 <strong>
                                   {typeof product.model_report
-                                    .silhouetteMatchScore === "number"
+                                    .silhouetteMatchScore === "number" && product.model_report.reportVersion === 3
                                     ? `${(
                                         product.model_report
                                           .silhouetteMatchScore * 100
                                       ).toFixed(1)}%`
-                                    : "98.5%"}
+                                    : "Chưa đo"}
                                 </strong>
                               </div>
                               <div className="seller-audit-card">
                                 <span>Vùng suy đoán</span>
                                 <strong>
                                   {typeof product.model_report
-                                    .speculativeRegionPercent === "number"
+                                    .speculativeRegionPercent === "number" && product.model_report.reportVersion === 3
                                     ? `${product.model_report.speculativeRegionPercent}%`
-                                    : "50%"}
+                                    : "Chưa xác định"}
                                 </strong>
                               </div>
                               <div className="seller-audit-card">
-                                <span>Độ tin cậy</span>
-                                <strong>
-                                  {typeof product.model_report
-                                    .confidenceScore === "number"
-                                    ? `${Math.round(
-                                        product.model_report.confidenceScore *
-                                          100,
-                                      )}%`
-                                    : "90%"}
-                                </strong>
+                                <span>Độ chính xác 3D</span>
+                                <strong>Chưa đủ dữ liệu</strong>
                               </div>
                               <div className="seller-audit-card">
                                 <span>Dung lượng Web GLB</span>
@@ -1081,7 +1060,7 @@ export function Seller3DStudio({
                                         1024 /
                                         1024
                                       ).toFixed(2)} MB`
-                                    : "< 2 MB"}
+                                    : "Chưa đo"}
                                 </strong>
                               </div>
                             </div>
@@ -1096,22 +1075,9 @@ export function Seller3DStudio({
                                 gap: 6,
                               }}
                             >
-                              {product.model_report.speculativeRegionPercent ===
-                              0 ? (
-                                <span className="seller-speculative-badge truth">
-                                  <ShieldCheck size={12} /> Dữ liệu quan sát
-                                  thực tế 360° (Không suy đoán hoa văn)
-                                </span>
-                              ) : (
-                                <span className="seller-speculative-badge inferred">
-                                  <Info size={12} /> Mặt sau nội suy tham chiếu
-                                  (
-                                  {product.back_texture === "mirror"
-                                    ? "phản chiếu mặt trước"
-                                    : "men trơn"}
-                                  )
-                                </span>
-                              )}
+                              <span className="seller-speculative-badge inferred">
+                                <Info size={12} /> Chưa đủ dữ liệu để xác định độ chính xác 3D. Vùng suy đoán chỉ tính texture thân ngoài; hình học và relief chưa được xác minh.
+                              </span>
                             </div>
                           </div>
                         ) : null}
@@ -1339,16 +1305,6 @@ export function Seller3DStudio({
                             <option value="photo">Ước lượng từ ảnh</option>
                           </select>
                         </label>
-                        <label className="seller-field">
-                          <span>Mặt sau</span>
-                          <select
-                            name="backTexture"
-                            defaultValue={product.back_texture}
-                          >
-                            <option value="mirror">Phản chiếu mặt trước</option>
-                            <option value="plain">Men trơn suy diễn</option>
-                          </select>
-                        </label>
                         <label className="seller-check seller-field-wide">
                           <input
                             name="dimensionsVerified"
@@ -1385,6 +1341,7 @@ export function Seller3DStudio({
                             }
                           />
                         </label>
+                        {editFiles.map((file, index) => <ModelCameraFields key={`${file.name}-${index}`} index={index} name={file.name} prefix="edit-camera" />)}
                         <div className="seller-edit-actions seller-field-wide">
                           <button
                             className="button terracotta"

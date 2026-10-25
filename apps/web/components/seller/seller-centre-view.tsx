@@ -36,6 +36,33 @@ interface SellerCentreViewProps {
   initialError?: string | undefined;
 }
 
+function parseShippingInfo(shippingAddress: unknown) {
+  if (!shippingAddress) return { addressText: "Địa chỉ mặc định", recipientName: "", phone: "", artisanNote: "" };
+  let obj: any = shippingAddress;
+  if (typeof shippingAddress === "string") {
+    try {
+      obj = JSON.parse(shippingAddress);
+    } catch {
+      return { addressText: shippingAddress, recipientName: "", phone: "", artisanNote: "" };
+    }
+  }
+  if (typeof obj !== "object" || obj === null) {
+    return { addressText: String(shippingAddress), recipientName: "", phone: "", artisanNote: "" };
+  }
+  const parts: string[] = [];
+  if (obj.recipient_name) parts.push(obj.recipient_name);
+  if (obj.phone) parts.push(obj.phone);
+  if (obj.address_line) parts.push(obj.address_line);
+  if (obj.city) parts.push(obj.city);
+
+  return {
+    addressText: parts.length > 0 ? parts.join(" • ") : "Địa chỉ mặc định",
+    recipientName: obj.recipient_name || "",
+    phone: obj.phone || "",
+    artisanNote: (obj.artisan_note || obj.note || "").trim(),
+  };
+}
+
 export function SellerCentreView({
   artisanName,
   roles,
@@ -377,6 +404,7 @@ export function SellerCentreView({
                       </thead>
                       <tbody>
                         {orders.slice(0, 5).map((o) => {
+                          const shipInfo = parseShippingInfo(o.shipping_address);
                           const itemsSummary = o.seller_items?.length
                             ? o.seller_items.map((it) => `${it.product_name} × ${it.quantity}`).join(", ")
                             : "Sản phẩm thủ công";
@@ -387,11 +415,53 @@ export function SellerCentreView({
                               <td><strong>#{o.id.slice(0, 8).toUpperCase()}</strong></td>
                               <td><small>{new Date(o.created_at).toLocaleString("vi-VN")}</small></td>
                               <td>
-                                <small style={{ maxWidth: 200, display: "inline-block" }}>
-                                  {o.shipping_address || "Địa chỉ mặc định"}
-                                </small>
+                                <div style={{ maxWidth: 220, fontSize: "0.85rem", lineHeight: 1.35 }}>
+                                  <div>{shipInfo.addressText}</div>
+                                </div>
                               </td>
-                              <td>{itemsSummary}</td>
+                              <td>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                  <div>{itemsSummary}</div>
+                                  {o.seller_items?.map((it) => {
+                                    const pText = it.personalization?.text;
+                                    const pFinish = it.personalization?.finish;
+                                    if (!pText) return null;
+                                    return (
+                                      <div
+                                        key={it.id}
+                                        style={{
+                                          fontSize: "0.78rem",
+                                          background: "rgba(217, 119, 6, 0.1)",
+                                          color: "#b45309",
+                                          padding: "3px 8px",
+                                          borderRadius: 4,
+                                          border: "1px dashed rgba(217, 119, 6, 0.4)",
+                                          display: "inline-block",
+                                          width: "fit-content",
+                                        }}
+                                      >
+                                        ✍️ Khắc tên: <strong>&ldquo;{pText}&rdquo;</strong> {pFinish ? `(${pFinish})` : ""}
+                                      </div>
+                                    );
+                                  })}
+                                  {shipInfo.artisanNote && (
+                                    <div
+                                      style={{
+                                        fontSize: "0.8rem",
+                                        background: "rgba(180, 83, 9, 0.12)",
+                                        color: "#92400e",
+                                        padding: "6px 10px",
+                                        borderRadius: 6,
+                                        border: "1px solid rgba(217, 119, 6, 0.4)",
+                                        fontWeight: 500,
+                                        lineHeight: 1.35,
+                                      }}
+                                    >
+                                      💌 <strong>Yêu cầu chế tác:</strong> &ldquo;{shipInfo.artisanNote}&rdquo;
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
                               <td><strong className="text-terracotta">{formatVnd(totalVal)}</strong></td>
                               <td>
                                 {o.status === "placed" && <span className="seller-status-pill warning">Chờ xác nhận</span>}
@@ -636,6 +706,7 @@ export function SellerCentreView({
                       </thead>
                       <tbody>
                         {orders.map((o) => {
+                          const shipInfo = parseShippingInfo(o.shipping_address);
                           const itemsSummary = o.seller_items?.length
                             ? o.seller_items.map((it) => `${it.product_name} × ${it.quantity}`).join(", ")
                             : "Sản phẩm thủ công";
@@ -645,8 +716,54 @@ export function SellerCentreView({
                             <tr key={o.id}>
                               <td><strong>#{o.id.slice(0, 8).toUpperCase()}</strong></td>
                               <td><small>{new Date(o.created_at).toLocaleString("vi-VN")}</small></td>
-                              <td><small>{o.shipping_address || "Giao tận nơi"}</small></td>
-                              <td>{itemsSummary}</td>
+                              <td>
+                                <div style={{ maxWidth: 220, fontSize: "0.85rem", lineHeight: 1.35 }}>
+                                  <div>{shipInfo.addressText}</div>
+                                </div>
+                              </td>
+                              <td>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                  <div>{itemsSummary}</div>
+                                  {o.seller_items?.map((it) => {
+                                    const pText = it.personalization?.text;
+                                    const pFinish = it.personalization?.finish;
+                                    if (!pText) return null;
+                                    return (
+                                      <div
+                                        key={it.id}
+                                        style={{
+                                          fontSize: "0.78rem",
+                                          background: "rgba(217, 119, 6, 0.1)",
+                                          color: "#b45309",
+                                          padding: "3px 8px",
+                                          borderRadius: 4,
+                                          border: "1px dashed rgba(217, 119, 6, 0.4)",
+                                          display: "inline-block",
+                                          width: "fit-content",
+                                        }}
+                                      >
+                                        ✍️ Khắc tên: <strong>&ldquo;{pText}&rdquo;</strong> {pFinish ? `(${pFinish})` : ""}
+                                      </div>
+                                    );
+                                  })}
+                                  {shipInfo.artisanNote && (
+                                    <div
+                                      style={{
+                                        fontSize: "0.8rem",
+                                        background: "rgba(180, 83, 9, 0.12)",
+                                        color: "#92400e",
+                                        padding: "6px 10px",
+                                        borderRadius: 6,
+                                        border: "1px solid rgba(217, 119, 6, 0.4)",
+                                        fontWeight: 500,
+                                        lineHeight: 1.35,
+                                      }}
+                                    >
+                                      💌 <strong>Yêu cầu chế tác:</strong> &ldquo;{shipInfo.artisanNote}&rdquo;
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
                               <td><strong className="text-terracotta">{formatVnd(totalVal)}</strong></td>
                               <td><span className="badge">{o.payment_mode === "cod" ? "COD Khi nhận" : "Chuyển khoản"}</span></td>
                               <td>

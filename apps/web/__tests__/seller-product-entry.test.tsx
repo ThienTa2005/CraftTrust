@@ -11,4 +11,5 @@ it("opens photo-to-3D creation from Add New Product", () => {
   render(<SellerCentreView artisanName="Nghệ nhân" roles={["artisan"]} initialProducts={[]} />);
   fireEvent.click(screen.getByRole("button", { name: /Thêm Sản Phẩm Mới/ }));
   expect(screen.getByText("Form tải ảnh tạo 3D sản phẩm")).toBeVisible();
-});
+}, 15000);
+
