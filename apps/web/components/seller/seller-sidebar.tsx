@@ -155,17 +155,19 @@ export function SellerSidebar({
         className={`seller-sidebar ${isOpenMobile ? "mobile-open" : ""}`}
         aria-label="Điều hướng Kênh Người Bán"
       >
-        <div className="admin-mobile-header" style={{ padding: "14px 16px", display: "none" }}>
-          <strong>Menu Người Bán</strong>
-          <button
-            type="button"
-            className="admin-mobile-close-btn"
-            onClick={onCloseMobile}
-            aria-label="Đóng menu"
-          >
-            <X size={20} />
-          </button>
-        </div>
+        {isOpenMobile && (
+          <div className="seller-sidebar-mobile-header">
+            <span>Menu Người Bán</span>
+            <button
+              type="button"
+              className="seller-sidebar-close-btn"
+              onClick={onCloseMobile}
+              aria-label="Đóng menu"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
 
         <div className="seller-sidebar-content">
           {menuGroups.map((group) => (

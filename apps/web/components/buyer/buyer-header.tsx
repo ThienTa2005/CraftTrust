@@ -132,14 +132,6 @@ export function BuyerHeader() {
     }
   }
 
-  const trendingTags = [
-    { label: "Ấm tử sa Bát Tràng", q: "ấm" },
-    { label: "Men rạn cổ", q: "men rạn" },
-    { label: "Bình hút lộc", q: "bình" },
-    { label: "Men hỏa biến", q: "men hỏa biến" },
-    { label: "Lụa tơ tằm Vạn Phúc", q: "lụa" },
-    { label: "Hộ chiếu Vàng (Gold)", q: "gold" },
-  ];
 
   return (
     <header className="buyer-header">
@@ -326,22 +318,7 @@ export function BuyerHeader() {
               </button>
             </form>
 
-            {/* Quick Trending Keywords */}
-            <div className="buyer-trending-tags">
-              {trendingTags.map((tag) => (
-                <button
-                  type="button"
-                  key={tag.label}
-                  className="buyer-trending-tag"
-                  onClick={() => {
-                    setSearchTerm(tag.q);
-                    router.push(`/marketplace?q=${encodeURIComponent(tag.q)}`);
-                  }}
-                >
-                  {tag.label}
-                </button>
-              ))}
-            </div>
+
           </div>
 
           {/* Right Header Actions */}
@@ -451,15 +428,6 @@ export function BuyerHeader() {
           <Link href="/marketplace" className="buyer-subnav-item active-indicator">
             <Layers size={16} />
             <span>{locale === "vi" ? "Tất cả sản phẩm" : "All Products"}</span>
-          </Link>
-          <Link href="/villages/bat-trang" className="buyer-subnav-item">
-            <span>🏺 {locale === "vi" ? "Gốm Bát Tràng" : "Bat Trang Ceramics"}</span>
-          </Link>
-          <Link href="/villages/van-phuc" className="buyer-subnav-item">
-            <span>🧣 {locale === "vi" ? "Lụa Vạn Phúc" : "Van Phuc Silk"}</span>
-          </Link>
-          <Link href="/villages" className="buyer-subnav-item">
-            <span>🪵 {locale === "vi" ? "Mộc Mỹ Nghệ" : "Wood Carving"}</span>
           </Link>
           <Link href="/marketplace?tier=gold" className="buyer-subnav-item highlight-tier">
             <span>✨ {locale === "vi" ? "Hộ Chiếu Vàng (Gold)" : "Gold Passport"}</span>

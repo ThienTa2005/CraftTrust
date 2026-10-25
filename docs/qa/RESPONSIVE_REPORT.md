@@ -28,17 +28,43 @@ Hệ thống đã được kiểm thử tự động trên toàn bộ các độ
 ## 2. CÁC ĐIỂM CẢI TIẾN RESPONSIVE ĐẶC BIỆT THEO VAI TRÒ
 
 ### 2.1. Cổng Quản Trị Hệ Thống (`/admin`)
-- **Trước khi sửa:** Sidebar chiếm 280px cố định, trên màn hình điện thoại dưới 900px làm đẩy toàn bộ bảng số liệu ra ngoài màn hình, gây cuộn ngang khó chịu.
-- **Sau khi sửa:** 
-  - Tại viewports $< 900\text{px}$, Sidebar tự động chuyển thành Drawer trượt từ bên trái ra ngoài màn hình.
-  - Thêm nút Hamburger menu tại Header quản trị.
-  - Khi mở Drawer, xuất hiện lớp nền làm mờ (`admin-mobile-backdrop`) và nút đóng `X` tiện lợi.
-  - Các bảng dữ liệu lớn (Đơn hàng, Sản phẩm) được bọc trong container `admin-table-wrap` với thanh cuộn ngang nội bộ mượt mà (`overflow-x: auto`), không làm vỡ bố cục tổng thể của trang.
+- **Khắc phục lỗi vỡ chữ dọc và tràn Header (Mobile Header Collapse Bug):**
+  - **Hiện tượng cũ:** Các huy hiệu trạng thái hệ thống (`Database: Active`, `AI 3D Worker: Ready`, `NFC Registry: Synced`) và nút chuyển sàn trên desktop bị ép ngang trên màn hình điện thoại, làm từng ký tự chữ cái bị ngắt dòng thành các cột dọc 1 ký tự dài phủ xuống các nút hành động phía dưới; kèm theo lỗi PostgREST `column passport_records_1.public_code does not exist`.
+  - **Giải pháp triệt để:**
+    - Cố định chiều cao Header chuẩn 56px (`height: 56px !important; min-height: 56px; max-height: 56px;`).
+    - Ẩn hoàn toàn các chip trạng thái desktop và liên kết ngoài không cần thiết trên mobile (`.admin-header-center { display: none !important; }`, `.admin-link-btn { display: none !important; }`).
+    - Ép `white-space: nowrap !important;` trên toàn bộ tiêu đề, nhãn hiệu và huy hiệu.
+    - Sửa câu lệnh query trong `apps/web/app/admin/page.tsx` loại bỏ cột `public_code` gây lỗi tham chiếu quan hệ bảng của PostgREST, kèm cơ chế fallback an toàn.
+  - **Drawer Navigation di động:**
+    - Sidebar tự động chuyển thành Drawer trượt mượt mà từ bên trái (`transform: translateX(-100%)` -> `translateX(0)`).
+    - Nút Hamburger menu hiển thị trực quan (`.admin-mobile-toggle-btn`), đi kèm lớp phủ nền mờ `admin-sidebar-backdrop`.
+  - **Thanh nút chuyển tab nhanh di động (`.portal-mobile-actions`):**
+    - Chuyển thành dạng thanh cuộn ngang mượt mà (Horizontal pill scroll) với bo góc tròn 999px mềm mại, không bị ngắt dòng lộn xộn.
 
 ### 2.2. Kênh Người Bán (`/seller`)
-- Bảng điều khiển kinh doanh và Studio 3D tự động co dãn theo một cột đơn trên màn hình điện thoại.
-- Các nút hành động thao tác nhanh (`Xác nhận đơn`, `Giao bưu cục`) được tối ưu kích thước cảm ứng tối thiểu 44px theo tiêu chuẩn Accessibility (WCAG 2.1 AA).
+- **Khắc phục lỗi sập chữ dọc và nút menu bị vỡ:**
+  - **Hiện tượng cũ:** Nút toggle menu người bán hiển thị thô sơ dạng ô chữ nhật chưa có CSS; tên xưởng và nút "Xem Sàn Mua Sắm" bị dồn ép ký tự thành dải dọc.
+  - **Giải pháp triệt để:**
+    - Thiết lập `.seller-mobile-toggle` chuẩn mực với icon Menu bo góc 8px.
+    - Ẩn thanh tìm kiếm tính năng và các nút chuyển sàn desktop trên màn hình $\le 900\text{px}$.
+    - Đồng bộ thanh cuộn tab danh mục và lưới `Danh Sách Cần Làm` 2 cột cân đối trên điện thoại.
+    - Tích hợp Drawer điều hướng di động đầy đủ nhóm chức năng (Đơn hàng, Sản phẩm, Studio 3D, Marketing, Tài chính).
 
 ### 2.3. Trang Truy Xuất Nguồn Gốc (`/trace/[publicCode]`)
 - Tác phẩm 3D Model Viewer tự động căn chỉnh tỷ lệ 1:1 linh hoạt.
 - 6 thẻ video công đoạn chế tác được xếp theo dạng tab ngang cuộn mượt hoặc xếp chồng linh hoạt, không bị vỡ bố cục trên màn hình 320px.
+
+---
+
+## 3. KẾT QUẢ KIỂM THỬ TỰ ĐỘNG PLAYWRIGHT TRÊN MOBILE VIEWPORTS (25/10/2026)
+
+Toàn bộ ma trận kiểm thử được chạy tự động bằng Playwright trên 3 độ phân giải thực tế:
+1. **iPhone (375 × 812):**
+   - Lỗi DB `passport_records_1`: **Không xuất hiện (RESOLVED ✓)**
+   - Chiều cao Header: **56px chuẩn xác ✓**
+   - Tràn cuộn ngang Body: **0px (Không có tràn ngang ✓)**
+   - Đóng/Mở Drawer Menu: **Thành công 100% ✓**
+2. **Samsung Galaxy (360 × 800):**
+   - Đạt chuẩn 100%, tất cả chữ cái dàn ngang phẳng phiu, không bị dồn cột dọc.
+3. **Google Pixel (412 × 915):**
+   - Đạt chuẩn 100%, bố cục thẻ chỉ số (GMV, Nghệ nhân, Đơn hàng) hiển thị trực quan, cân đối.

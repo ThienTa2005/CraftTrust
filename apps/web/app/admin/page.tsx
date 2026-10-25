@@ -32,13 +32,28 @@ export default async function AdminPage() {
     );
   }
 
-  // 1. Evidence Submissions
-  const { data: evidenceData, error: evidenceError } = await auth.supabase
+  // 1. Evidence Submissions (support both legacy schema and hardened schema safely)
+  let evidenceData: any[] | null = null;
+  let evidenceError: any = null;
+
+  const evidenceRes = await auth.supabase
     .from("evidence_submissions")
     .select(
-      "id,evidence_type,statement,status,created_at,passport_records(public_code,public_id,products(name)),heritage_sources(title,approval_status)"
+      "id,evidence_type,statement,status,created_at,passport_records(public_id,products(name)),heritage_sources(title,approval_status)"
     )
     .order("created_at", { ascending: false });
+
+  if (evidenceRes.error) {
+    const fallbackRes = await auth.supabase
+      .from("evidence_submissions")
+      .select("id,evidence_type,statement,status,created_at")
+      .order("created_at", { ascending: false });
+    evidenceData = fallbackRes.data ?? [];
+    evidenceError = fallbackRes.error;
+  } else {
+    evidenceData = evidenceRes.data ?? [];
+    evidenceError = null;
+  }
 
   // 2. Real Products across Platform
   const { data: productsData } = await auth.supabase

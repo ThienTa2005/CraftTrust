@@ -1,0 +1,8 @@
+*
+!Dockerfile
+!package.json
+!package-lock.json
+!requirements.txt
+!worker.mjs
+!generate.py
+!ai_adapter.py

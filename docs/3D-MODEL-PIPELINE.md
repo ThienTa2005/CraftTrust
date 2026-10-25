@@ -81,6 +81,8 @@ Supabase chịu trách nhiệm tài khoản, quyền sở hữu, hàng đợi v�
 
 ## Triển khai production
 
+Hướng dẫn từng bước cho bản demo cá nhân dùng gói miễn phí: [Worker cloud với Vercel Daemons](FREE-CLOUD-MODEL-WORKER.md). Tạo gói deploy bằng `corepack pnpm model-worker:prepare-cloud`.
+
 Triển khai web và worker thành hai service. Worker cần Python runtime, các package trong `requirements.txt`, biến môi trường server-only và quyền ghi Storage. RPC `claim_model_job()` dùng `FOR UPDATE SKIP LOCKED`, vì vậy nhiều worker có thể nhận các job khác nhau mà không dựng trùng một sản phẩm. Vẫn cần bổ sung log tập trung, cảnh báo job treo, quota, cleanup asset cũ và giới hạn CPU theo chính sách vận hành.
 
 Nguồn dựng hình được chuyển thể từ gói `di-san-3d.zip` do người dùng cung cấp. Repository không nhập `.env`, `node_modules` hay cache trong archive. Cần xác nhận quyền sở hữu/giấy phép của tác giả trước khi phân phối mã nguồn công khai.

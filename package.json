@@ -12,6 +12,7 @@
     "dev:3d": "corepack pnpm --parallel --filter @craft-trust/web --filter @craft-trust/model-worker dev",
     "start:3d": "corepack pnpm --parallel --filter @craft-trust/web --filter @craft-trust/model-worker start",
     "model-worker:diagnose": "corepack pnpm --filter @craft-trust/model-worker diagnose",
+    "model-worker:prepare-cloud": "node scripts/prepare-model-worker-cloud.mjs",
     "dev:model-worker": "corepack pnpm --filter @craft-trust/model-worker dev",
     "model-worker:once": "corepack pnpm --filter @craft-trust/model-worker once",
     "dev:mobile": "corepack pnpm --filter @craft-trust/mobile start",

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "node --version",
+  "buildCommand": "node --version",
+  "outputDirectory": "public",
+  "daemons": {
+    "model-worker": {
+      "root": "worker",
+      "entrypoint": "Dockerfile",
+      "instances": { "sin1": 1 },
+      "resources": { "requests": { "memory": "2Gi" } },
+      "terminationGracePeriodSeconds": 360
+    }
+  }
+}
