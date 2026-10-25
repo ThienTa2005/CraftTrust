@@ -483,14 +483,17 @@ export const passportTimelineStepSchema = z.object({
 export type PassportTimelineStep = z.infer<typeof passportTimelineStepSchema>;
 
 export const ocopCertificateInfoSchema = z.object({
-  stars: z.number().min(3).max(5),
-  certificateNumber: z.string(),
-  issueDate: z.string(),
-  authorityVi: z.string(),
-  authorityEn: z.string(),
-  productCategoryVi: z.string(),
-  productCategoryEn: z.string(),
-  validUntil: z.string(),
+  hasCertificate: z.boolean().optional().default(false),
+  stars: z.number().min(0).max(5).default(0),
+  certificateNumber: z.string().default(""),
+  issueDate: z.string().default(""),
+  authorityVi: z.string().default(""),
+  authorityEn: z.string().default(""),
+  productCategoryVi: z.string().default(""),
+  productCategoryEn: z.string().default(""),
+  validUntil: z.string().default(""),
+  officialStatusVi: z.string().optional().default("Chưa có giấy chứng nhận OCOP được xác minh trong hệ thống."),
+  officialStatusEn: z.string().optional().default("No verified OCOP certificate registered in the system."),
 });
 export type OcopCertificateInfo = z.infer<typeof ocopCertificateInfoSchema>;
 

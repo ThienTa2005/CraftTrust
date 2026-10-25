@@ -13,6 +13,7 @@ import {
   Store,
   Users,
   Box,
+  X,
 } from "lucide-react";
 
 interface AdminSidebarProps {
@@ -20,6 +21,8 @@ interface AdminSidebarProps {
   onSelectTab: (tab: string) => void;
   pendingCount?: number | undefined;
   canManageExperiences?: boolean;
+  isOpenMobile?: boolean | undefined;
+  onCloseMobile?: (() => void) | undefined;
 }
 
 interface AdminMenuItem {
@@ -40,6 +43,8 @@ export function AdminSidebar({
   onSelectTab,
   pendingCount = 0,
   canManageExperiences = false,
+  isOpenMobile = false,
+  onCloseMobile,
 }: AdminSidebarProps) {
   const menuGroups: AdminMenuGroup[] = [
     {
@@ -138,39 +143,67 @@ export function AdminSidebar({
   ];
 
   return (
-    <aside className="admin-sidebar" aria-label="Điều hướng Cổng Quản Trị Hệ Thống">
-      <div className="admin-sidebar-content">
-        {menuGroups.map((group) => (
-          <div key={group.title} className="admin-menu-group">
-            <span className="admin-menu-group-title">{group.title}</span>
-            <div className="admin-menu-items">
-              {[...group.items, ...(group.title === "THẨM ĐỊNH & DI SẢN" && canManageExperiences ? [{ id: "experiences", label: "Trải nghiệm 3D/VR", icon: Box, badge: null }] : [])].map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`admin-menu-item ${isActive ? "active" : ""}`}
-                    onClick={() => onSelectTab(item.id)}
-                  >
-                    <div className="item-label-wrap">
-                      <Icon size={17} className="item-icon" />
-                      <span className="item-text">{item.label}</span>
-                    </div>
-
-                    {item.badge && (
-                      <span className={`admin-item-badge ${item.badgeType ?? "default"}`}>
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+    <>
+      {isOpenMobile && (
+        <div
+          className="admin-sidebar-backdrop"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`admin-sidebar ${isOpenMobile ? "mobile-open" : ""}`}
+        aria-label="Điều hướng Cổng Quản Trị Hệ Thống"
+      >
+        {isOpenMobile && (
+          <div className="admin-sidebar-mobile-header">
+            <span>Danh mục Quản trị</span>
+            <button
+              type="button"
+              className="admin-sidebar-close-btn"
+              onClick={onCloseMobile}
+              aria-label="Đóng menu"
+            >
+              <X size={18} />
+            </button>
           </div>
-        ))}
-      </div>
-    </aside>
+        )}
+        <div className="admin-sidebar-content">
+          {menuGroups.map((group) => (
+            <div key={group.title} className="admin-menu-group">
+              <span className="admin-menu-group-title">{group.title}</span>
+              <div className="admin-menu-items">
+                {[...group.items, ...(group.title === "THẨM ĐỊNH & DI SẢN" && canManageExperiences ? [{ id: "experiences", label: "Trải nghiệm 3D/VR", icon: Box, badge: null }] : [])].map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`admin-menu-item ${isActive ? "active" : ""}`}
+                      onClick={() => {
+                        onSelectTab(item.id);
+                        if (onCloseMobile) onCloseMobile();
+                      }}
+                    >
+                      <div className="item-label-wrap">
+                        <Icon size={17} className="item-icon" />
+                        <span className="item-text">{item.label}</span>
+                      </div>
+
+                      {item.badge && (
+                        <span className={`admin-item-badge ${item.badgeType ?? "default"}`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </aside>
+    </>
   );
 }

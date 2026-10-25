@@ -20,11 +20,14 @@ import {
   RefreshCw,
   Search,
   Filter,
+  QrCode,
+  Printer,
 } from "lucide-react";
 import { formatVnd } from "@/lib/format";
 import { useLanguage } from "@/lib/i18n/context";
 import { CraftModelViewer } from "@/components/model-viewer";
-import type { ModelConfig, EngravingRegion } from "@/lib/model-config";
+import { QrPrintModal } from "@/components/qr-print-modal";
+import type { ModelConfig, EngravingRegion, QrPlacement } from "@/lib/model-config";
 
 interface ProductItem {
   id: string;
@@ -66,6 +69,12 @@ export function Admin3DManager() {
   const [orientation, setOrientation] = useState<[number, number, number]>([0, 0, 0]);
   const [arEnabled, setArEnabled] = useState(true);
   const [regions, setRegions] = useState<EngravingRegion[]>([]);
+
+  // QR Placement Studio State
+  const [qrEnabled, setQrEnabled] = useState(true);
+  const [qrSizePercent, setQrSizePercent] = useState(54);
+  const [qrRotation, setQrRotation] = useState(0);
+  const [isQrPrintOpen, setIsQrPrintOpen] = useState(false);
 
   // Action / feedback state
   const [uploading, setUploading] = useState(false);
@@ -124,6 +133,15 @@ export function Admin3DManager() {
       setOrientation(s.orientation ?? [0, 0, 0]);
       setArEnabled(s.arEnabled ?? true);
       setRegions(s.regions ?? []);
+      if (s.qrPlacement) {
+        setQrEnabled(Boolean(s.qrPlacement.enabled));
+        setQrSizePercent(s.qrPlacement.sizePercent ?? 54);
+        setQrRotation(s.qrPlacement.rotation ?? 0);
+      } else {
+        setQrEnabled(true);
+        setQrSizePercent(54);
+        setQrRotation(0);
+      }
     } else {
       setPreviewUrl(null);
       setHeightCm(25);
@@ -132,6 +150,9 @@ export function Admin3DManager() {
       setCameraOrbit("0deg 75deg auto");
       setOrientation([0, 0, 0]);
       setArEnabled(true);
+      setQrEnabled(true);
+      setQrSizePercent(54);
+      setQrRotation(0);
       setRegions([
         {
           id: "front-body",
@@ -214,6 +235,12 @@ export function Admin3DManager() {
         orientation,
         arEnabled,
         regions,
+        qrPlacement: {
+          enabled: qrEnabled,
+          sizePercent: qrSizePercent,
+          rotation: qrRotation,
+          position: [0, 0],
+        },
       };
 
       const res = await fetch("/api/admin/models", {
@@ -229,7 +256,7 @@ export function Admin3DManager() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Lưu cấu hình thất bại");
 
-      showToast(vi ? "Đã lưu thông số kỹ thuật và vùng khắc chữ." : "Configuration saved successfully.");
+      showToast(vi ? "Đã lưu thông số kỹ thuật, vùng khắc và tem QR đáy." : "Configuration saved successfully.");
       await loadProducts();
     } catch (err: any) {
       showToast(err.message, "error");
@@ -252,6 +279,12 @@ export function Admin3DManager() {
         orientation,
         arEnabled,
         regions,
+        qrPlacement: {
+          enabled: qrEnabled,
+          sizePercent: qrSizePercent,
+          rotation: qrRotation,
+          position: [0, 0],
+        },
       };
       await fetch("/api/admin/models", {
         method: "PATCH",
@@ -589,6 +622,15 @@ export function Admin3DManager() {
                       >
                         180° {vi ? "Mặt sau" : "Back"}
                       </button>
+                      <button
+                        type="button"
+                        className="button secondary small"
+                        style={{ borderColor: "var(--terracotta)", color: "var(--terracotta)", fontWeight: 600 }}
+                        onClick={() => setCameraOrbit("0deg 175deg auto")}
+                      >
+                        <QrCode size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
+                        {vi ? "Mặt đáy & Tem QR" : "Bottom Base & QR"}
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -822,6 +864,71 @@ export function Admin3DManager() {
                   )}
                 </div>
 
+                {/* 3.5. 3D QR Placement Studio */}
+                <div className="config-card">
+                  <div className="config-card-head" style={{ justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <QrCode size={18} style={{ color: "var(--terracotta)" }} />
+                      <h4>{vi ? "3.5 Tem QR Di Sản Mặt Đáy 3D (QR Placement Studio)" : "3.5 3D Base QR Placement Studio"}</h4>
+                    </div>
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      onClick={() => setIsQrPrintOpen(true)}
+                    >
+                      <Printer size={14} />
+                      {vi ? "Xuất tem in QR vật lý" : "Export Physical Stamp"}
+                    </button>
+                  </div>
+
+                  <div className="config-form-grid">
+                    <label className="checkbox-label" style={{ gridColumn: "span 2" }}>
+                      <input
+                        type="checkbox"
+                        checked={qrEnabled}
+                        onChange={(e) => setQrEnabled(e.target.checked)}
+                      />
+                      <span>{vi ? "Kích hoạt tem dấu triện QR ở mặt đáy mô hình 3D" : "Enable QR hallmark decal on 3D base"}</span>
+                    </label>
+
+                    <label>
+                      <span>{vi ? `Kích thước tem (% diện tích đáy): ${qrSizePercent}%` : `QR stamp size: ${qrSizePercent}%`}</span>
+                      <input
+                        type="range"
+                        min={30}
+                        max={85}
+                        step={2}
+                        value={qrSizePercent}
+                        onChange={(e) => setQrSizePercent(Number(e.target.value))}
+                      />
+                    </label>
+
+                    <label>
+                      <span>{vi ? `Góc xoay tem QR: ${qrRotation}°` : `QR rotation: ${qrRotation}°`}</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={360}
+                        step={5}
+                        value={qrRotation}
+                        onChange={(e) => setQrRotation(Number(e.target.value))}
+                      />
+                    </label>
+
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 8, gridColumn: "span 2" }}>
+                      <button
+                        type="button"
+                        className="button secondary small"
+                        style={{ borderColor: "var(--terracotta)", color: "var(--terracotta)" }}
+                        onClick={() => setCameraOrbit("0deg 175deg auto")}
+                      >
+                        <QrCode size={14} />
+                        {vi ? "Xoay camera xuống đáy kiểm tra tem" : "Inspect bottom base camera"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* 4. Action bar */}
                 <div className="config-actions-bar">
                   <div className="actions-left">
@@ -931,6 +1038,15 @@ export function Admin3DManager() {
           )}
         </div>
       </div>
+
+      {/* Physical QR Stamp Print Modal */}
+      <QrPrintModal
+        publicCode="CT-BTG-NVA-2026-0085"
+        traceUrl="https://craft-trust.vercel.app/trace/CT-BTG-NVA-2026-0085"
+        productName={selectedProduct?.name || "Tác phẩm gốm Bát Tràng"}
+        isOpen={isQrPrintOpen}
+        onClose={() => setIsQrPrintOpen(false)}
+      />
     </div>
   );
 }

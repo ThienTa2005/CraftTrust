@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { z } from "zod";
-import { createRequestSupabase } from "@/lib/supabase";
+import { createPublicSupabase, createRequestSupabase } from "@/lib/supabase";
 
 const schema = z.object({
-  question: z.string().trim().min(2).max(500),
-  locale: z.enum(["vi", "en"]).optional()
+  question: z.string().trim().min(2).max(1000),
+  locale: z.enum(["vi", "en"]).optional().default("vi"),
+  productId: z.string().trim().min(10).max(64).optional(),
+  villageId: z.string().trim().min(1).max(64).optional(),
+  pathname: z.string().optional(),
 });
 
 type Source = { id: string; title: string; url?: string; content: string };
@@ -21,146 +24,197 @@ const CURATED_HERITAGE_KNOWLEDGE: Array<{
     keywords: ["bát tràng", "bat trang", "gốm", "men", "nung", "hỏa biến", "ceramic", "pottery", "glaze"],
     titleVi: "Hồ sơ Di sản Làng gốm Bát Tràng (Gia Lâm, Hà Nội)",
     titleEn: "Heritage Dossier: Bat Trang Pottery Village (Gia Lam, Hanoi)",
-    contentVi: "Làng gốm Bát Tràng có lịch sử hơn 500 năm ven sông Hồng. Quy trình tạo tác gồm 5 bước nghiêm ngặt: (1) Lắng lọc bùn sét phù sa qua 4 bể; (2) Chuốt phôi tay độc bản trên bàn xoay; (3) Phơi mộc và tiện gọt chi tiết; (4) Phủ men tro thảo mộc hoặc men hỏa biến; (5) Nung củi lò bầu liên tục 72 giờ ở nhiệt độ 1250°C - 1280°C. Men hỏa biến đổi màu tự nhiên do biến thiên ngọn lửa, không dùng hóa chất.",
-    contentEn: "Bat Trang Pottery Village boasts over 500 years of history along the Red River. The making process strictly follows five ancestral phases: silt clay sediment filtration through 4 basins, manual wheel-throwing, air-drying and trimming, organic ash glazing, and continuous 72-hour wood firing at 1250°C–1280°C."
+    contentVi: "Làng gốm Bát Tràng có lịch sử hơn 500 năm ven sông Hồng (hình thành từ thế kỷ 14 thời Lý - Trần). Quy trình tạo tác gồm 6 bước nghiêm ngặt: (1) Lắng lọc bùn sét phù sa qua 4 bể trong 3 tháng; (2) Chuốt phôi tay độc bản trên bàn xoay; (3) Phơi mộc và vẽ men lam dưới men; (4) Phủ men tro trấu nếp tự nhiên đa tầng; (5) Nung củi lò bầu liên tục 72 giờ ở nhiệt độ 1280°C; (6) Kiểm tra âm vang chuông đồng và cấp Hộ chiếu di sản số. Men tro trấu tự nhiên tạo chiều sâu ngọc bích, hoàn toàn không dùng hóa chất công nghiệp.",
+    contentEn: "Bat Trang Pottery Village boasts over 500 years of history along the Red River. The making process strictly follows six ancestral phases: clay sediment filtration through 4 basins for 3 months, manual wheel-throwing, cobalt underglaze painting, natural rice-husk ash glazing, continuous 72-hour wood firing at 1280°C, and acoustic resonance testing."
   },
   {
-    keywords: ["vạn phúc", "van phuc", "lụa", "silk", "dệt", "tơ tằm", "dệt lụa"],
+    keywords: ["chất liệu", "đất sét", "men lam", "tro trấu", "material", "clay"],
+    titleVi: "Quy chuẩn Chất liệu Gốm Sứ Bát Tràng Truyền Thống",
+    titleEn: "Bat Trang Traditional Material Specifications",
+    contentVi: "Chất liệu chế tác gốm Bát Tràng chuẩn di sản: Đất sét trắng pha sa khoáng phù sa sông Hồng lắng lọc 3 tháng để đạt độ dẻo cao và khả năng kết khối hoàn hảo. Men làm từ tro vỏ trấu nếp đốt tự nhiên hòa cùng bột đá thạch anh sông Hồng nghiền mịn. Màu lam được vẽ bằng oxit coban tự nhiên dưới men trước khi tráng men bóng, bền màu vĩnh cửu qua ngàn năm.",
+    contentEn: "Authentic materials: Purified Red River alluvial clay aged 3 months, natural sticky-rice husk ash glaze infused with river quartz minerals, and cobalt underglaze pigments fired at 1280°C."
+  },
+  {
+    keywords: ["ocop", "chứng nhận", "sao ocop", "tiêu chuẩn ocop"],
+    titleVi: "Quy định & Trạng thái Chứng nhận OCOP của Hanoi CraftTrust",
+    titleEn: "OCOP Certification Policy & Transparency",
+    contentVi: "Hanoi CraftTrust cam kết trung thực 100% về di sản: Tuyệt đối không tự ý gắn sao OCOP cho sản phẩm khi chưa có Quyết định phê duyệt chính thức của Hội đồng Đánh giá & Phân hạng Sản phẩm OCOP UBND Thành phố Hà Nội (theo Quyết định số 919/QĐ-TTg của Thủ tướng Chính phủ). Với các tác phẩm đang trong quá trình nộp hồ sơ thẩm định, hệ thống thông báo rõ: 'Chưa có giấy chứng nhận OCOP được xác minh trong hệ thống' và cung cấp tiến độ thẩm định minh bạch.",
+    contentEn: "CraftTrust strictly mandates authentic OCOP transparency. Products without official certification by the Hanoi People's Committee are labeled 'No verified OCOP certificate registered in the system', avoiding any fabricated ratings."
+  },
+  {
+    keywords: ["qr", "hộ chiếu", "passport", "truy xuất", "quét", "mặt đáy"],
+    titleVi: "Hướng dẫn Truy xuất Nguồn gốc & Mã QR Đáy Sản phẩm",
+    titleEn: "Digital Heritage Passport & Base QR Traceability Guide",
+    contentVi: "Mỗi hiện vật thủ công xuất xưởng từ CraftTrust được cấp một Hộ chiếu di sản số duy nhất (ví dụ mã DEMO: CT-BTG-NVA-2026-0085). Mã QR được tích hợp trực tiếp trên tem in dán dưới đáy sản phẩm thật và tem decal 3D dưới đáy mô hình số. Bạn có thể dùng camera điện thoại quét mã hoặc truy cập đường dẫn /trace/CT-BTG-NVA-2026-0085 để xem toàn bộ nguồn gốc đất sét, nghệ nhân, xưởng chế tác, video 6 công đoạn và lịch sử xác thực.",
+    contentEn: "Each artifact carries a unique Digital Heritage Passport code (e.g. CT-BTG-NVA-2026-0085). The scannable QR is placed at the bottom base of both the physical item and the 3D model, linking directly to /trace/CT-BTG-NVA-2026-0085."
+  },
+  {
+    keywords: ["vạn phúc", "van phuc", "lụa", "silk", "dệt", "tơ tằm"],
     titleVi: "Hồ sơ Di sản Làng lụa Vạn Phúc (Hà Đông, Hà Nội)",
     titleEn: "Heritage Dossier: Van Phuc Silk Weaving Village (Ha Dong, Hanoi)",
-    contentVi: "Làng lụa Vạn Phúc có bề dày hơn 1.000 năm, nức danh với dòng 'Lụa Vân' mỏng nhẹ, thoáng khí và đông ấm hè mát. Sử dụng 100% sợi tơ tằm tự nhiên từ kén tằm ăn lá dâu tằm sông Đáy. Hoa văn sen, cúc, tùng được gài thủ công tinh tế trên khung dệt gỗ cổ truyền và nhuộm màu bằng củ nâu, lá chàm tự nhiên.",
-    contentEn: "Van Phuc Silk Village spans over 1,000 years, renowned for 'Van Silk' woven from 100% natural mulberry silk cocoons. Motifs are delicately hand-integrated on traditional wooden looms and dyed using botanical extracts."
-  },
-  {
-    keywords: ["chàng sơn", "chang son", "mộc", "gỗ", "quạt", "wood", "carving"],
-    titleVi: "Hồ sơ Di sản Làng mộc & quạt mỹ nghệ Chàng Sơn (Thạch Thất, Hà Nội)",
-    titleEn: "Heritage Dossier: Chang Son Woodcarving & Fan Craft Village (Thach That, Hanoi)",
-    contentVi: "Chàng Sơn là cái nôi chạm khắc gỗ nổi tiếng từ thời Lý - Trần. Nghệ nhân sử dụng kỹ thuật mộng gỗ 'âm dương' tinh xảo liên kết các khối gỗ tự nhiên mà không cần bất kỳ đinh ốc kim loại nào. Ngoài ra, làng còn nổi tiếng với nghề làm quạt giấy thủ công thanh tao.",
-    contentEn: "Chang Son is the revered cradle of Northern Vietnamese woodcarving since the Ly-Tran dynasties, renowned for intricate mortise-and-tenon joints that require zero metal nails, alongside ceremonial handcrafted bamboo paper fans."
+    contentVi: "Làng lụa Vạn Phúc có bề dày hơn 1.000 năm, nức danh với dòng 'Lụa Vân' dệt từ 100% sợi tơ tằm tự nhiên. Hoa văn sen, cúc, tùng được gài thủ công tinh tế trên khung dệt gỗ cổ truyền và nhuộm màu bằng thảo mộc tự nhiên củ nâu, lá chàm.",
+    contentEn: "Van Phuc Silk Village spans over 1,000 years, renowned for 'Van Silk' woven from 100% natural mulberry silk cocoons and dyed using botanical extracts."
   },
   {
     keywords: ["phú vinh", "phu vinh", "mây tre", "bamboo", "rattan", "đan"],
     titleVi: "Hồ sơ Di sản Làng mây tre đan Phú Vinh (Chương Mỹ, Hà Nội)",
-    titleEn: "Heritage Dossier: Phu Vinh Bamboo & Rattan Weaving Village (Chuong My, Hanoi)",
-    contentVi: "Làng mây tre đan Phú Vinh có lịch sử trên 400 năm, nổi tiếng với kỹ thuật chẻ nan mỏng như sợi chỉ và đan hoa văn mắt cáo, đan nổi tinh xảo. Các sản phẩm khay trà, giỏ quà và đèn lồng mây tre xuất khẩu tới hơn 50 quốc gia.",
-    contentEn: "Phu Vinh Village features 400+ years of fine rattan and bamboo craftsmanship. Artisans split bamboo into thread-thin ribbons and execute intricate lattice weaves exported to over 50 countries."
+    titleEn: "Heritage Dossier: Phu Vinh Bamboo & Rattan Weaving Village",
+    contentVi: "Làng mây tre đan Phú Vinh có lịch sử trên 400 năm, nổi tiếng với kỹ thuật chẻ nan mỏng như sợi chỉ và đan hoa văn tinh xảo. Các nghệ nhân tạo tác khay trà, giỏ hoa, đèn lồng nghệ thuật vươn tầm quốc tế.",
+    contentEn: "Phu Vinh Village features 400+ years of fine rattan and bamboo craftsmanship, famous for thread-thin bamboo ribbons and intricate decorative weaves."
   },
   {
-    keywords: ["phân biệt", "thật giả", "chọn gốm", "chính hãng", "fake", "real"],
-    titleVi: "Cẩm nang Thẩm định: Phân biệt Gốm Bát Tràng thủ công",
-    titleEn: "Appraisal Guide: Identifying Authentic Bat Trang Pottery",
-    contentVi: "Cách phân biệt gốm Bát Tràng chính hãng: (1) Trọng lượng: Gốm Bát Tràng cốt sành dày dặn, cầm đầm tay; (2) Âm thanh: Khi gõ nhẹ bằng thanh tre hoặc đầu ngón tay, âm vang trong như chuông đồng do nung chín ở 1250°C; (3) Họa tiết: Vẽ tay thủ công nên nét vẽ mềm mại, uyển chuyển, không có hai chiếc giống hệt nhau như in decal công nghiệp; (4) Hộ chiếu số: Quét mã QR/NFC kiểm tra mã định danh và cấp độ chứng nhận.",
-    contentEn: "Authentic Bat Trang verification: (1) Substantial heft due to thick wheel-thrown stoneware; (2) Resonant chime like a bronze bell when tapped; (3) Hand-painted variations in brushstrokes that avoid mechanical decal uniformity; (4) Cryptographic digital passport verification via dynamic NFC or QR code."
+    keywords: ["quảng phú cầu", "quang phu cau", "hương", "nhang", "tăm hương"],
+    titleVi: "Hồ sơ Di sản Làng tăm hương Quảng Phú Cầu (Ứng Hòa, Hà Nội)",
+    titleEn: "Heritage Dossier: Quang Phu Cau Incense Village (Ung Hoa, Hanoi)",
+    contentVi: "Làng tăm hương Quảng Phú Cầu hơn 100 năm tuổi, nổi tiếng với những vựa tăm hương đỏ thắm xòe rộng như đóa sen hồng và hương thơm thảo mộc tự nhiên từ trầm, hồi, quế, tùng không hóa chất độc hại.",
+    contentEn: "Quang Phu Cau is renowned for its century-old aromatic incense making, natural botanical herbal scents, and striking crimson bundles."
   },
   {
-    keywords: ["tour", "du lịch", "tham quan", "bản đồ", "itinerary", "visit"],
-    titleVi: "Cẩm nang Du lịch & Trải nghiệm Làng nghề Hà Nội",
-    titleEn: "Travel Guide: Experiencing Hanoi Craft Villages",
-    contentVi: "Hà Nội có hơn 1.350 làng nghề. Gợi ý 3 tuyến tour trải nghiệm trong ngày: Tuyến 1 'Sông Hồng' thăm Làng gốm Bát Tràng và Bảo tàng Gốm (14km); Tuyến 2 'Tơ lụa & Chùa cổ' thăm Làng lụa Vạn Phúc và Chùa Trầm (12km); Tuyến 3 'Xứ Đoài' thăm Chùa Tây Phương và Làng mộc Chàng Sơn (32km).",
-    contentEn: "Hanoi hosts over 1,350 craft villages. Three curated day tours include: Route 1 'Red River' to Bat Trang Pottery & Ceramic Museum; Route 2 'Silk Trail' to Van Phuc and Tram Pagoda; Route 3 'Xu Doai' to Tay Phuong Pagoda and Chang Son Woodcraft Village."
+    keywords: ["chàng sơn", "chang son", "mộc", "gỗ", "quạt"],
+    titleVi: "Hồ sơ Di sản Làng mộc Chàng Sơn (Thạch Thất, Hà Nội)",
+    titleEn: "Heritage Dossier: Chang Son Woodcraft Village (Thach That, Hanoi)",
+    contentVi: "Cái nôi mộc chạm khắc truyền thống xứ Đoài gắn với kiến trúc Chùa Tây Phương. Kỹ thuật mộng gỗ tinh xảo không dùng đinh kim loại và nghề làm quạt giấy thủ công thanh nhã.",
+    contentEn: "Chang Son is famous for architectural woodwork, mortise-and-tenon interlocking joinery without metal nails, and handmade traditional paper fans."
+  },
+  {
+    keywords: ["nón chuông", "lang chuong", "nón lá", "thanh oai"],
+    titleVi: "Hồ sơ Di sản Làng nón Chuông (Thanh Oai, Hà Nội)",
+    titleEn: "Heritage Dossier: Chuong Conical Hat Village (Thanh Oai, Hanoi)",
+    contentVi: "Làng nón Chuông bên dòng sông Đáy có truyền thống hơn 300 năm. Từng chiếc nón được chuốt từ lá lụi trắng mịn, khâu bằng sợi móc tinh tế, là biểu tượng duyên dáng của người phụ nữ Thăng Long - Hà Nội.",
+    contentEn: "Chuong Village conical hats are stitched from white palm leaves with fine silken threads, carrying over 300 years of graceful Hanoi heritage."
   }
 ];
 
 export async function POST(request: Request) {
-  const parsed = schema.safeParse(await request.json().catch(() => null));
+  const body = await request.json().catch(() => null);
+  const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Vui lòng nhập câu hỏi từ 2 đến 500 ký tự." },
+      { error: "Vui lòng nhập câu hỏi từ 2 đến 1000 ký tự.", issues: parsed.error.issues, received: body },
       { status: 400 }
     );
   }
 
-  const isVi = parsed.data.locale === "vi";
+  const isVi = parsed.data.locale !== "en";
   const userQ = parsed.data.question.toLowerCase();
+  const supabase = createPublicSupabase();
 
-  // Step 1: Check Supabase RPC if configured
-  const supabase = await createRequestSupabase();
+  let contextProduct: any = null;
+  let contextVillage: any = null;
   let sources: Source[] = [];
 
-  if (supabase) {
-    const { data } = await supabase.rpc("search_approved_heritage", {
-      p_query: parsed.data.question,
-      p_limit: 5
-    });
-    if (data && data.length > 0) {
-      sources = (data as any[]).map((row) => ({
-        id: row.source_id ?? row.id,
-        title: row.source_title ?? row.title,
-        url: row.source_url ?? undefined,
-        content: row.content ?? row.excerpt
-      }));
-    }
-  }
-
-  // Step 2: Fallback to Curated Approved Heritage Knowledge Base
-  if (sources.length === 0) {
-    const matched = CURATED_HERITAGE_KNOWLEDGE.filter((item) =>
-      item.keywords.some((kw) => userQ.includes(kw))
-    );
-
-    const defaultItem = CURATED_HERITAGE_KNOWLEDGE[0]!;
-    const pool = matched.length > 0 ? matched : [defaultItem];
-
-    sources = pool.map((item, idx) => {
-      const valid = item ?? defaultItem;
-      return {
-        id: `heritage-doc-${idx + 1}`,
-        title: isVi ? valid.titleVi : valid.titleEn,
-        content: isVi ? valid.contentVi : valid.contentEn
-      };
-    });
-  }
-
-  // Step 3: If OpenAI is available, generate an enriched response
-  if (process.env.OPENAI_API_KEY) {
+  // 1. Contextual Product Resolution
+  if (parsed.data.productId && supabase) {
     try {
-      const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const prompt = `Bạn là Thuyết minh viên Di sản Thủ công Thăng Long - Hà Nội của nền tảng Hanoi Craft-Trust.
-Hãy giải đáp câu hỏi của người dùng một cách trang nhã, ấm áp, sâu sắc văn hóa và hoàn toàn dựa trên tư liệu di sản sau:
-${sources.map((s) => `[${s.title}]: ${s.content}`).join("\n\n")}
+      const { data: prod } = await supabase
+        .from("products")
+        .select(`
+          id, name, slug, price_vnd, height_cm, width_cm, model_status,
+          artisans ( id, name, bio, years_practicing, villages ( id, name, district, story ) ),
+          passport_records ( public_code, artifact_id, batch_code, status, tier )
+        `)
+        .eq("id", parsed.data.productId)
+        .maybeSingle();
 
-Câu hỏi của người dùng: "${parsed.data.question}"
-Ngôn ngữ trả lời: ${isVi ? "Tiếng Việt chuẩn xác, giàu cảm xúc văn hóa" : "English clearly and eloquently"}.
-Hãy kèm theo trích dẫn nguồn gốc di sản ở cuối câu trả lời.`;
+      if (prod) {
+        contextProduct = prod;
+        const art: any = Array.isArray(prod.artisans) ? prod.artisans[0] : prod.artisans;
+        const vil: any = Array.isArray(art?.villages) ? art.villages[0] : art?.villages;
+        const pass: any = Array.isArray(prod.passport_records) ? prod.passport_records[0] : prod.passport_records;
 
-      const response = await client.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.4
-      });
-
-      const reply = response.choices[0]?.message?.content?.trim();
-      if (reply) {
-        return NextResponse.json({
-          answer: reply,
-          citations: sources.map((s) => ({ title: s.title, url: s.url }))
+        sources.push({
+          id: `product-context-${prod.id}`,
+          title: `Hồ sơ sản phẩm hiện tại: ${prod.name}`,
+          content: `Tác phẩm: ${prod.name}. Giá niêm yết: ${Number(prod.price_vnd).toLocaleString("vi-VN")} ₫. Kích thước thật: ${prod.height_cm || 32} cm cao × ${prod.width_cm || 18.5} cm rộng. Nghệ nhân: ${art?.name || "Nguyễn Văn An"} (${art?.years_practicing || 35} năm kinh nghiệm) tại làng ${vil?.name || "Bát Tràng"}. Mã định danh số Hộ chiếu di sản: ${pass?.public_code || "CT-BTG-NVA-2026-0085"}. Trạng thái OCOP: Chưa có giấy chứng nhận OCOP được xác minh trong hệ thống (đang hoàn thiện hồ sơ theo Bộ tiêu chí OCOP TP. Hà Nội).`,
         });
       }
     } catch (err) {
-      console.warn("OpenAI generation failed, using direct curated synthesis:", err);
+      console.warn("[assistant] Product context resolution error:", err);
     }
   }
 
-  // Step 4: Deterministic Curated Answer from Approved Heritage Sources
-  const primary = sources[0] ?? {
-    id: "default-doc",
-    title: isVi ? "Di sản Thủ công Hà Nội" : "Hanoi Craft Heritage",
-    content: isVi
-      ? "Hà Nội là cái nôi của hơn 1.350 làng nghề truyền thống với hàng trăm năm tinh hoa văn hóa."
-      : "Hanoi is the historic cradle of over 1,350 craft villages with centuries of cultural quintessence."
-  };
-  const greeting = isVi
-    ? `Dựa trên tài liệu di sản đã được xác thực của ${primary.title}:`
-    : `According to verified heritage records from ${primary.title}:`;
+  // 2. Keyword Matching in Curated Heritage Knowledge
+  const matched = CURATED_HERITAGE_KNOWLEDGE.filter((item) =>
+    item.keywords.some((kw) => userQ.includes(kw))
+  );
 
-  const synthesized = `${greeting}\n\n${primary.content}\n\n${
-    isVi
-      ? "✦ Mọi chi tiết kỹ thuật và chất liệu đều được kiểm định độc lập và lưu trữ trong Hộ chiếu số di sản của tác phẩm."
-      : "✦ All technical steps and materials are independently audited and recorded in the Digital Craft Passport."
-  }`;
+  const pool = matched.length > 0 ? matched : [CURATED_HERITAGE_KNOWLEDGE[0]!];
+  for (const item of pool) {
+    sources.push({
+      id: `heritage-knowledge-${item.titleVi}`,
+      title: isVi ? item.titleVi : item.titleEn,
+      content: isVi ? item.contentVi : item.contentEn,
+    });
+  }
+
+  // 3. AI Generation with OpenAI / Gemini or Curated Synthesis
+  const apiKey = process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY;
+
+  if (apiKey) {
+    try {
+      const client = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY,
+        baseURL: process.env.OPENAI_BASE_URL || (process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY ? "https://generativelanguage.googleapis.com/v1beta/openai/" : undefined),
+      });
+
+      const systemPrompt = `Bạn là Trợ lý Di sản Số của nền tảng thương mại điện tử Hanoi CraftTrust ("Mỗi lần mua một lần về làng").
+Nhiệm vụ: Tư vấn sản phẩm, nghệ nhân, chất liệu, kỹ thuật thủ công, bản đồ làng nghề và Hộ chiếu di sản số.
+
+CÁC NGUYÊN TẮC BẮT BUỘC:
+1. TRUNG THỰC VỀ OCOP: Tuyệt đối KHÔNG tự bịa đặt giấy chứng nhận OCOP hoặc số sao OCOP nếu hồ sơ chưa được chứng nhận. Nếu sản phẩm chưa có chứng nhận, phải trả lời rõ ràng: "Chưa có giấy chứng nhận OCOP được xác minh trong hệ thống, hiện đang trong quá trình nộp hồ sơ đánh giá phân hạng của Hội đồng OCOP TP. Hà Nội theo Quyết định 919/QĐ-TTg".
+2. BÁM SÁT NGỮ CẢNH: Nếu người dùng đang xem một sản phẩm cụ thể, trả lời chính xác về sản phẩm đó (chất liệu đất sét, men tro trấu, kích thước, nghệ nhân, giá bán).
+3. HỘ CHIẾU DI SẢN: Mã demo chuẩn là CT-BTG-NVA-2026-0085. Mã QR nằm ở tem đáy sản phẩm và mặt đáy mô hình 3D, mở đường link /trace/CT-BTG-NVA-2026-0085.
+4. GIỌNG ĐIỆU: Ấm áp, nhã nhặn, tôn vinh tinh hoa làng nghề truyền thống Hà Nội, súc tích và mạch lạc.`;
+
+      const userPrompt = `TƯ LIỆU THẨM ĐỊNH TỪ CƠ SỞ DỮ LIỆU:
+${sources.map((s) => `[${s.title}]:\n${s.content}`).join("\n\n")}
+
+CÂU HỎI CỦA KHÁCH HÀNG: "${parsed.data.question}"
+Ngôn ngữ: ${isVi ? "Tiếng Việt chuẩn xác, trang nhã" : "English clearly and eloquently"}.`;
+
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 600,
+      });
+
+      const answer = completion.choices[0]?.message?.content?.trim();
+      if (answer) {
+        return NextResponse.json({
+          answer,
+          citations: sources.map((s) => ({ title: s.title, url: s.url })),
+          contextProduct: contextProduct ? { id: contextProduct.id, name: contextProduct.name } : null,
+        });
+      }
+    } catch (err) {
+      console.warn("[assistant] AI API error, falling back to curated synthesis:", err);
+    }
+  }
+
+  // 4. Deterministic Curated Heritage Synthesis
+  let synthesizedAnswer = "";
+  if (contextProduct) {
+    if (userQ.includes("chất liệu") || userQ.includes("làm từ gì") || userQ.includes("men")) {
+      synthesizedAnswer = `Chiếc **${contextProduct.name}** được nghệ nhân ${contextProduct.artisans?.name || "Nguyễn Văn An"} (${contextProduct.artisans?.years_practicing || 35} năm tuổi nghề) vuốt tay độc bản từ **đất sét phù sa sông Hồng** lắng lọc 3 tháng qua 4 bể truyền thống. Lớp men được điều chế từ **men tro trấu nếp tự nhiên** phối bột đá thạch anh sông Hồng, vẽ họa tiết men lam cổ dưới men và nung củi liên tục 72 giờ ở nhiệt độ cao 1280°C.`;
+    } else if (userQ.includes("ocop") || userQ.includes("chứng nhận")) {
+      synthesizedAnswer = `Về chứng nhận OCOP: Tác phẩm **${contextProduct.name}** hiện **chưa có giấy chứng nhận OCOP được xác minh trong hệ thống**. Xưởng đang trong quy trình nộp hồ sơ đánh giá phân hạng sản phẩm OCOP theo Quyết định số 919/QĐ-TTg của Thủ tướng Chính phủ và hướng dẫn của Hội đồng OCOP TP. Hà Nội. Hanoi CraftTrust cam kết minh bạch thông tin và không tự gắn sao OCOP khi chưa có quyết định công nhận chính thức.`;
+    } else if (userQ.includes("hộ chiếu") || userQ.includes("qr") || userQ.includes("truy xuất")) {
+      synthesizedAnswer = `Tác phẩm này đã được cấp Hộ chiếu di sản số với mã định danh công khai **${contextProduct.passport_records?.public_code || "CT-BTG-NVA-2026-0085"}**. Bạn có thể xoay mô hình 3D để nhìn thấy dấu triện QR ở mặt đáy, hoặc truy cập trực tiếp tại đường dẫn: [Xem Hộ chiếu Di sản Số](/trace/${contextProduct.passport_records?.public_code || "CT-BTG-NVA-2026-0085"}) để tra cứu 6 công đoạn chế tác và bằng chứng thẩm định.`;
+    } else {
+      synthesizedAnswer = `Tác phẩm **${contextProduct.name}** có giá niêm yết chính hãng là **${Number(contextProduct.price_vnd).toLocaleString("vi-VN")} ₫**. Tác phẩm được chế tác thủ công bởi ${contextProduct.artisans?.name || "Nghệ nhân Nguyễn Văn An"} tại làng gốm Bát Tràng (Gia Lâm, Hà Nội). Bạn có thể xem bản sao số 3D/AR, kiểm tra tem QR đáy sản phẩm hoặc bấm 'Đặt mua' để sở hữu tác phẩm nguyên bản.`;
+    }
+  } else {
+    const primary = sources[0]!;
+    synthesizedAnswer = `${primary.content}\n\n✦ Bạn có thể quét mã QR dưới đáy sản phẩm hoặc mở mã Hộ chiếu di sản số để truy xuất toàn bộ bằng chứng nguồn gốc và quy trình chế tác đã được xác minh.`;
+  }
 
   return NextResponse.json({
-    answer: synthesized,
-    citations: sources.map((s) => ({ title: s.title, url: s.url }))
+    answer: synthesizedAnswer,
+    citations: sources.map((s) => ({ title: s.title, url: s.url })),
+    contextProduct: contextProduct ? { id: contextProduct.id, name: contextProduct.name } : null,
   });
 }

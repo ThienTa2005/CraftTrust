@@ -108,13 +108,13 @@ export async function getProducts(): Promise<DataResult<ProductCard[]>> {
   const existingSlugs = new Set(dbProducts.map((p) => p.slug));
   const merged = [...dbProducts];
   for (const demo of demoProducts) {
-    if (!supabase && !existingSlugs.has(demo.slug)) {
+    if (!existingSlugs.has(demo.slug)) {
       merged.push(demo);
     }
   }
 
   return {
-    demo: !supabase,
+    demo: !supabase || dbProducts.length === 0,
     ...(dataError ? { error: dataError } : {}),
     data: merged,
   };
@@ -124,18 +124,17 @@ export async function getProduct(
   slug: string,
 ): Promise<DataResult<ProductCard | null>> {
   const result = await getProducts();
+  const cleanSlug = slug.replace(/^demo-/, "");
   const found =
     result.data.find(
       (product) =>
         product.slug === slug ||
-        product.slug === `demo-${slug}` ||
-        slug === `demo-${product.slug}` ||
-        product.slug.replace("demo-", "") === slug.replace("demo-", ""),
+        product.slug.replace(/^demo-/, "") === cleanSlug,
     ) ??
-    (result.demo ? demoProducts : []).find(
+    demoProducts.find(
       (p) =>
         p.slug === slug ||
-        p.slug.replace("demo-", "") === slug.replace("demo-", ""),
+        p.slug.replace(/^demo-/, "") === cleanSlug,
     ) ??
     null;
 

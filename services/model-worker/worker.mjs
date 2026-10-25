@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { tmpdir, hostname } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -20,6 +20,8 @@ const pythonBin =
 const pollMs = Math.max(1000, Number(process.env.MODEL_WORKER_POLL_MS) || 3000);
 const once = process.argv.includes("--once");
 const generatorPath = fileURLToPath(new URL("./generate.py", import.meta.url));
+const workerId = process.env.WORKER_ID || `worker-${process.pid}-${hostname()}`;
+const JOB_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes max runtime watchdog
 
 if (!supabaseUrl || !serviceRoleKey) {
   throw new Error(
@@ -33,9 +35,11 @@ const supabase = createClient(supabaseUrl, serviceRoleKey, {
 
 let stopping = false;
 process.on("SIGINT", () => {
+  console.log(`[model-worker] SIGINT received, stopping gracefully...`);
   stopping = true;
 });
 process.on("SIGTERM", () => {
+  console.log(`[model-worker] SIGTERM received, stopping gracefully...`);
   stopping = true;
 });
 
@@ -48,6 +52,20 @@ function extensionFor(mimeType) {
   return ".jpg";
 }
 
+async function sendHeartbeat(jobId, step, progress = 0) {
+  try {
+    await supabase.rpc("heartbeat_model_job", {
+      p_job_id: jobId,
+      p_worker_id: workerId,
+      p_step: step,
+      p_progress: progress,
+    });
+  } catch (err) {
+    // Non-fatal warning
+    console.warn(`[model-worker] heartbeat warning for ${jobId}:`, err?.message || err);
+  }
+}
+
 function runGenerator({
   imagePath,
   backImagePath,
@@ -55,10 +73,12 @@ function runGenerator({
   heightCm,
   widthCm,
   shapeMode,
-  backTexture,
+  backTexture = "mirror",
   engine = "auto",
   rimFlare = 1.0,
   wallThickness = 0.04,
+  publicCode = "CT-BTG-NVA-2026-0085",
+  traceUrl = "https://craft-trust.vercel.app/trace/CT-BTG-NVA-2026-0085",
 }) {
   return new Promise((resolve, reject) => {
     const args = [
@@ -81,6 +101,10 @@ function runGenerator({
       String(rimFlare),
       "--wall-thickness",
       String(wallThickness),
+      "--public-code",
+      publicCode,
+      "--trace-url",
+      traceUrl,
     ];
     if (backImagePath) {
       args.push("--back-image", backImagePath);
@@ -93,14 +117,29 @@ function runGenerator({
 
     let stdout = "";
     let stderr = "";
+    let timedOut = false;
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try {
+        child.kill("SIGKILL");
+      } catch {}
+      reject(new Error(`Generator timed out after ${JOB_TIMEOUT_MS / 1000} seconds.`));
+    }, JOB_TIMEOUT_MS);
+
     child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
+      stdout += chunk.toString("utf-8");
     });
     child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
+      stderr += chunk.toString("utf-8");
     });
-    child.on("error", reject);
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
     child.on("close", (code) => {
+      clearTimeout(timer);
+      if (timedOut) return;
       if (code === 0) resolve(stdout.trim());
       else
         reject(
@@ -116,18 +155,37 @@ function runGenerator({
 
 async function claimNextJob() {
   const { data: claimed, error } = await supabase
-    .rpc("claim_model_job")
+    .rpc("claim_model_job", { p_worker_id: workerId })
     .maybeSingle();
   if (error) throw error;
   return claimed;
+}
+
+async function reapStaleJobs() {
+  try {
+    const { data: count, error } = await supabase.rpc("reap_stale_model_jobs", {
+      p_timeout_minutes: 5,
+    });
+    if (!error && count && count > 0) {
+      console.log(`[model-worker] reaped ${count} stale/abandoned jobs`);
+    }
+  } catch (err) {
+    // Ignore if RPC missing or error
+  }
 }
 
 async function processJob(job) {
   const startedAt = Date.now();
   let tempDirectory;
   let uploadedModelPath;
+  let heartbeatInterval;
 
   try {
+    console.log(`[model-worker] claimed job ${job.id} for product ${job.product_id} (${job.engine || "auto"})`);
+
+    // Step: preprocessing
+    await sendHeartbeat(job.id, "preprocessing", 10);
+
     const { data: product, error: productError } = await supabase
       .from("products")
       .select(
@@ -141,9 +199,9 @@ async function processJob(job) {
       ? product.artisans[0]
       : product.artisans;
     if (!artisan?.owner_id)
-      throw new Error("The product artisan does not have an owner account.");
+      throw new Error("Product artisan does not have a linked owner account.");
     if (!product.height_cm || !product.width_cm)
-      throw new Error("Product dimensions are missing.");
+      throw new Error("Product real dimensions (height_cm, width_cm) are required.");
 
     // Fetch all source assets ordered by ordinal
     const { data: sources, error: sourceError } = await supabase
@@ -153,7 +211,7 @@ async function processJob(job) {
       .order("ordinal", { ascending: true });
     if (sourceError) throw sourceError;
     if (!sources || sources.length === 0)
-      throw new Error("No source images found for product.");
+      throw new Error("No source photographs found for this product.");
 
     const frontSource = sources.find((s) => s.ordinal === 0) || sources[0];
     const backSource = sources.find((s) => s.ordinal === 1);
@@ -188,7 +246,7 @@ async function processJob(job) {
           );
         }
       } catch (err) {
-        console.warn("[model-worker] could not download back image:", err);
+        console.warn("[model-worker] could not download back image:", err?.message || err);
       }
     }
 
@@ -196,6 +254,25 @@ async function processJob(job) {
       .from("products")
       .update({ model_status: "processing", model_error: null })
       .eq("id", job.product_id);
+
+    // Fetch or prepare passport public code for base QR hallmark
+    const { data: passport } = await supabase
+      .from("passport_records")
+      .select("public_code")
+      .eq("product_id", job.product_id)
+      .maybeSingle();
+
+    const publicCode = passport?.public_code || "CT-BTG-NVA-2026-0085";
+    const appBaseUrl = process.env.APP_BASE_URL || "https://craft-trust.vercel.app";
+    const traceUrl = `${appBaseUrl.replace(/\/$/, "")}/trace/${publicCode}`;
+
+    // Step: reconstructing
+    await sendHeartbeat(job.id, "reconstructing", 30);
+
+    // Start heartbeat timer every 4 seconds during Python processing
+    heartbeatInterval = setInterval(() => {
+      void sendHeartbeat(job.id, "reconstructing", 50);
+    }, 4000);
 
     await runGenerator({
       imagePath: inputPath,
@@ -206,12 +283,35 @@ async function processJob(job) {
       shapeMode: product.shape_mode,
       backTexture: product.back_texture,
       engine: job.engine || "auto",
+      publicCode,
+      traceUrl,
     });
 
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+
+    // Step: validating
+    await sendHeartbeat(job.id, "validating", 80);
+
+    if (!existsSync(outputPath)) {
+      throw new Error("GLB model file was not generated by 3D pipeline.");
+    }
+
     const model = await readFile(outputPath);
-    const report = JSON.parse(
-      await readFile(path.join(tempDirectory, "model.json"), "utf8"),
-    );
+    if (model.byteLength < 500) {
+      throw new Error(`Generated GLB file size is too small (${model.byteLength} bytes). Corrupt output.`);
+    }
+
+    const reportPath = path.join(tempDirectory, "model.json");
+    let report = {};
+    if (existsSync(reportPath)) {
+      try {
+        report = JSON.parse(await readFile(reportPath, "utf8"));
+      } catch {}
+    }
+
+    // Step: uploading
+    await sendHeartbeat(job.id, "uploading", 90);
+
     const version = randomUUID();
     uploadedModelPath = `${artisan.owner_id}/${job.product_id}/model-${version}.glb`;
 
@@ -226,14 +326,33 @@ async function processJob(job) {
 
     const modelUrl = `/api/models/${version}`;
     const { error: assetError } = await supabase.from("product_model_assets").insert({
-      id: version, product_id: job.product_id, storage_path: uploadedModelPath,
-      original_filename: "generated-model.glb", file_size: model.byteLength,
-      origin: "generated", status: "pending_review", uploaded_by: artisan.owner_id,
-      settings: { heightCm: product.height_cm, widthCm: product.width_cm, scale: 1, orientation: [0,0,0], cameraOrbit: "0deg 75deg auto", arEnabled: false, regions: [] },
+      id: version,
+      product_id: job.product_id,
+      storage_path: uploadedModelPath,
+      original_filename: "generated-model.glb",
+      file_size: model.byteLength,
+      origin: "generated",
+      status: "pending_review",
+      uploaded_by: artisan.owner_id,
+      settings: {
+        heightCm: product.height_cm,
+        widthCm: product.width_cm,
+        scale: 1,
+        orientation: [0, 0, 0],
+        cameraOrbit: "0deg 75deg auto",
+        arEnabled: true,
+        regions: [],
+        qrPlacement: {
+          enabled: true,
+          sizePercent: 60,
+          rotation: 0,
+          position: [0, 0],
+        },
+      },
     });
     if (assetError) throw assetError;
 
-    // Check if master GLB exists and upload it
+    // Check if master high-res GLB exists and upload it
     const masterPath = path.join(tempDirectory, "model-master.glb");
     if (existsSync(masterPath)) {
       try {
@@ -250,12 +369,13 @@ async function processJob(job) {
           report.masterModelPath = masterUploadPath;
         }
       } catch (err) {
-        console.warn("[model-worker] master GLB upload warning:", err);
+        console.warn("[model-worker] master GLB upload warning:", err?.message || err);
       }
     }
 
     const generationMs = Date.now() - startedAt;
 
+    // Update product status
     const { error: updateError } = await supabase
       .from("products")
       .update({
@@ -269,10 +389,13 @@ async function processJob(job) {
       .eq("id", job.product_id);
     if (updateError) throw updateError;
 
+    // Update job completed
     const { error: finishError } = await supabase
       .from("model_jobs")
       .update({
         status: "completed",
+        current_step: "completed",
+        progress: 100,
         finished_at: new Date().toISOString(),
         generation_ms: generationMs,
         error: null,
@@ -281,15 +404,16 @@ async function processJob(job) {
     if (finishError) throw finishError;
 
     console.log(
-      `[model-worker] completed ${job.id} in ${generationMs} ms (${report.engine}, ${report.assetBytes} bytes)`,
+      `[model-worker] successfully completed job ${job.id} in ${generationMs} ms (${report.engine || "ceramic"}, ${report.assetBytes || model.byteLength} bytes)`,
     );
   } catch (error) {
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
     const message =
       error instanceof Error
         ? error.message.slice(0, 2000)
         : String(error).slice(0, 2000);
     if (uploadedModelPath) {
-      await supabase.storage.from("product-models").remove([uploadedModelPath]);
+      await supabase.storage.from("product-models").remove([uploadedModelPath]).catch(() => {});
     }
     await Promise.all([
       supabase
@@ -300,25 +424,35 @@ async function processJob(job) {
         .from("model_jobs")
         .update({
           status: "failed",
+          current_step: "failed",
           finished_at: new Date().toISOString(),
           generation_ms: Date.now() - startedAt,
           error: message,
         })
         .eq("id", job.id),
-    ]);
-    console.error(`[model-worker] failed ${job.id}: ${message}`);
+    ]).catch((err) => console.error("[model-worker] error updating failed status:", err));
+    console.error(`[model-worker] failed job ${job.id}: ${message}`);
   } finally {
-    if (tempDirectory)
-      await rm(tempDirectory, { recursive: true, force: true });
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    if (tempDirectory) {
+      await rm(tempDirectory, { recursive: true, force: true }).catch(() => {});
+    }
   }
 }
 
 async function main() {
   console.log(
-    `[model-worker] ready; polling every ${pollMs} ms${once ? " (once)" : ""}`,
+    `[model-worker] ID: ${workerId} ready; polling every ${pollMs} ms${once ? " (once)" : ""}`,
   );
+  let pollCount = 0;
   do {
     try {
+      pollCount++;
+      // Periodically check for stale jobs every ~30 seconds (10 polls at 3s)
+      if (pollCount % 10 === 0) {
+        await reapStaleJobs();
+      }
+
       const job = await claimNextJob();
       if (job) await processJob(job);
       else if (once) return;

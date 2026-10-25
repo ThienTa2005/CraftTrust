@@ -25,11 +25,26 @@ export async function POST(
       { error: "Không tìm thấy sản phẩm." },
       { status: 404 },
     );
-  if (["queued", "processing"].includes(product.model_status)) {
-    return NextResponse.json(
-      { error: "Sản phẩm đang được xử lý." },
-      { status: 409 },
-    );
+  const { searchParams } = new URL(_request.url);
+  const force = searchParams.get("force") === "true";
+
+  // Check if there is an active job that is not stuck
+  if (["queued", "processing"].includes(product.model_status) && !force) {
+    const { data: latestJob } = await auth.supabase
+      .from("model_jobs")
+      .select("id,created_at,started_at")
+      .eq("product_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const jobAgeMs = latestJob?.created_at ? Date.now() - new Date(latestJob.created_at).getTime() : 0;
+    if (jobAgeMs < 120_000) {
+      return NextResponse.json(
+        { error: "Sản phẩm vừa được đưa vào hàng đợi. Vui lòng đợi worker xử lý (tối đa 2 phút)." },
+        { status: 409 },
+      );
+    }
   }
 
   const { count } = await auth.supabase

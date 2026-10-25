@@ -328,7 +328,7 @@ export function OrdersView({
                           {locale === "vi" ? "Mua lại" : "Buy again"}
                         </button>
                         <Link
-                          href="/passport/HCT-VN-BT-001"
+                          href="/trace/CT-BTG-NVA-2026-0085"
                           className="button secondary small"
                         >
                           <QrCode size={14} />

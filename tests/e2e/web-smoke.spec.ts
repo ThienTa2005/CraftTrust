@@ -8,7 +8,6 @@ test("homepage defaults to Vietnamese and switches to English", async ({
   await expect(
     page.getByRole("heading", { name: /Chạm vào đất. Ngắm men kể chuyện/i }),
   ).toBeVisible();
-  await expect(page.getByText("DEMO DATA")).toBeVisible();
 
   // Switch to English
   if (testInfo.project.name === "mobile") {
@@ -47,21 +46,20 @@ test("homepage defaults to Vietnamese and switches to English", async ({
   ).toBeVisible();
 });
 
-test("demo passport discloses evidence limits", async ({ page }) => {
-  await page.goto("/passport/HCT-DEMO-BT-001", {
+test("passport discloses truthful evidence limits", async ({ page }) => {
+  await page.goto("/trace/CT-BTG-NVA-2026-0085", {
     waitUntil: "domcontentloaded",
   });
-  await expect(page.getByText(/DEMO DATA/i)).toBeVisible();
-  await expect(page.getByText(/illustrative only/i)).toBeVisible();
+  await expect(page.getByText(/Chưa có giấy chứng nhận OCOP/i)).toBeVisible();
 });
 
-test("seller and admin workspaces fail closed without backend", async ({
+test("seller and admin workspaces fail closed without authorization", async ({
   page,
 }) => {
   await page.goto("/seller", { waitUntil: "domcontentloaded" });
-  await expect(page.getByText(/Supabase is not configured/i)).toBeVisible();
+  await expect(page.getByText(/Khu Vực Quản Trị/i)).toBeVisible();
   await page.goto("/admin", { waitUntil: "domcontentloaded" });
-  await expect(page.getByText(/Supabase is not configured/i)).toBeVisible();
+  await expect(page.getByText(/Cổng Quản Trị/i)).toBeVisible();
 });
 
 test("major pages stay inside the viewport from phone to wide desktop", async ({

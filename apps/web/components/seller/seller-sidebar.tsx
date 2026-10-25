@@ -14,14 +14,26 @@ import {
   Tag,
   Truck,
   Wallet,
+  X,
 } from "lucide-react";
 
 interface SellerSidebarProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
+  orderCount?: number;
+  pendingOrderCount?: number;
+  isOpenMobile?: boolean;
+  onCloseMobile?: () => void;
 }
 
-export function SellerSidebar({ activeTab, onSelectTab }: SellerSidebarProps) {
+export function SellerSidebar({
+  activeTab,
+  onSelectTab,
+  orderCount,
+  pendingOrderCount,
+  isOpenMobile = false,
+  onCloseMobile,
+}: SellerSidebarProps) {
   const menuGroups = [
     {
       title: "TỔNG QUAN",
@@ -41,20 +53,20 @@ export function SellerSidebar({ activeTab, onSelectTab }: SellerSidebarProps) {
           id: "orders",
           label: "Tất Cả Đơn Hàng",
           icon: ClipboardList,
-          badge: "4",
+          badge: typeof orderCount === "number" && orderCount > 0 ? String(orderCount) : null,
         },
         {
           id: "orders-todo",
           label: "Đơn Cần Xử Lý",
           icon: Package,
-          badge: "3",
+          badge: typeof pendingOrderCount === "number" && pendingOrderCount > 0 ? String(pendingOrderCount) : null,
           badgeType: "warning",
         },
         {
           id: "orders-returns",
           label: "Đơn Hủy & Trả Hàng",
           icon: RotateCcw,
-          badge: "0",
+          badge: null,
         },
       ],
     },
@@ -127,60 +139,70 @@ export function SellerSidebar({ activeTab, onSelectTab }: SellerSidebarProps) {
         },
       ],
     },
-    {
-      title: "QUẢN LÝ SHOP",
-      items: [
-        {
-          id: "shop-profile",
-          label: "Hồ Sơ Xưởng & Nghệ Nhân",
-          icon: Store,
-          badge: null,
-        },
-        {
-          id: "passport-badge",
-          label: "Chứng Nhận Hộ Chiếu Số",
-          icon: FileCheck2,
-          badge: "Gold",
-          badgeType: "gold",
-        },
-      ],
-    },
   ];
 
   return (
-    <aside className="seller-sidebar" aria-label="Điều hướng Kênh Người Bán">
-      <div className="seller-sidebar-content">
-        {menuGroups.map((group) => (
-          <div key={group.title} className="seller-menu-group">
-            <span className="seller-menu-group-title">{group.title}</span>
-            <div className="seller-menu-items">
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`seller-menu-item ${isActive ? "active" : ""}`}
-                    onClick={() => onSelectTab(item.id)}
-                  >
-                    <div className="item-label-wrap">
-                      <Icon size={17} className="item-icon" />
-                      <span className="item-text">{item.label}</span>
-                    </div>
+    <>
+      {isOpenMobile && (
+        <div
+          className="admin-mobile-backdrop"
+          onClick={onCloseMobile}
+          role="presentation"
+        />
+      )}
 
-                    {item.badge && (
-                      <span className={`seller-item-badge ${item.badgeType ?? "default"}`}>
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+      <aside
+        className={`seller-sidebar ${isOpenMobile ? "mobile-open" : ""}`}
+        aria-label="Điều hướng Kênh Người Bán"
+      >
+        <div className="admin-mobile-header" style={{ padding: "14px 16px", display: "none" }}>
+          <strong>Menu Người Bán</strong>
+          <button
+            type="button"
+            className="admin-mobile-close-btn"
+            onClick={onCloseMobile}
+            aria-label="Đóng menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="seller-sidebar-content">
+          {menuGroups.map((group) => (
+            <div key={group.title} className="seller-menu-group">
+              <span className="seller-menu-group-title">{group.title}</span>
+              <div className="seller-menu-items">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`seller-menu-item ${isActive ? "active" : ""}`}
+                      onClick={() => {
+                        onSelectTab(item.id);
+                        if (onCloseMobile) onCloseMobile();
+                      }}
+                    >
+                      <div className="item-label-wrap">
+                        <Icon size={17} className="item-icon" />
+                        <span className="item-text">{item.label}</span>
+                      </div>
+
+                      {item.badge && (
+                        <span className={`seller-item-badge ${item.badgeType ?? "default"}`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-    </aside>
+          ))}
+        </div>
+      </aside>
+    </>
   );
 }

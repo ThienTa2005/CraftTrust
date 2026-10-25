@@ -24,6 +24,16 @@ import os
 import struct
 import sys
 import time
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -488,38 +498,49 @@ def construct_pottery_mesh(
         b = a + sides + 1
         indices += [a, a + 1, b, a + 1, b + 1, b]
 
-    # 4. Bottom Base & Unglazed Foot Ring
-    for y_val, radius_val, direction in (
-        (0.0, float(radii[0]), -1.0),
-        (float(t_base), float(inner_r[0]), 1.0),
-    ):
-        base_start = len(positions)
-        for j, angle in enumerate(theta):
-            positions.append((radius_val * math.sin(angle), y_val, radius_val * math.cos(angle)))
-            normals.append((0.0, direction, 0.0))
-            uv.append((0.5, 0.0))
-        center_idx = len(positions)
-        positions.append((0.0, y_val, 0.0))
-        normals.append((0.0, direction, 0.0))
+    # 4. Interior bottom cavity disc (Material 0: Interior Glaze)
+    cavity_base_start = len(positions)
+    for j, angle in enumerate(theta):
+        positions.append((float(inner_r[0]) * math.sin(angle), float(t_base), float(inner_r[0]) * math.cos(angle)))
+        normals.append((0.0, 1.0, 0.0))
         uv.append((0.5, 0.0))
-        for j in range(sides):
-            indices += (
-                [center_idx, base_start + j + 1, base_start + j]
-                if direction < 0
-                else [center_idx, base_start + j, base_start + j + 1]
-            )
+    cavity_center_idx = len(positions)
+    positions.append((0.0, float(t_base), 0.0))
+    normals.append((0.0, 1.0, 0.0))
+    uv.append((0.5, 0.0))
+    for j in range(sides):
+        indices += [cavity_center_idx, cavity_base_start + j, cavity_base_start + j + 1]
 
-    inner_rim_base_indices = indices[len(outer_indices):]
+    inner_rim_indices = indices[len(outer_indices):]
+
+    # 5. Exterior Bottom Base Disc (Material 2: CeramicBaseQR)
+    base_qr_indices = []
+    base_start = len(positions)
+    r_base = float(radii[0])
+    for j, angle in enumerate(theta):
+        # x = r_base * sin(angle), z = r_base * cos(angle)
+        positions.append((r_base * math.sin(angle), 0.0, r_base * math.cos(angle)))
+        normals.append((0.0, -1.0, 0.0))
+        # Planar UV for bottom disc: oriented looking up from bottom
+        uv.append((0.5 + 0.44 * math.sin(angle), 0.5 - 0.44 * math.cos(angle)))
+    center_idx = len(positions)
+    positions.append((0.0, 0.0, 0.0))
+    normals.append((0.0, -1.0, 0.0))
+    uv.append((0.5, 0.5))
+
+    for j in range(sides):
+        base_qr_indices += [center_idx, base_start + j + 1, base_start + j]
+
     all_positions = np.asarray(positions, dtype="<f4")
     all_normals = np.asarray(normals, dtype="<f4")
     all_uv = np.asarray(uv, dtype="<f4")
 
     total_vertices = len(all_positions)
-    total_triangles = len(indices) // 3
+    total_triangles = (len(outer_indices) + len(inner_rim_indices) + len(base_qr_indices)) // 3
 
     parts = [
         # Material 0: Interior Ceramic Glaze
-        (all_positions, all_normals, all_uv, np.asarray(inner_rim_base_indices, dtype="<u2")),
+        (all_positions, all_normals, all_uv, np.asarray(inner_rim_indices, dtype="<u2")),
         # Material 1: Outer Decorative Handcrafted Surface
         (
             all_positions[:outer_vertex_count],
@@ -527,8 +548,53 @@ def construct_pottery_mesh(
             all_uv[:outer_vertex_count],
             np.asarray(outer_indices, dtype="<u2"),
         ),
+        # Material 2: Exterior Base Stamp & Scannable QR Seal
+        (
+            all_positions,
+            all_normals,
+            all_uv,
+            np.asarray(base_qr_indices, dtype="<u2"),
+        ),
     ]
     return parts, total_vertices, total_triangles
+
+
+def generate_base_qr_texture(trace_url: str, public_code: str, size: int = 512) -> bytes:
+    """Generates an authentic artisan ceramic hallmark seal embedding a high-contrast scannable QR code."""
+    try:
+        import qrcode
+        from PIL import ImageDraw
+
+        qr = qrcode.QRCode(box_size=8, border=2)
+        qr.add_data(trace_url)
+        qr.make(fit=True)
+        qr_img = qr.make_image(fill_color="#10223b", back_color="#f7f3ea").convert("RGBA")
+
+        canvas = Image.new("RGBA", (size, size), (247, 243, 234, 255))
+        d = ImageDraw.Draw(canvas)
+
+        # Foot ring ceramic border rings
+        d.ellipse([10, 10, size - 10, size - 10], outline=(180, 160, 135, 255), width=6)
+        d.ellipse([24, 24, size - 24, size - 24], outline=(200, 185, 165, 255), width=2)
+
+        # Paste QR in center
+        qr_size = int(size * 0.54)
+        qr_resized = qr_img.resize((qr_size, qr_size), Image.Resampling.LANCZOS)
+        canvas.paste(qr_resized, ((size - qr_size) // 2, int(size * 0.12)), qr_resized)
+
+        # Draw brand & public code
+        d.text((size // 2, int(size * 0.72)), "HANOI CRAFTTRUST", fill=(16, 34, 59, 255), anchor="mm")
+        d.text((size // 2, int(size * 0.79)), public_code, fill=(182, 95, 61, 255), anchor="mm")
+        d.text((size // 2, int(size * 0.86)), "HỘ CHIẾU DI SẢN SỐ · XÁC THỰC", fill=(110, 115, 125, 255), anchor="mm")
+
+        buf = io.BytesIO()
+        canvas.save(buf, format="PNG")
+        return buf.getvalue()
+    except Exception:
+        canvas = Image.new("RGBA", (size, size), (244, 240, 232, 255))
+        buf = io.BytesIO()
+        canvas.save(buf, format="PNG")
+        return buf.getvalue()
 
 
 def export_glb_file(
@@ -540,8 +606,9 @@ def export_glb_file(
     height_cm: float,
     width_cm: float,
     metadata_extras: Dict[str, Any],
+    base_qr_bytes: Optional[bytes] = None,
 ) -> int:
-    """Serializes binary glTF 2.0 (.glb) with full PBR metallic-roughness and normal map support."""
+    """Serializes binary glTF 2.0 (.glb) with full PBR metallic-roughness, normal map, and base QR stamp."""
     blob = bytearray()
     views: List[Dict[str, Any]] = []
     accessors: List[Dict[str, Any]] = []
@@ -602,7 +669,7 @@ def export_glb_file(
     textures = [{"source": 0}, {"source": 1}, {"source": 2}]
 
     materials = [
-        # Material 0: Interior Glaze & Base
+        # Material 0: Interior Glaze
         {
             "name": "CeramicGlazeInterior",
             "pbrMetallicRoughness": {
@@ -626,6 +693,23 @@ def export_glb_file(
             "doubleSided": False,
         },
     ]
+
+    # Material 2: Exterior Base Stamp & QR Seal
+    if base_qr_bytes is not None and len(parts) > 2:
+        img_qr_idx = add_data(base_qr_bytes)
+        images.append({"bufferView": img_qr_idx, "mimeType": "image/png"})
+        textures.append({"source": 3})
+        materials.append(
+            {
+                "name": "CeramicBaseQR",
+                "pbrMetallicRoughness": {
+                    "baseColorTexture": {"index": 3},
+                    "metallicFactor": 0.0,
+                    "roughnessFactor": 0.85,
+                },
+                "doubleSided": True,
+            }
+        )
 
     model: Dict[str, Any] = {
         "asset": {
@@ -677,6 +761,8 @@ def run_pipeline(
     engine_request: str = "auto",
     rim_flare: float = 1.0,
     wall_thickness: float = 0.04,
+    public_code: str = "CT-BTG-NVA-2026-0085",
+    trace_url: str = "https://craft-trust.vercel.app/trace/CT-BTG-NVA-2026-0085",
 ) -> Dict[str, Any]:
     """Executes the complete Hybrid 3D Reconstruction Pipeline."""
     start_time = time.perf_counter()
@@ -756,7 +842,10 @@ def run_pipeline(
         "pbrChannels": ["baseColor", "roughness", "normal"],
     }
 
-    # Write Web-Optimized GLB
+    # 7.5 Generate authentic bottom ceramic QR hallmark seal
+    base_qr_bytes = generate_base_qr_texture(trace_url, public_code)
+
+    # Write Web-Optimized GLB with embedded bottom QR
     web_bytes = export_glb_file(
         output_path,
         mesh_parts,
@@ -766,6 +855,7 @@ def run_pipeline(
         height_cm,
         actual_width_cm,
         metadata_extras,
+        base_qr_bytes=base_qr_bytes,
     )
 
     # If exceeding 2MB, try with size 640
@@ -791,6 +881,7 @@ def run_pipeline(
             height_cm,
             actual_width_cm,
             metadata_extras,
+            base_qr_bytes=base_qr_bytes,
         )
 
     # 8. Write Master High-Resolution GLB
@@ -824,6 +915,7 @@ def run_pipeline(
             height_cm,
             actual_width_cm,
             {**metadata_extras, "tier": "master-high-res"},
+            base_qr_bytes=base_qr_bytes,
         )
     except Exception as exc:
         print(f"[pipeline] Warning: master export failed: {exc}", file=sys.stderr)
@@ -902,6 +994,12 @@ if __name__ == "__main__":
     )
     parser.add_argument("--rim-flare", type=float, default=1.0)
     parser.add_argument("--wall-thickness", type=float, default=0.04)
+    parser.add_argument("--public-code", default="CT-BTG-NVA-2026-0085", help="Digital passport public code")
+    parser.add_argument(
+        "--trace-url",
+        default="https://craft-trust.vercel.app/trace/CT-BTG-NVA-2026-0085",
+        help="Digital passport trace URL encoded into base QR seal",
+    )
 
     args = parser.parse_args()
 
@@ -916,4 +1014,6 @@ if __name__ == "__main__":
         engine_request=args.engine,
         rim_flare=args.rim_flare,
         wall_thickness=args.wall_thickness,
+        public_code=args.public_code,
+        trace_url=args.trace_url,
     )

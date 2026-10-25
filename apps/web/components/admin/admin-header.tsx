@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ExternalLink,
   LogOut,
+  Menu,
   Server,
   Shield,
   ShieldCheck,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
+import { BrandLogo } from "@/components/brand-logo";
 
 import type { AppRole } from "@/lib/authz";
 
@@ -23,12 +25,14 @@ interface AdminHeaderProps {
   activeTab?: string | undefined;
   onSelectTab: (tab: string) => void;
   pendingCount?: number | undefined;
+  onToggleMobileMenu?: (() => void) | undefined;
 }
 
 export function AdminHeader({
   roles = ["admin", "verifier"],
   onSelectTab,
   pendingCount = 0,
+  onToggleMobileMenu,
 }: AdminHeaderProps) {
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -48,13 +52,20 @@ export function AdminHeader({
   return (
     <header className="admin-header">
       <div className="admin-header-left">
-        <Link href="/admin" className="admin-brand">
-          <div className="admin-brand-badge">
-            <ShieldCheck size={22} />
-          </div>
+        {onToggleMobileMenu && (
+          <button
+            type="button"
+            className="admin-mobile-toggle-btn"
+            onClick={onToggleMobileMenu}
+            aria-label="Mở danh mục quản trị"
+          >
+            <Menu size={20} />
+          </button>
+        )}
+        <Link href="/admin" className="admin-brand" aria-label="Cổng Quản Trị Hanoi CraftTrust">
+          <BrandLogo variant="compact" />
           <div className="admin-brand-titles">
-            <span className="admin-brand-name">HANOI CRAFT-TRUST</span>
-            <span className="admin-brand-sub">CỔNG QUẢN TRỊ HỆ THỐNG · VERIFICATION DESK</span>
+            <span className="admin-brand-sub">CỔNG QUẢN TRỊ HỆ THỐNG</span>
           </div>
         </Link>
       </div>

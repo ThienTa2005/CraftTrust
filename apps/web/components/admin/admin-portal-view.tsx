@@ -1,114 +1,140 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   AlertCircle,
   CheckCircle2,
   ClipboardCheck,
+  ExternalLink,
+  PackageCheck,
+  RotateCcw,
   Scale,
   Sparkles,
+  Store,
+  Truck,
+  Users,
+  Box,
 } from "lucide-react";
 import { AdminHeader } from "./admin-header";
 import { AdminSidebar } from "./admin-sidebar";
 import { AdminExperiences } from "./admin-experiences";
 import { Admin3DManager } from "./admin-3d-manager";
 import { ReviewEvidence } from "@/components/review-evidence";
+import { formatVnd } from "@/lib/format";
 import type { AppRole } from "@/lib/authz";
 
 interface AdminPortalViewProps {
   roles: AppRole[];
   initialEvidence: any[];
+  initialProducts?: any[];
+  initialMerchants?: any[];
+  initialOrders?: any[];
+  initialAuditLogs?: any[];
+  initialVillages?: any[];
+  initialStats?: {
+    totalBuyers: number;
+    totalMerchants: number;
+    totalProducts: number;
+    activeProducts: number;
+    pendingProducts: number;
+    totalOrders: number;
+    totalGmvVnd: number;
+    totalPassports: number;
+    total3DModels: number;
+  };
   initialError?: string | undefined;
 }
 
 export function AdminPortalView({
   roles = ["admin", "verifier"],
   initialEvidence = [],
+  initialProducts = [],
+  initialMerchants = [],
+  initialOrders = [],
+  initialAuditLogs = [],
+  initialVillages = [],
+  initialStats,
   initialError,
 }: AdminPortalViewProps) {
   const [activeTab, setActiveTab] = useState<string>("overview");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [evidenceList] = useState<any[]>(initialEvidence);
+  const [productsList, setProductsList] = useState<any[]>(initialProducts);
+  const [merchantsList, setMerchantsList] = useState<any[]>(initialMerchants);
+  const [ordersList, setOrdersList] = useState<any[]>(initialOrders);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  // Demo merchants state
-  const [merchants, setMerchants] = useState([
-    {
-      id: "artisan-01",
-      name: "Nguyễn Thu Hà",
-      workshop: "Xưởng Gốm Thu Hà Bát Tràng",
-      village: "Bát Tràng · Gia Lâm",
-      productsCount: 12,
-      passportTier: "Gold (Vàng)",
-      status: "active",
-      joinedDate: "15/01/2026",
-    },
-    {
-      id: "artisan-02",
-      name: "Trần Ngọc Mai",
-      workshop: "Vạn Phúc Silk Studio",
-      village: "Vạn Phúc · Hà Đông",
-      productsCount: 8,
-      passportTier: "Silver (Bạc)",
-      status: "active",
-      joinedDate: "20/02/2026",
-    },
-    {
-      id: "artisan-03",
-      name: "Lê Minh Đức",
-      workshop: "Mộc Mỹ Nghệ Chàng Sơn",
-      village: "Chàng Sơn · Thạch Thất",
-      productsCount: 6,
-      passportTier: "Bronze (Đồng)",
-      status: "active",
-      joinedDate: "10/03/2026",
-    },
-    {
-      id: "artisan-04",
-      name: "Phạm Văn Thành",
-      workshop: "Gốm Men Hỏa Biến Thành Đạt",
-      village: "Bát Tràng · Gia Lâm",
-      productsCount: 4,
-      passportTier: "Pending Review",
-      status: "pending_verification",
-      joinedDate: "22/10/2026",
-    },
-  ]);
+  const stats = initialStats || {
+    totalBuyers: 0,
+    totalMerchants: merchantsList.length,
+    totalProducts: productsList.length,
+    activeProducts: productsList.filter((p) => p.status === "active").length,
+    pendingProducts: productsList.filter((p) => p.status === "draft").length,
+    totalOrders: ordersList.length,
+    totalGmvVnd: ordersList.reduce((sum, o) => sum + Number(o.subtotal_vnd || 0), 0),
+    totalPassports: 1,
+    total3DModels: 1,
+  };
 
-  // Demo audit logs
-  const auditLogs = [
-    {
-      id: "LOG-901",
-      time: "24/10/2026 19:10:45",
-      actor: "Admin (Verifier Desk)",
-      action: "DUYỆT MINH CHỨNG",
-      target: "Hồ sơ #EV-081 (Đất sét sông Hồng Bát Tràng)",
-      result: "Cấp hạng Gold Passport",
-    },
-    {
-      id: "LOG-900",
-      time: "24/10/2026 17:35:12",
-      actor: "Hệ thống AI 3D Worker",
-      action: "TẠO MÔ HÌNH 3D AR",
-      target: "Sản phẩm #PR-102 (Bình hoa men lam)",
-      result: "Hoàn tất mesh GLB (1.4MB)",
-    },
-    {
-      id: "LOG-899",
-      time: "24/10/2026 14:20:00",
-      actor: "Admin Điều Hành",
-      action: "XÁC MINH NGHỆ NHÂN",
-      target: "Gian hàng Xưởng gốm Thu Hà",
-      result: "Gán tích xanh Nghệ nhân ưu tú",
-    },
-  ];
+  // Toggle Merchant Publish Status
+  async function toggleMerchantStatus(id: string, currentStatus: boolean) {
+    try {
+      const res = await fetch("/api/admin/merchants", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ artisanId: id, isPublished: !currentStatus }),
+      });
+      if (res.ok) {
+        setMerchantsList((prev) =>
+          prev.map((m) => (m.id === id ? { ...m, is_published: !currentStatus, status: !currentStatus ? "active" : "pending_verification" } : m))
+        );
+        setActionMessage(`Đã cập nhật trạng thái xưởng: ${!currentStatus ? "Hoạt động" : "Tạm ngưng"}`);
+        setTimeout(() => setActionMessage(null), 3000);
+      }
+    } catch (err: any) {
+      alert("Không thể cập nhật xưởng: " + err.message);
+    }
+  }
 
-  function toggleMerchantStatus(id: string) {
-    setMerchants((prev) =>
-      prev.map((m) =>
-        m.id === id
-          ? { ...m, status: m.status === "active" ? "suspended" : "active" }
-          : m,
-      ),
-    );
+  // Moderate Product Status
+  async function handleProductStatus(productId: string, newStatus: "active" | "draft" | "archived") {
+    try {
+      const res = await fetch("/api/admin/products", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, status: newStatus }),
+      });
+      if (res.ok) {
+        setProductsList((prev) =>
+          prev.map((p) => (p.id === productId ? { ...p, status: newStatus } : p))
+        );
+        setActionMessage(`Đã cập nhật trạng thái sản phẩm sang: ${newStatus === "active" ? "Mở bán chính thức" : "Lưu nháp"}`);
+        setTimeout(() => setActionMessage(null), 3000);
+      }
+    } catch (err: any) {
+      alert("Không thể cập nhật sản phẩm: " + err.message);
+    }
+  }
+
+  // Update Order Status
+  async function handleOrderStatus(orderId: string, newStatus: string) {
+    try {
+      const res = await fetch("/api/admin/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, status: newStatus }),
+      });
+      if (res.ok) {
+        setOrdersList((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+        );
+        setActionMessage(`Đã chuyển trạng thái đơn hàng #${orderId.slice(0, 8)} sang: ${newStatus}`);
+        setTimeout(() => setActionMessage(null), 3000);
+      }
+    } catch (err: any) {
+      alert("Không thể cập nhật đơn hàng: " + err.message);
+    }
   }
 
   return (
@@ -119,6 +145,7 @@ export function AdminPortalView({
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         pendingCount={evidenceList.length}
+        onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
       />
 
       <div className="admin-body-container">
@@ -128,19 +155,36 @@ export function AdminPortalView({
           activeTab={activeTab}
           onSelectTab={setActiveTab}
           pendingCount={evidenceList.length}
+          isOpenMobile={mobileMenuOpen}
+          onCloseMobile={() => setMobileMenuOpen(false)}
         />
 
         {/* ADMIN MAIN VIEWPORT */}
         <main className="admin-main-viewport">
+          {actionMessage && (
+            <div style={{ marginBottom: 16, padding: "10px 16px", background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", borderRadius: 8, display: "flex", alignItems: "center", gap: 8 }}>
+              <CheckCircle2 size={16} />
+              <span>{actionMessage}</span>
+            </div>
+          )}
+
           {roles.includes("admin") && (
             <nav className="portal-mobile-actions" aria-label="Quản lý trải nghiệm">
-              <button type="button" className="button secondary" onClick={() => setActiveTab("overview")}>Tổng quan</button>
-              <button type="button" className="button" onClick={() => setActiveTab("experiences")}>Quản lý Trải nghiệm 3D/VR</button>
+              <button type="button" className={`button ${activeTab === "overview" ? "terracotta" : "secondary"}`} onClick={() => setActiveTab("overview")}>
+                Tổng quan
+              </button>
+              <button type="button" className={`button ${activeTab === "products-audit" ? "terracotta" : "secondary"}`} onClick={() => setActiveTab("products-audit")}>
+                Sản phẩm & 3D
+              </button>
+              <button type="button" className={`button ${activeTab === "platform-orders" ? "terracotta" : "secondary"}`} onClick={() => setActiveTab("platform-orders")}>
+                Đơn hàng ({ordersList.length})
+              </button>
             </nav>
           )}
+
           {activeTab === "experiences" && roles.includes("admin") && <AdminExperiences />}
           {initialError && (
-            <div className="admin-alert-box error">
+            <div className="admin-alert-box error" style={{ marginBottom: 16, padding: 12, background: "#fef2f2", color: "#b91c1c", borderRadius: 8 }}>
               <AlertCircle size={18} />
               <span>{initialError}</span>
             </div>
@@ -149,79 +193,67 @@ export function AdminPortalView({
           {/* TAB 1: EXECUTIVE OVERVIEW */}
           {activeTab === "overview" && (
             <div className="admin-view-fade">
-              {/* Executive KPI Grid */}
+              {/* Real Database KPI Grid */}
               <div className="admin-metrics-grid">
                 <div className="admin-metric-card primary">
                   <span className="metric-tag">TỔNG GMV TOÀN SÀN</span>
-                  <strong className="metric-num">1.840.000.000 ₫</strong>
-                  <span className="metric-sub">+24.8% tăng trưởng tháng này</span>
+                  <strong className="metric-num">{formatVnd(stats.totalGmvVnd)}</strong>
+                  <span className="metric-sub">{ordersList.length} đơn hàng thực tế từ cơ sở dữ liệu</span>
                 </div>
 
                 <div className="admin-metric-card">
                   <span className="metric-tag">GIAN HÀNG NGHỆ NHÂN</span>
-                  <strong className="metric-num">48 xưởng</strong>
+                  <strong className="metric-num">{merchantsList.length} xưởng</strong>
                   <span className="metric-sub">Bát Tràng, Vạn Phúc, Chàng Sơn</span>
                 </div>
 
                 <div className="admin-metric-card warning">
                   <span className="metric-tag">HỒ SƠ CHỜ THẨM ĐỊNH</span>
                   <strong className="metric-num text-warning">{evidenceList.length} hồ sơ</strong>
-                  <span className="metric-sub">Cần Verifier phê duyệt cấp hộ chiếu</span>
+                  <span className="metric-sub">Cần Verifier thẩm định cấp hộ chiếu</span>
                 </div>
 
                 <div className="admin-metric-card gold">
-                  <span className="metric-tag">HỘ CHIẾU SỐ ĐÃ PHÁT HÀNH</span>
-                  <strong className="metric-num text-gold">312 hộ chiếu</strong>
-                  <span className="metric-sub">86 Hạng Vàng · 142 Bạc · 84 Đồng</span>
+                  <span className="metric-tag">HỘ CHIẾU DI SẢN SỐ</span>
+                  <strong className="metric-num text-gold">{stats.totalPassports} hộ chiếu</strong>
+                  <span className="metric-sub">Đã cấp tem QR & mã số độc bản</span>
                 </div>
 
                 <div className="admin-metric-card">
-                  <span className="metric-tag">QUỸ BẢO TỒN NGHỀ (5% PHÍ)</span>
-                  <strong className="metric-num">92.000.000 ₫</strong>
+                  <span className="metric-tag">QUỸ BẢO TỒN NGHỀ (5% GMV)</span>
+                  <strong className="metric-num">{formatVnd(Math.round(stats.totalGmvVnd * 0.05))}</strong>
                   <span className="metric-sub">Hỗ trợ đào tạo thợ trẻ làng nghề</span>
                 </div>
               </div>
 
-              {/* Village GMV Breakdown & System Logs */}
+              {/* Real Village Breakdown & Audit Logs */}
               <div className="admin-split-cards" style={{ marginTop: 24 }}>
                 <div className="admin-card">
                   <div className="admin-card-header">
                     <div>
-                      <h3>Phân Bổ GMV Theo Làng Nghề Hà Nội</h3>
-                      <p className="card-sub">Tỷ lệ đóng góp doanh thu của các cụm làng nghề truyền thống</p>
+                      <h3>Cụm Làng Nghề Truyền Thống Hà Nội</h3>
+                      <p className="card-sub">Dữ liệu địa lý và xưởng nghề đăng ký trong hệ thống</p>
                     </div>
                   </div>
 
                   <div className="village-breakdown-list">
-                    <div className="village-bar-item">
-                      <div className="bar-labels">
-                        <strong>🏺 Làng Gốm Bát Tràng (Gia Lâm)</strong>
-                        <span>68% · 1.251.200.000 ₫</span>
+                    {initialVillages.length > 0 ? (
+                      initialVillages.map((v: any) => (
+                        <div key={v.id} className="village-bar-item">
+                          <div className="bar-labels">
+                            <strong>🏺 {v.name} ({v.district})</strong>
+                            <span>{v.artisans?.length || 1} xưởng nghề</span>
+                          </div>
+                          <div className="bar-track">
+                            <div className="bar-fill" style={{ width: "80%", background: "var(--terracotta, #c85a32)" }} />
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="admin-empty-state">
+                        <p>Đang tải dữ liệu làng nghề...</p>
                       </div>
-                      <div className="bar-track">
-                        <div className="bar-fill" style={{ width: "68%", background: "var(--terracotta)" }} />
-                      </div>
-                    </div>
-
-                    <div className="village-bar-item">
-                      <div className="bar-labels">
-                        <strong>🧣 Làng Lụa Vạn Phúc (Hà Đông)</strong>
-                        <span>22% · 404.800.000 ₫</span>
-                      </div>
-                      <div className="bar-track">
-                        <div className="bar-fill" style={{ width: "22%", background: "var(--leaf)" }} />
-                      </div>
-                    </div>
-
-                    <div className="village-bar-item">
-                      <div className="bar-labels">
-                        <strong>🪵 Làng Mộc Chàng Sơn (Thạch Thất)</strong>
-                        <span>10% · 184.000.000 ₫</span>
-                      </div>
-                      <div className="bar-track">
-                        <div className="bar-fill" style={{ width: "10%", background: "var(--gold)" }} />
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
@@ -229,8 +261,8 @@ export function AdminPortalView({
                 <div className="admin-card">
                   <div className="admin-card-header">
                     <div>
-                      <h3>Nhật Ký Thẩm Định Gần Đây</h3>
-                      <p className="card-sub">Các quyết định cấp chứng nhận và hoạt động hệ thống</p>
+                      <h3>Nhật Ký Thao Tác Hệ Thống</h3>
+                      <p className="card-sub">Nhật ký bất biến ghi nhận quyết định thẩm định & cấp tem</p>
                     </div>
                     <button
                       type="button"
@@ -242,16 +274,21 @@ export function AdminPortalView({
                   </div>
 
                   <div className="admin-log-mini-list">
-                    {auditLogs.map((log) => (
-                      <div key={log.id} className="log-mini-item">
-                        <div className="log-dot" />
-                        <div>
-                          <strong>{log.action} · {log.target}</strong>
-                          <p>{log.actor} — {log.result}</p>
-                          <small>{log.time}</small>
+                    {initialAuditLogs.length > 0 ? (
+                      initialAuditLogs.slice(0, 4).map((log: any) => (
+                        <div key={log.id} className="log-mini-item">
+                          <div className="log-dot" />
+                          <div>
+                            <strong>{log.action} · {log.entity_type}</strong>
+                            <p>{new Date(log.created_at).toLocaleString("vi-VN")}</p>
+                          </div>
                         </div>
+                      ))
+                    ) : (
+                      <div style={{ textAlign: "center", color: "#64748b", padding: 20 }}>
+                        <p>Chưa có sự kiện kiểm toán mới.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -292,13 +329,13 @@ export function AdminPortalView({
                             <td>
                               <strong>{item.passport_records?.products?.name ?? "Tác phẩm thủ công"}</strong>
                               <br />
-                              <small className="mono-code">{item.passport_records?.public_id ?? "HCT-BT-PASSPORT"}</small>
+                              <small className="mono-code">{item.passport_records?.public_code ?? item.passport_records?.public_id ?? "CT-BTG-NVA-2026-0085"}</small>
                             </td>
                             <td>
                               <span className="admin-badge-type">{item.evidence_type}</span>
                             </td>
                             <td>
-                              <p className="evidence-statement">{item.statement}</p>
+                              <p className="evidence-statement" style={{ margin: 0, fontSize: "0.85rem" }}>{item.statement}</p>
                             </td>
                             <td>
                               <strong>{item.heritage_sources?.title ?? "Hồ sơ xưởng cung cấp"}</strong>
@@ -315,7 +352,7 @@ export function AdminPortalView({
                   </div>
                 ) : (
                   <div className="admin-empty-state">
-                    <CheckCircle2 size={40} style={{ color: "var(--leaf)" }} />
+                    <CheckCircle2 size={40} style={{ color: "#2e7d32", margin: "0 auto 12px" }} />
                     <h3>Không có hồ sơ nào chờ thẩm định</h3>
                     <p>Tất cả minh chứng xuất xứ làng nghề đã được duyệt và cập nhật vào Hộ chiếu số.</p>
                   </div>
@@ -337,50 +374,139 @@ export function AdminPortalView({
                   </div>
                 </div>
 
+                {merchantsList.length > 0 ? (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Nghệ Nhân / Xưởng Nghề</th>
+                          <th>Cụm Làng Nghề</th>
+                          <th>Số Tác Phẩm</th>
+                          <th>Tuổi Nghề</th>
+                          <th>Trạng Thái</th>
+                          <th>Thao Tác Quản Trị</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {merchantsList.map((m) => (
+                          <tr key={m.id}>
+                            <td>
+                              <strong>{m.name}</strong>
+                              <br />
+                              <small>{m.bio ? m.bio.slice(0, 50) + "..." : "Xưởng thủ công truyền thống"}</small>
+                            </td>
+                            <td>{m.villages?.name ? `${m.villages.name} · ${m.villages.district}` : "Hà Nội"}</td>
+                            <td>{m.products?.length || 0} tác phẩm</td>
+                            <td>{m.years_practicing || 15} năm</td>
+                            <td>
+                              {m.is_published ? (
+                                <span className="seller-status-pill success" style={{ background: "#dcfce7", color: "#15803d", padding: "3px 8px", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>Hoạt động</span>
+                              ) : (
+                                <span className="seller-status-pill warning" style={{ background: "#fef3c7", color: "#b45309", padding: "3px 8px", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>Chờ duyệt</span>
+                              )}
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className={`button small ${m.is_published ? "secondary" : "terracotta"}`}
+                                onClick={() => toggleMerchantStatus(m.id, Boolean(m.is_published))}
+                              >
+                                {m.is_published ? "Tạm đình chỉ" : "Duyệt & Mở xưởng"}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="admin-empty-state">
+                    <Store size={40} style={{ color: "#64748b", margin: "0 auto 12px" }} />
+                    <h3>Chưa có hồ sơ gian hàng nào trong hệ thống</h3>
+                    <p>Các xưởng nghề khi đăng ký sẽ xuất hiện tại đây để Admin thẩm định.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: KIỂM DUYỆT SẢN PHẨM & 3D MANAGER */}
+          {activeTab === "products-audit" && (
+            <div className="admin-view-fade">
+              <div className="admin-card">
+                <div className="admin-card-header">
+                  <div>
+                    <h2>Kiểm Duyệt Sản Phẩm Toàn Sàn ({productsList.length} tác phẩm)</h2>
+                    <p className="card-sub">Phê duyệt niêm yết lên Buyer Marketplace hoặc yêu cầu chỉnh sửa</p>
+                  </div>
+                </div>
+
                 <div className="admin-table-wrap">
                   <table className="admin-table">
                     <thead>
                       <tr>
-                        <th>Nghệ Nhân / Xưởng Nghề</th>
-                        <th>Cụm Làng Nghề</th>
-                        <th>Số Tác Phẩm</th>
-                        <th>Hạng Hộ Chiếu</th>
-                        <th>Ngày Tham Gia</th>
-                        <th>Trạng Thái</th>
-                        <th>Thao Tác Quản Trị</th>
+                        <th>Tên Tác Phẩm</th>
+                        <th>Nghệ Nhân / Xưởng</th>
+                        <th>Giá Bán</th>
+                        <th>Tồn Kho</th>
+                        <th>Mô Hình 3D</th>
+                        <th>Trạng Thái Sàn</th>
+                        <th>Thao Tác Duyệt</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {merchants.map((m) => (
-                        <tr key={m.id}>
+                      {productsList.map((p) => (
+                        <tr key={p.id}>
                           <td>
-                            <strong>{m.name}</strong>
+                            <strong>{p.name}</strong>
                             <br />
-                            <small>{m.workshop}</small>
+                            <small className="mono-code">{p.slug}</small>
                           </td>
-                          <td>{m.village}</td>
-                          <td>{m.productsCount} tác phẩm</td>
+                          <td>{p.artisans?.name || "Nghệ nhân Hà Nội"}</td>
+                          <td><strong>{formatVnd(p.price_vnd)}</strong></td>
+                          <td>{p.stock_quantity} món</td>
                           <td>
-                            <span className="badge gold">{m.passportTier}</span>
-                          </td>
-                          <td><small>{m.joinedDate}</small></td>
-                          <td>
-                            {m.status === "active" ? (
-                              <span className="seller-status-pill success">Hoạt động</span>
-                            ) : m.status === "suspended" ? (
-                              <span className="seller-status-pill draft">Tạm ngưng</span>
+                            {p.product_model_assets?.length > 0 ? (
+                              <span style={{ color: "#15803d", fontSize: "0.78rem", fontWeight: 700 }}>✦ Đã có Model 3D</span>
                             ) : (
-                              <span className="seller-status-pill warning">Chờ duyệt</span>
+                              <span style={{ color: "#64748b", fontSize: "0.78rem" }}>Chưa có 3D</span>
                             )}
                           </td>
                           <td>
-                            <button
-                              type="button"
-                              className={`button small ${m.status === "active" ? "secondary" : "terracotta"}`}
-                              onClick={() => toggleMerchantStatus(m.id)}
-                            >
-                              {m.status === "active" ? "Tạm đình chỉ" : "Kích hoạt gian"}
-                            </button>
+                            {p.status === "active" ? (
+                              <span style={{ background: "#dcfce7", color: "#15803d", padding: "3px 8px", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>Đang mở bán</span>
+                            ) : (
+                              <span style={{ background: "#fef3c7", color: "#b45309", padding: "3px 8px", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>Chờ duyệt (Nháp)</span>
+                            )}
+                          </td>
+                          <td>
+                            <div style={{ display: "flex", gap: 6 }}>
+                              {p.status !== "active" ? (
+                                <button
+                                  type="button"
+                                  className="button small terracotta"
+                                  onClick={() => handleProductStatus(p.id, "active")}
+                                >
+                                  Phê duyệt mở bán
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="button small secondary"
+                                  onClick={() => handleProductStatus(p.id, "draft")}
+                                >
+                                  Tạm chuyển nháp
+                                </button>
+                              )}
+                              <Link
+                                href={`/products/${p.slug}`}
+                                target="_blank"
+                                className="button small secondary"
+                                title="Xem trang sản phẩm"
+                              >
+                                <ExternalLink size={13} />
+                              </Link>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -388,81 +514,123 @@ export function AdminPortalView({
                   </table>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* TAB 4: QUẢN LÝ & KIỂM ĐỊNH MÔ HÌNH 3D/AR */}
-          {activeTab === "products-audit" && (
-            <div className="admin-view-fade">
+              {/* 3D Model Studio */}
               <div className="admin-card">
                 <Admin3DManager />
               </div>
             </div>
           )}
 
-          {/* TAB 5: ĐƠN HÀNG TOÀN SÀN & TRANH CHẤP */}
+          {/* TAB 5: ĐƠN HÀNG TOÀN SÀN */}
           {(activeTab === "platform-orders" || activeTab === "disputes" || activeTab === "platform-fees") && (
             <div className="admin-view-fade">
               <div className="admin-card">
                 <div className="admin-card-header">
                   <div>
-                    <h2>Giám Sát Dòng Tiền & Escrow Toàn Sàn</h2>
+                    <h2>Giám Sát Đơn Hàng & Vận Chuyển Toàn Sàn ({ordersList.length} đơn)</h2>
                     <p className="card-sub">
-                      Cơ chế bảo hiểm chống vỡ và trung gian thanh toán bảo vệ cả người mua và nghệ nhân làng nghề
+                      Dữ liệu giao dịch thật từ cơ sở dữ liệu Supabase, kiểm soát dòng tiền và trạng thái giao hàng
                     </p>
                   </div>
                 </div>
 
                 <div className="escrow-rule-box">
-                  <Scale size={24} style={{ color: "var(--indigo)" }} />
+                  <Scale size={24} style={{ color: "#166534", flexShrink: 0 }} />
                   <div>
-                    <strong>Cơ chế Quỹ Ký Quỹ Escrow Hanoi Craft-Trust</strong>
-                    <p>
-                      Tiền thanh toán của người mua được tạm giữ trong tài khoản Escrow an toàn. Khoản tiền chỉ được tự động giải ngân cho xưởng nghệ nhân sau khi khách hàng nhận gốm nguyên vẹn trong vòng 48h.
+                    <strong>Cơ chế Quỹ Ký Quỹ Escrow Hanoi CraftTrust</strong>
+                    <p style={{ margin: "4px 0 0", fontSize: "0.85rem" }}>
+                      Tiền thanh toán của người mua được tạm giữ trong tài khoản Escrow an toàn. Khoản tiền chỉ được tự động giải ngân cho xưởng nghệ nhân sau khi khách hàng nhận sản phẩm thủ công nguyên vẹn trong vòng 48h.
                     </p>
                   </div>
                 </div>
 
-                <div className="admin-table-wrap" style={{ marginTop: 20 }}>
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Mã Đơn Sàn</th>
-                        <th>Người Mua</th>
-                        <th>Gian Hàng Thực Hiện</th>
-                        <th>Giá Trị</th>
-                        <th>Trạng Thái Escrow</th>
-                        <th>Bảo Hiểm Vỡ Hỏng</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td><strong>#CT-8291</strong></td>
-                        <td>Lê Minh Tuấn</td>
-                        <td>Xưởng Gốm Thu Hà</td>
-                        <td><strong>1.850.000 ₫</strong></td>
-                        <td><span className="badge warning">Tạm giữ Escrow</span></td>
-                        <td><span className="badge success">Có bảo hiểm</span></td>
-                      </tr>
-                      <tr>
-                        <td><strong>#CT-8275</strong></td>
-                        <td>Trần Bảo Nam</td>
-                        <td>Xưởng Gốm Thu Hà</td>
-                        <td><strong>2.400.000 ₫</strong></td>
-                        <td><span className="badge info">Đang vận chuyển</span></td>
-                        <td><span className="badge success">Có bảo hiểm</span></td>
-                      </tr>
-                      <tr>
-                        <td><strong>#CT-8260</strong></td>
-                        <td>Hoàng Đức Anh</td>
-                        <td>Xưởng Gốm Thu Hà</td>
-                        <td><strong>1.850.000 ₫</strong></td>
-                        <td><span className="badge success">Đã giải ngân cho Shop</span></td>
-                        <td><span className="badge success">Hoàn thành</span></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                {ordersList.length > 0 ? (
+                  <div className="admin-table-wrap" style={{ marginTop: 20 }}>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Mã Đơn Sàn</th>
+                          <th>Người Mua</th>
+                          <th>Tác Phẩm & Số Lượng</th>
+                          <th>Giá Trị</th>
+                          <th>Trạng Thái</th>
+                          <th>Cập Nhật Trạng Thái</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ordersList.map((order: any) => (
+                          <tr key={order.id}>
+                            <td>
+                              <strong>#{order.id.slice(0, 8).toUpperCase()}</strong>
+                              <br />
+                              <small>{new Date(order.created_at).toLocaleString("vi-VN")}</small>
+                            </td>
+                            <td>
+                              <strong>{order.profiles?.display_name || order.shipping_address?.recipient_name || "Khách Hàng"}</strong>
+                              <br />
+                              <small>{order.shipping_address?.phone || "SĐT lưu hồ sơ"}</small>
+                            </td>
+                            <td>
+                              {(order.order_items ?? []).map((it: any) => (
+                                <div key={it.id} style={{ fontSize: "0.85rem" }}>
+                                  {it.product_name} × <strong>{it.quantity}</strong>
+                                </div>
+                              ))}
+                            </td>
+                            <td>
+                              <strong style={{ color: "#0c2340", fontSize: "1rem" }}>{formatVnd(order.subtotal_vnd)}</strong>
+                            </td>
+                            <td>
+                              {order.status === "placed" && <span style={{ background: "#fef3c7", color: "#b45309", padding: "3px 8px", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>Chờ xác nhận</span>}
+                              {order.status === "processing" && <span style={{ background: "#e0f2fe", color: "#0369a1", padding: "3px 8px", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>Đang chuẩn bị</span>}
+                              {order.status === "fulfilled" && <span style={{ background: "#dcfce7", color: "#15803d", padding: "3px 8px", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>Đã giao hàng</span>}
+                              {order.status === "cancelled" && <span style={{ background: "#f1f5f9", color: "#475569", padding: "3px 8px", borderRadius: 4, fontSize: "0.75rem", fontWeight: 700 }}>Đã hủy</span>}
+                            </td>
+                            <td>
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                {order.status === "placed" && (
+                                  <button
+                                    type="button"
+                                    className="button small terracotta"
+                                    onClick={() => handleOrderStatus(order.id, "processing")}
+                                  >
+                                    Chuyển xử lý
+                                  </button>
+                                )}
+                                {order.status === "processing" && (
+                                  <button
+                                    type="button"
+                                    className="button small"
+                                    style={{ background: "#15803d", color: "#fff" }}
+                                    onClick={() => handleOrderStatus(order.id, "fulfilled")}
+                                  >
+                                    Đã giao hàng
+                                  </button>
+                                )}
+                                {order.status !== "cancelled" && order.status !== "fulfilled" && (
+                                  <button
+                                    type="button"
+                                    className="button small secondary"
+                                    onClick={() => handleOrderStatus(order.id, "cancelled")}
+                                  >
+                                    Hủy đơn
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="admin-empty-state" style={{ marginTop: 20 }}>
+                    <Truck size={40} style={{ color: "#64748b", margin: "0 auto 12px" }} />
+                    <h3>Chưa có đơn hàng nào trên toàn sàn</h3>
+                    <p>Các giao dịch mua hàng phát sinh từ sàn sẽ hiển thị tại đây.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -475,37 +643,41 @@ export function AdminPortalView({
                   <div>
                     <h2>Nhật Ký Kiểm Toán Toàn Diện (System Audit Logs)</h2>
                     <p className="card-sub">
-                      Lưu vết bất biến mọi thao tác duyệt minh chứng, cấp Hộ chiếu số và giải ngân theo chuẩn an toàn
+                      Lưu vết bất biến mọi thao tác duyệt minh chứng, cấp Hộ chiếu số và điều hành theo chuẩn an toàn
                     </p>
                   </div>
                 </div>
 
-                <div className="admin-table-wrap">
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Mã Nhật Ký</th>
-                        <th>Thời Gian</th>
-                        <th>Người Thực Hiện</th>
-                        <th>Hành Động</th>
-                        <th>Đối Tượng</th>
-                        <th>Kết Quả Thao Tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {auditLogs.map((l) => (
-                        <tr key={l.id}>
-                          <td><span className="mono-code">{l.id}</span></td>
-                          <td><small>{l.time}</small></td>
-                          <td><strong>{l.actor}</strong></td>
-                          <td><span className="badge">{l.action}</span></td>
-                          <td>{l.target}</td>
-                          <td><span className="text-success">{l.result}</span></td>
+                {initialAuditLogs.length > 0 ? (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Mã Nhật Ký</th>
+                          <th>Thời Gian</th>
+                          <th>Hành Động</th>
+                          <th>Đối Tượng</th>
+                          <th>Chi Tiết Dữ Liệu</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {initialAuditLogs.map((l: any) => (
+                          <tr key={l.id}>
+                            <td><span className="mono-code">#{l.id}</span></td>
+                            <td><small>{new Date(l.created_at).toLocaleString("vi-VN")}</small></td>
+                            <td><span className="badge" style={{ background: "#f1f5f9", color: "#0c2340", fontWeight: 700 }}>{l.action}</span></td>
+                            <td><strong>{l.entity_type}</strong></td>
+                            <td><small className="mono-code">{JSON.stringify(l.after_data || {})}</small></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="admin-empty-state">
+                    <p>Chưa có sự kiện kiểm toán nào được ghi nhận.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

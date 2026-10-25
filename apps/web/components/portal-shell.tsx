@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { type ReactNode } from "react";
 import { BuyerHeader } from "@/components/buyer/buyer-header";
 import { BuyerFooter } from "@/components/buyer/buyer-footer";
+import { FloatingChatbot } from "@/components/floating-chatbot";
 
 export function PortalShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -25,6 +26,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <BuyerFooter />
+      <FloatingChatbot />
     </div>
   );
 }

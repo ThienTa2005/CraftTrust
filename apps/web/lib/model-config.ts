@@ -10,6 +10,14 @@ export const engravingRegionSchema = z.object({
   cameraOrbit: z.string().regex(/^-?\d+(?:\.\d+)?deg \d+(?:\.\d+)?deg (?:\d+(?:\.\d+)?m|auto)$/).default("0deg 75deg auto"),
 }).refine(r => r.uv[0] + r.uv[2] <= 1 && r.uv[1] + r.uv[3] <= 1, "UV region must fit the texture");
 
+export const qrPlacementSchema = z.object({
+  enabled: z.boolean().default(true),
+  sizePercent: z.number().min(20).max(95).default(54),
+  rotation: z.number().min(0).max(360).default(0),
+  position: z.tuple([z.number(), z.number()]).default([0, 0]),
+});
+export type QrPlacement = z.infer<typeof qrPlacementSchema>;
+
 export const modelConfigSchema = z.object({
   heightCm: z.number().positive().max(250).default(20),
   widthCm: z.number().positive().max(250).default(10),
@@ -18,6 +26,7 @@ export const modelConfigSchema = z.object({
   cameraOrbit: z.string().regex(/^-?\d+(?:\.\d+)?deg \d+(?:\.\d+)?deg (?:\d+(?:\.\d+)?m|auto)$/).default("0deg 75deg auto"),
   arEnabled: z.boolean().default(false),
   regions: z.array(engravingRegionSchema).max(20).default([]),
+  qrPlacement: qrPlacementSchema.optional(),
 });
 export type ModelConfig = z.infer<typeof modelConfigSchema>;
 export type EngravingRegion = z.infer<typeof engravingRegionSchema>;

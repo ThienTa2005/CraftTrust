@@ -58,3 +58,36 @@ export async function GET() {
     })),
   });
 }
+
+export async function PATCH(request: Request) {
+  const auth = await getAuthorizedUser(["artisan", "seller", "admin"]);
+  if (auth.reason || !auth.supabase || !auth.user) {
+    return NextResponse.json(
+      { error: auth.reason ?? "Không thể xác thực tài khoản." },
+      { status: auth.user ? 403 : 401 }
+    );
+  }
+
+  const body = await request.json().catch(() => null);
+  const { orderId, status } = body || {};
+
+  if (!orderId || !["placed", "processing", "fulfilled", "cancelled"].includes(status)) {
+    return NextResponse.json(
+      { error: "Trạng thái đơn hàng không hợp lệ (hỗ trợ: placed, processing, fulfilled, cancelled)." },
+      { status: 400 }
+    );
+  }
+
+  const { data: updated, error } = await auth.supabase
+    .from("orders")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .select("id, status, updated_at")
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ order: updated });
+}

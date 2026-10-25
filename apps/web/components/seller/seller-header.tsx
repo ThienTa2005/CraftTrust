@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ExternalLink,
   LogOut,
+  Menu,
   MessageSquare,
   Search,
   Settings,
@@ -23,12 +24,14 @@ interface SellerHeaderProps {
   roles?: (AppRole | string)[] | undefined;
   activeTab?: string | undefined;
   onSelectTab: (tab: string) => void;
+  onToggleMobileMenu?: () => void;
 }
 
 export function SellerHeader({
   artisanName = "Nghệ nhân Bát Tràng",
   roles = ["seller"],
   onSelectTab,
+  onToggleMobileMenu,
 }: SellerHeaderProps) {
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -48,6 +51,16 @@ export function SellerHeader({
   return (
     <header className="seller-header">
       <div className="seller-header-left">
+        {onToggleMobileMenu && (
+          <button
+            type="button"
+            className="seller-mobile-toggle"
+            onClick={onToggleMobileMenu}
+            aria-label="Mở menu quản lý người bán"
+          >
+            <Menu size={20} />
+          </button>
+        )}
         <Link href="/seller" className="seller-brand">
           <div className="seller-brand-badge">
             <Store size={20} />
@@ -111,51 +124,22 @@ export function SellerHeader({
             aria-label="Thông báo người bán"
           >
             <Bell size={18} />
-            <span className="seller-badge">3</span>
           </button>
 
           {notiOpen && (
             <div className="seller-dropdown-popover" onMouseLeave={() => setNotiOpen(false)}>
               <div className="popover-title">Thông Báo Người Bán</div>
-              <div className="popover-item unread">
-                <div className="popover-dot" />
-                <div>
-                  <strong>Đơn hàng mới #CT-8291</strong>
-                  <p>Khách hàng vừa đặt Bộ ấm chén men tro trăng.</p>
-                  <small>5 phút trước</small>
-                </div>
-              </div>
-              <div className="popover-item unread">
-                <div className="popover-dot" />
-                <div>
-                  <strong>Mô hình 3D hoàn tất</strong>
-                  <p>Mô hình Bình hoa men lam đã được AI xử lý xong.</p>
-                  <small>1 giờ trước</small>
-                </div>
-              </div>
               <div className="popover-item">
-                <div className="popover-dot read" />
+                <div className="popover-dot" />
                 <div>
-                  <strong>Cảnh báo tồn kho</strong>
-                  <p>Bộ chén hỏa biến còn dưới 3 sản phẩm.</p>
-                  <small>Hôm qua</small>
+                  <strong>Hệ thống sẵn sàng</strong>
+                  <p>Kênh người bán kết nối cơ sở dữ liệu thời gian thực.</p>
+                  <small>Hôm nay</small>
                 </div>
               </div>
             </div>
           )}
         </div>
-
-        {/* Messages */}
-        <button
-          type="button"
-          className="seller-icon-btn"
-          onClick={() => alert("Hộp thư trò chuyện với khách hàng đang mở trên nền tảng.")}
-          aria-label="Tin nhắn khách hàng"
-          title="Tin nhắn khách hàng"
-        >
-          <MessageSquare size={18} />
-          <span className="seller-badge">1</span>
-        </button>
 
         {/* Profile Dropdown */}
         <div className="seller-profile-wrap">
@@ -170,7 +154,7 @@ export function SellerHeader({
             </div>
             <div className="seller-profile-text">
               <span className="seller-artisan-name">{artisanName}</span>
-              <span className="seller-workshop-tag">Xưởng gốm Bát Tràng</span>
+              <span className="seller-workshop-tag">Xưởng thủ công làng nghề</span>
             </div>
             <ChevronDown size={14} />
           </button>
@@ -183,11 +167,11 @@ export function SellerHeader({
                 className="popover-action"
                 onClick={() => {
                   setProfileOpen(false);
-                  onSelectTab("shop-profile");
+                  onSelectTab("products");
                 }}
               >
                 <User size={15} />
-                <span>Hồ sơ xưởng & Nghệ nhân</span>
+                <span>Quản lý sản phẩm</span>
               </button>
               <button
                 type="button"
