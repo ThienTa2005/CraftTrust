@@ -75,8 +75,8 @@ export function AdminHeader({
           <span className="status-pill online">
             <span className="status-dot" /> Database: Active
           </span>
-          <span className="status-pill online">
-            <Activity size={13} /> AI 3D Worker: Ready
+          <span className="status-pill" title="Chưa có kiểm tra kết nối trực tiếp tới dịch vụ tạo 3D">
+            <Activity size={13} /> 3D: Chưa xác minh kết nối
           </span>
           <span className="status-pill online">
             <Server size={13} /> NFC Registry: Synced

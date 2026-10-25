@@ -20,6 +20,6 @@ COPY requirements.txt ./
 RUN python3 -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
-COPY worker.mjs generate.py ai_adapter.py ./
+COPY worker.mjs supabase-config.mjs generate.py ai_adapter.py ./
 USER node
 CMD ["node", "worker.mjs"]

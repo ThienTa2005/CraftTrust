@@ -20,7 +20,7 @@ async function assertAllowed(directory, allowed) {
   }
 }
 
-const runtimeFiles = ["worker.mjs", "generate.py", "ai_adapter.py", "requirements.txt"];
+const runtimeFiles = ["worker.mjs", "supabase-config.mjs", "generate.py", "ai_adapter.py", "requirements.txt"];
 const templateFiles = ["Dockerfile", ".dockerignore", "package.json", "package-lock.json"];
 await assertAllowed(destination, ["worker", "public", "vercel.json", ".vercelignore", ".gitignore", ".vercel"]);
 await assertAllowed(path.join(destination, "worker"), [...runtimeFiles, ...templateFiles]);

@@ -49,6 +49,21 @@ export function Admin3DManager() {
   const { locale } = useLanguage();
   const vi = locale === "vi";
 
+  function modelStatusLabel(status: string) {
+    const labels: Record<string, [string, string]> = {
+      queued: ["Đang chờ tạo 3D", "Queued for generation"],
+      processing: ["Đang tạo 3D", "Generating 3D"],
+      failed: ["Tạo 3D thất bại", "Generation failed"],
+      review: ["3D chờ kiểm duyệt", "3D awaiting review"],
+      pending_review: ["3D chờ kiểm duyệt", "3D awaiting review"],
+      draft: ["Bản nháp 3D", "Draft 3D"],
+      published: ["3D đã xuất bản", "Published 3D"],
+      ready: ["3D sẵn sàng", "3D ready"],
+      archived: ["3D đã lưu trữ", "Archived 3D"],
+    };
+    return labels[status]?.[vi ? 0 : 1] ?? (vi ? "Chưa có 3D" : "No 3D");
+  }
+
   // State
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,8 +106,10 @@ export function Admin3DManager() {
       if (!res.ok) throw new Error("Không thể tải danh sách sản phẩm.");
       const json = await res.json();
       setProducts(json.products || []);
-      if (json.products?.length > 0 && !selectedProduct) {
-        selectProduct(json.products[0]);
+      if (json.products?.length > 0) {
+        selectProduct(json.products.find((p: ProductItem) => p.id === selectedProduct?.id) || json.products[0]);
+      } else {
+        setSelectedProduct(null);
       }
     } catch (err: any) {
       showToast(err.message, "error");
@@ -385,7 +402,7 @@ export function Admin3DManager() {
     if (!matchesSearch) return false;
     if (statusFilter === "has_model") return p.hasModel;
     if (statusFilter === "no_model") return !p.hasModel;
-    if (statusFilter === "review") return p.modelStatus === "draft" || p.modelStatus === "pending_review";
+    if (statusFilter === "review") return ["draft", "pending_review", "review"].includes(p.modelStatus);
     return true;
   });
 
@@ -407,8 +424,8 @@ export function Admin3DManager() {
           <h2>{vi ? "Quản Lý & Kiểm Định Mô Hình 3D/AR" : "3D/AR Model Governance Studio"}</h2>
           <p className="card-sub">
             {vi
-              ? "Tải lên, kiểm định hình học mesh, thiết lập kích thước tỷ lệ 1:1, cấu hình camera và vùng khắc chữ cá nhân hóa theo từng sản phẩm."
-              : "Upload, inspect geometry, set 1:1 real metric dimensions, and define engraving regions."}
+              ? "Nghệ nhân gửi ảnh, hệ thống tự tạo và lưu mô hình 3D. Admin kiểm duyệt, chỉnh kích thước và xuất bản; tải GLB thủ công là tùy chọn bổ sung."
+              : "Models are generated and saved automatically from artisan photos. Review, configure and publish them here; manual GLB upload is optional."}
           </p>
         </div>
         <button
@@ -486,15 +503,9 @@ export function Admin3DManager() {
                         {p.artisan} · {formatVnd(p.priceVnd)}
                       </span>
                       <div className="product-status-row">
-                        {p.hasModel ? (
-                          <span className="badge success">
-                            <Sparkles size={11} /> {vi ? "3D Đã xuất bản" : "Published 3D"}
-                          </span>
-                        ) : p.modelStatus === "draft" ? (
-                          <span className="badge warning">{vi ? "Bản nháp 3D" : "Draft 3D"}</span>
-                        ) : (
-                          <span className="badge secondary">{vi ? "Chưa có 3D" : "No 3D"}</span>
-                        )}
+                        <span className={`badge ${p.modelStatus === "published" ? "success" : "secondary"}`}>
+                          {modelStatusLabel(p.modelStatus)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -517,23 +528,9 @@ export function Admin3DManager() {
                   <div className="banner-badges">
                     <span className="mono-code">{selectedProduct.slug}</span>
                     <span className="price-tag">{formatVnd(selectedProduct.priceVnd)}</span>
-                    {activeAsset ? (
-                      <span className={`status-pill ${activeAsset.status}`}>
-                        {activeAsset.status === "published"
-                          ? vi
-                            ? "Đã Xuất Bản Trên Sàn"
-                            : "Published"
-                          : activeAsset.status === "draft"
-                          ? vi
-                            ? "Bản Nháp (Chưa Công Khai)"
-                            : "Draft"
-                          : activeAsset.status}
-                      </span>
-                    ) : (
-                      <span className="status-pill no-model">
-                        {vi ? "Chưa có mô hình 3D" : "No model attached"}
-                      </span>
-                    )}
+                    <span className={`status-pill ${selectedProduct.modelStatus}`}>
+                      {modelStatusLabel(selectedProduct.modelStatus)}
+                    </span>
                   </div>
                 </div>
 
@@ -552,7 +549,7 @@ export function Admin3DManager() {
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <UploadCloud size={16} />
-                    <span>{vi ? "Chọn File .GLB Mới" : "Upload .GLB"}</span>
+                    <span>{vi ? "Tải GLB thủ công (tùy chọn)" : "Manual GLB upload (optional)"}</span>
                   </button>
                   {selectedFile && (
                     <button
@@ -636,19 +633,27 @@ export function Admin3DManager() {
                 ) : (
                   <div className="admin-no-model-placeholder">
                     <Box size={48} style={{ color: "var(--indigo)" }} />
-                    <h4>{vi ? "Sản phẩm chưa có mô hình 3D" : "No 3D model attached"}</h4>
+                    <h4>{modelStatusLabel(selectedProduct.modelStatus)}</h4>
                     <p>
-                      {vi
-                        ? "Khi chưa có mô hình, website chỉ hiển thị ảnh chụp thực tế và thông báo lịch sự, không dùng mô hình giả."
-                        : "Products without 3D models only display genuine photography."}
+                      {["queued", "processing"].includes(selectedProduct.modelStatus)
+                        ? vi
+                          ? "Ảnh đã được nghệ nhân gửi. Dịch vụ tạo 3D sẽ tự xử lý và lưu mô hình để kiểm duyệt. Không cần tải GLB thủ công. Bấm Làm mới để xem tiến độ; nếu chờ lâu, kiểm tra kết nối dịch vụ tạo 3D."
+                          : "Artisan photos are saved. The generation service will create and save a model for review. No manual upload is needed. Refresh to check progress; if it stays queued, check the generation service connection."
+                        : selectedProduct.modelStatus === "failed"
+                          ? vi
+                            ? "Lần tạo 3D đã thất bại. Kiểm tra lỗi dịch vụ và tạo lại từ kênh người bán sau khi xử lý nguyên nhân."
+                            : "Generation failed. Check the service error and retry from the seller page once resolved."
+                          : vi
+                            ? "Nghệ nhân có thể gửi ảnh và yêu cầu tạo 3D từ kênh người bán. Nếu đã có file GLB, admin có thể bổ sung thủ công."
+                            : "Artisans can submit photos for generation from the seller page. Admins can optionally upload an existing GLB."}
                     </p>
                     <button
                       type="button"
-                      className="button terracotta"
+                      className="button secondary"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <UploadCloud size={16} />
-                      <span>{vi ? "Tải lên file GLB của sản phẩm" : "Upload GLB for this product"}</span>
+                      <span>{vi ? "Bổ sung GLB thủ công (tùy chọn)" : "Add GLB manually (optional)"}</span>
                     </button>
                   </div>
                 )}

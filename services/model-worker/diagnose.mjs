@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "node:fs";
 import { parseEnv } from "node:util";
 import { fileURLToPath } from "node:url";
+import { normalizeSupabaseUrl } from "./supabase-config.mjs";
 
 function readConfiguration(relative) {
   const filename = fileURLToPath(new URL(relative, import.meta.url));
@@ -11,9 +12,9 @@ function readConfiguration(relative) {
 // Match Node --env-file precedence: shell > worker file > root file.
 const env = { ...readConfiguration("../../.env.local"), ...readConfiguration(".env.local"), ...process.env };
 const webEnv = readConfiguration("../../apps/web/.env.local");
-const url = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
+const url = normalizeSupabaseUrl(env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL);
 const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY;
-const webUrl = webEnv.NEXT_PUBLIC_SUPABASE_URL;
+const webUrl = normalizeSupabaseUrl(webEnv.NEXT_PUBLIC_SUPABASE_URL);
 console.log(JSON.stringify({ workerUrl: url, webUrl, serviceKeyConfigured: Boolean(key), python: env.PYTHON_BIN || "auto-detect" }));
 if (url && webUrl && url.replace(/\/$/, "") !== webUrl.replace(/\/$/, "")) {
   console.warn("Web and worker URLs differ. Confirm that they address the same Supabase project.");

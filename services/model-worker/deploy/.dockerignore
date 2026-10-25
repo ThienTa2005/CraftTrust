@@ -4,5 +4,6 @@
 !package-lock.json
 !requirements.txt
 !worker.mjs
+!supabase-config.mjs
 !generate.py
 !ai_adapter.py

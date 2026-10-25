@@ -67,7 +67,7 @@ Mở Vercel → **project `crafttrust-model-worker`** → Settings → Environme
 
 | Tên | Giá trị |
 | --- | --- |
-| `SUPABASE_URL` | URL cloud giống project website |
+| `SUPABASE_URL` | URL gốc của cùng project website, dạng `https://<project-ref>.supabase.co` (không thêm `/rest/v1`) |
 | `SUPABASE_SECRET_KEY` | Secret key của đúng Supabase project |
 | `APP_BASE_URL` | `https://craft-trust.vercel.app` |
 
@@ -76,9 +76,9 @@ Nếu dùng legacy service-role key, thay dòng `SUPABASE_SECRET_KEY` bằng `SU
 Có thể thêm bằng CLI thay cho dashboard; lệnh hỏi giá trị tương tác để không ghi khóa vào lịch sử shell:
 
 ```powershell
-rtk proxy npx --yes vercel@latest env add SUPABASE_URL production
-rtk proxy npx --yes vercel@latest env add SUPABASE_SECRET_KEY production
-rtk proxy npx --yes vercel@latest env add APP_BASE_URL production
+rtk proxy npx --yes vercel@latest env add SUPABASE_URL --environment production
+rtk proxy npx --yes vercel@latest env add SUPABASE_SECRET_KEY --environment production
+rtk proxy npx --yes vercel@latest env add APP_BASE_URL --environment production
 ```
 
 Nguồn: [Vercel environment CLI](https://vercel.com/docs/cli/env).
@@ -93,10 +93,10 @@ rtk proxy npx --yes vercel@latest --prod
 
 Daemons beta chỉ chạy Production, nên phải có `--prod`. Kiểm tra CLI đang deploy project `crafttrust-model-worker`, không phải project website.
 
-Mở Logs của project worker. Bình thường sẽ thấy thông báo dạng:
+Mở Logs → **Runtime Logs** của project worker, lọc nguồn **daemon**. Request Logs có thể trống vì worker tự đọc hàng đợi, không nhận HTTP từ website. Bình thường sẽ thấy thông báo dạng:
 
 ```text
-[model-worker] ID: worker-... ready; polling every 3000 ms
+[model-worker] ID: worker-... started; polling every 3000 ms
 ```
 
 Nếu tài khoản/API báo không hỗ trợ `daemons`, dừng tại đó và kiểm tra quyền dùng beta. Không tự đổi sang gói trả phí để tiếp tục. Hướng dẫn này không thể bảo đảm tính năng beta được bật trên mọi tài khoản.
@@ -137,6 +137,7 @@ Mỗi khi sửa code worker, chạy lại `model-worker:prepare-cloud` từ repo
 | Lỗi | Kiểm tra |
 | --- | --- |
 | Không có log worker | Đúng project, đúng Production, daemon một instance, quota còn không |
+| `PGRST125: Invalid path specified in request URL` | Kiểm tra `SUPABASE_URL` của worker: phải là URL gốc project, không có `/rest/v1`, tên bảng hay đường dẫn dashboard. Lưu biến Production rồi **deploy lại worker**. Code mới tự bỏ hậu tố `/rest/v1`, `/auth/v1`, `/storage/v1` khi khởi động. |
 | `PGRST202` | RPC trong database production và schema cache |
 | `Invalid API key` / `401` | Secret key phải thuộc cùng project với URL |
 | Worker chạy nhưng không nhận sản phẩm | Web và worker có đang dùng hai Supabase project khác nhau không |
@@ -145,3 +146,5 @@ Mỗi khi sửa code worker, chạy lại `model-worker:prepare-cloud` từ repo
 | Hết quota Hobby | Worker sẽ ngừng cho đến khi quota được khôi phục; không bấm tạo lại liên tục |
 
 Xem Usage của team Vercel để theo dõi CPU. Quota thuộc cả team, không phải từng project. Supabase Storage/băng thông có hạn mức riêng; không có gói miễn phí vô hạn cho toàn hệ thống.
+
+Luồng tự động là: nghệ nhân gửi ảnh → job `queued` → worker tạo GLB và lưu Storage → mô hình `pending_review` → admin kiểm duyệt/xuất bản. Nút tải GLB trên trang admin là tính năng bổ sung thủ công, không phải bước bắt buộc để worker chạy. Các dòng `GET /api/admin/products` là đọc danh sách, không phải admin tải mô hình lên. Nhãn trạng thái trên giao diện không thay thế log nhận job và hoàn thành job thực tế.

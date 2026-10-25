@@ -6,9 +6,11 @@ import { tmpdir, hostname } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
+import { normalizeSupabaseUrl } from "./supabase-config.mjs";
 
-const supabaseUrl =
-  process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseUrl = normalizeSupabaseUrl(
+  process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL,
+);
 const serviceRoleKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
 
@@ -450,7 +452,7 @@ async function processJob(job) {
 
 async function main() {
   console.log(
-    `[model-worker] ID: ${workerId} ready; polling every ${pollMs} ms${once ? " (once)" : ""}`,
+    `[model-worker] ID: ${workerId} started; polling every ${pollMs} ms${once ? " (once)" : ""}`,
   );
   let pollCount = 0;
   do {
@@ -469,6 +471,9 @@ async function main() {
         "[model-worker] poll error:",
         error instanceof Error ? error.message : error,
       );
+      if (error?.code === "PGRST125") {
+        console.error("[model-worker] Check Production SUPABASE_URL: use https://<project>.supabase.co without /rest/v1, then redeploy the worker.");
+      }
       if (once) process.exitCode = 1;
     }
     if (!once && !stopping) await sleep(pollMs);

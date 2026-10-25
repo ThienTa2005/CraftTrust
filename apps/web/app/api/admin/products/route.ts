@@ -14,7 +14,7 @@ export async function GET() {
   const fullRes = await auth.supabase
     .from("products")
     .select(
-      `id, name, slug, price_vnd, stock_quantity, status, poster_url, model_url,
+      `id, name, slug, price_vnd, stock_quantity, status, poster_url, model_url, model_status,
        artisans ( id, name, villages ( id, name ) )`
     )
     .order("created_at", { ascending: false });
@@ -25,7 +25,7 @@ export async function GET() {
     // Fallback: Query products without nested joins
     const fallbackRes = await auth.supabase
       .from("products")
-      .select("id, name, slug, price_vnd, stock_quantity, status, poster_url, model_url")
+      .select("id, name, slug, price_vnd, stock_quantity, status, poster_url, model_url, model_status")
       .order("created_at", { ascending: false });
 
     if (fallbackRes.data && fallbackRes.data.length > 0) {
@@ -38,7 +38,8 @@ export async function GET() {
   try {
     const { data: assets } = await auth.supabase
       .from("product_model_assets")
-      .select("id, product_id, status, settings, original_filename, file_size, created_at, approved_at");
+      .select("id, product_id, status, settings, original_filename, file_size, created_at, approved_at")
+      .order("created_at", { ascending: false });
 
     if (assets) {
       for (const asset of assets) {
@@ -81,13 +82,15 @@ export async function GET() {
     const publishedAsset = assets.find((a: any) => a.status === "published");
     const activeAsset = publishedAsset || assets[0];
 
-    const hasModel = Boolean(publishedAsset || p.model_url);
+    const hasModel = Boolean(activeAsset || p.model_url);
     const modelUrl = publishedAsset
       ? `/api/models/${publishedAsset.id}`
       : (activeAsset ? `/api/models/${activeAsset.id}` : (p.model_url || undefined));
-    const modelStatus = publishedAsset
-      ? "published"
-      : (activeAsset ? activeAsset.status : (p.model_url ? "ready" : "no_model"));
+    const modelStatus = ["queued", "processing", "failed"].includes(p.model_status)
+      ? p.model_status
+      : publishedAsset
+        ? "published"
+        : (activeAsset ? activeAsset.status : (p.model_status || (p.model_url ? "ready" : "no_model")));
 
     return {
       id: p.id,
