@@ -18,6 +18,8 @@ export type ExperienceProduct = {
   slug: string;
   posterUrl?: string;
   artisan: string;
+  village?: string;
+  priceVnd?: number;
   modelAssetId: string;
 };
 

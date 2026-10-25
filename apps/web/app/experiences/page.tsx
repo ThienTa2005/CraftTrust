@@ -16,11 +16,21 @@ export default async function ExperiencesPage() {
       .order("created_at", { ascending: false });
     const productIds = [...new Set((data ?? []).map((item) => item.product_id).filter(Boolean))];
     const { data: products } = productIds.length
-      ? await supabase.from("products").select("id,name,slug,poster_url,artisans(name)").in("id", productIds)
+      ? await supabase.from("products").select("id,name,slug,poster_url,price_vnd,artisans(name,villages(name))").in("id", productIds)
       : { data: [] };
     const productsById = new Map((products ?? []).map((product: any) => {
       const artisan = Array.isArray(product.artisans) ? product.artisans[0] : product.artisans;
-      return [product.id, { id: product.id, name: product.name, slug: product.slug, posterUrl: product.poster_url, artisan: artisan?.name ?? "Nghệ nhân CraftTrust", modelAssetId: "" }];
+      const village = Array.isArray(artisan?.villages) ? artisan.villages[0] : artisan?.villages;
+      return [product.id, {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        posterUrl: product.poster_url,
+        artisan: artisan?.name ?? "Nghệ nhân CraftTrust",
+        village: village?.name ?? "Làng nghề Bát Tràng",
+        priceVnd: typeof product.price_vnd === "number" ? product.price_vnd : undefined,
+        modelAssetId: "",
+      }];
     }));
     experiences = (data ?? []).map((item) => ({ ...item, product: productsById.get(item.product_id) ?? null })) as Experience[];
     unavailable = Boolean(error);

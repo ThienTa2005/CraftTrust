@@ -30,19 +30,863 @@
     justify-content: center;
   }
 }
-.experiences-page > p { max-width: 75ch; }
-.experiences-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 20px; margin-top: 24px; }
-.experience-card { min-width: 0; padding: clamp(16px, 3vw, 28px); border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); overflow-wrap: anywhere; }
-.experience-card p { white-space: pre-wrap; }
-.experience-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 16px; }
-.experience-viewer { margin-top: 20px; min-width: 0; }
-.experience-viewer model-viewer { border-radius: 12px; background: var(--paper); }
-.experience-viewer p { font-size: 0.875rem; color: var(--muted); }
-.experiences-manager { padding: clamp(16px, 3vw, 32px); min-width: 0; }
-.experience-form { display: grid; gap: 16px; margin-block: 24px; max-width: 720px; }
-.experience-form label { display: grid; gap: 8px; min-width: 0; }
-.experience-form input, .experience-form textarea { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
-.experience-form button, .experience-actions button { min-height: 44px; white-space: normal; }
+/* -------------------------------------------------------------
+   Hanoi CraftTrust: 3D Heritage Exhibition & Virtual Studio
+   ------------------------------------------------------------- */
+.experiences-page-wrapper {
+  min-height: 85vh;
+  padding-bottom: clamp(48px, 8vw, 96px);
+  background: var(--paper, #f6f1e8);
+}
+
+.experiences-hero {
+  background: linear-gradient(180deg, rgba(235, 227, 214, 0.55) 0%, rgba(246, 241, 232, 0.2) 100%);
+  border-bottom: 1px solid var(--line-soft, rgba(23, 44, 53, 0.08));
+  padding: clamp(36px, 6vw, 68px) 0 clamp(28px, 4vw, 44px);
+}
+
+.experiences-hero-content {
+  max-width: 880px;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.experiences-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: rgba(213, 170, 69, 0.12);
+  border: 1px solid rgba(213, 170, 69, 0.35);
+  color: #8e6819;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.experiences-hero-title {
+  font-family: var(--font-display, "Playfair Display", Georgia, serif);
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1.18;
+  color: var(--ink, #172c35);
+  margin: 0 0 16px 0;
+  letter-spacing: -0.02em;
+}
+
+.experiences-hero-subtitle {
+  font-size: clamp(1rem, 2vw, 1.14rem);
+  line-height: 1.68;
+  color: var(--ink-soft, #29434d);
+  max-width: 760px;
+  margin: 0 auto 28px;
+}
+
+.experiences-features-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.feature-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--surface, #ffffff);
+  border: 1px solid rgba(21, 59, 91, 0.08);
+  box-shadow: 0 4px 14px rgba(21, 59, 91, 0.05);
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink, #172c35);
+}
+
+.feature-item svg {
+  color: var(--leaf, #08736b);
+  flex-shrink: 0;
+}
+
+.experiences-main {
+  padding-top: clamp(28px, 4vw, 48px);
+}
+
+.experiences-notice {
+  padding: 24px;
+  border-radius: 16px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line);
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.experiences-notice.error {
+  border-color: rgba(231, 96, 67, 0.3);
+  color: #991b1b;
+  background: #fef2f2;
+}
+
+.experiences-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: clamp(48px, 8vw, 80px) 24px;
+  border-radius: 24px;
+  background: var(--surface, #ffffff);
+  border: 1px dashed var(--line);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.empty-icon-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(213, 170, 69, 0.12);
+  color: var(--gold, #d5aa45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.experiences-empty-state h3 {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 10px;
+}
+
+.experiences-empty-state p {
+  color: var(--muted);
+  max-width: 480px;
+  margin: 0 0 24px;
+  line-height: 1.6;
+}
+
+/* -------------------------------------------------------------
+   3D Spotlight Showcase Studio
+   ------------------------------------------------------------- */
+.experience-spotlight {
+  background: radial-gradient(130% 100% at 50% 0%, #1c3647 0%, #0d1e28 100%);
+  border: 1px solid rgba(213, 170, 69, 0.3);
+  border-radius: 24px;
+  box-shadow: 0 24px 60px -12px rgba(13, 30, 40, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  color: #ffffff;
+  padding: clamp(20px, 3.5vw, 36px);
+  margin-bottom: clamp(36px, 6vw, 64px);
+  scroll-margin-top: 90px;
+  position: relative;
+  overflow: hidden;
+}
+
+.spotlight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 24px;
+}
+
+.spotlight-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spotlight-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gold, #d5aa45);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.spotlight-title {
+  font-family: var(--font-display, "Playfair Display", Georgia, serif);
+  font-size: clamp(1.4rem, 3vw, 2.1rem);
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.spotlight-close-btn {
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  flex-shrink: 0;
+}
+
+.spotlight-close-btn:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.spotlight-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: clamp(24px, 3.5vw, 44px);
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .spotlight-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.spotlight-viewer-panel {
+  min-width: 0;
+  width: 100%;
+}
+
+/* -------------------------------------------------------------
+   Experience Viewer & 3D Stage
+   ------------------------------------------------------------- */
+.experience-viewer-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.experience-viewer-stage {
+  position: relative;
+  width: 100%;
+  height: clamp(340px, 50vh, 520px);
+  border-radius: 18px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, #23445a 0%, #0c1c26 85%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35) inset;
+}
+
+.experience-viewer-stage::after {
+  content: "";
+  position: absolute;
+  bottom: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 65%;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(213, 170, 69, 0.35) 0%, rgba(21, 59, 91, 0) 70%);
+  pointer-events: none;
+  filter: blur(8px);
+}
+
+.experience-viewer-loading,
+.experience-viewer-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(13, 30, 40, 0.88);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  text-align: center;
+  padding: 24px;
+  z-index: 3;
+}
+
+.spinner-icon {
+  animation: spin 1.2s linear infinite;
+  color: var(--gold, #d5aa45);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.experience-viewer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(13, 30, 40, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.toolbar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.ready {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.status-dot.loading {
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+.status-dot.error {
+  background: #ef4444;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.viewer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.viewer-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.viewer-btn.active {
+  background: var(--gold, #d5aa45);
+  color: #0d1e28;
+  border-color: var(--gold, #d5aa45);
+}
+
+.experience-viewer-hint {
+  margin-top: 10px;
+}
+
+.experience-viewer-hint p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+/* -------------------------------------------------------------
+   Spotlight Info & Provenance Panel
+   ------------------------------------------------------------- */
+.spotlight-info-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.spotlight-artisan-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.artisan-avatar-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(213, 170, 69, 0.18);
+  border: 1px solid rgba(213, 170, 69, 0.4);
+  color: var(--gold, #d5aa45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.artisan-info-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.artisan-role-pill {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--gold, #d5aa45);
+  letter-spacing: 0.05em;
+}
+
+.artisan-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 3px 0 4px;
+}
+
+.artisan-village-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.spotlight-story-card {
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.spotlight-story-card h5 {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--gold, #d5aa45);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.spotlight-story-card p {
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.spotlight-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .spotlight-specs-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.spec-card {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.spec-label {
+  display: block;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.spec-val {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.spotlight-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.spotlight-cta {
+  min-height: 48px;
+  font-size: 0.94rem;
+  font-weight: 600;
+  border-radius: 12px;
+  justify-content: center;
+}
+
+/* -------------------------------------------------------------
+   Exhibition Gallery Grid
+   ------------------------------------------------------------- */
+.experiences-gallery-section {
+  margin-top: 24px;
+}
+
+.gallery-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line-soft, rgba(23, 44, 53, 0.1));
+}
+
+.gallery-section-title {
+  font-family: var(--font-display, "Playfair Display", Georgia, serif);
+  font-size: clamp(1.4rem, 2.5vw, 1.9rem);
+  font-weight: 700;
+  color: var(--ink, #172c35);
+  margin: 0 0 6px;
+}
+
+.gallery-section-desc {
+  font-size: 0.95rem;
+  color: var(--muted, #66777b);
+  margin: 0;
+}
+
+.gallery-count-badge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(8, 115, 107, 0.1);
+  color: var(--leaf, #08736b);
+  font-weight: 700;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.experiences-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: clamp(20px, 3vw, 32px);
+  max-width: 1360px;
+  margin-inline: auto;
+}
+
+.experience-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background: var(--surface, #ffffff);
+  border: 1px solid rgba(21, 59, 91, 0.08);
+  box-shadow: 0 8px 24px rgba(21, 59, 91, 0.06);
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.35s ease;
+}
+
+.experience-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px -6px rgba(21, 59, 91, 0.12);
+  border-color: rgba(213, 170, 69, 0.35);
+}
+
+.experience-card.is-active {
+  border-color: var(--gold, #d5aa45);
+  box-shadow: 0 0 0 2px rgba(213, 170, 69, 0.35), 0 18px 40px -6px rgba(21, 59, 91, 0.14);
+}
+
+.experience-card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #f5f0e6;
+}
+
+.experience-card-img {
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.experience-card:hover .experience-card-img {
+  transform: scale(1.04);
+}
+
+.card-floating-badges {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.card-pill-3d {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(13, 30, 40, 0.82);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.card-pill-village {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  color: var(--ink, #172c35);
+  font-size: 0.74rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card-active-indicator {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--gold, #d5aa45);
+  color: #0d1e28;
+  font-size: 0.76rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(213, 170, 69, 0.4);
+  z-index: 2;
+}
+
+.experience-card-fallback-art {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted, #66777b);
+}
+
+.experience-card-body {
+  padding: clamp(16px, 2.5vw, 24px);
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.card-artisan-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted, #66777b);
+  margin-bottom: 8px;
+}
+
+.artisan-icon-accent {
+  color: var(--gold, #d5aa45);
+}
+
+.card-item-title {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink, #172c35);
+  margin: 0 0 4px;
+}
+
+.card-item-subtitle {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--ink-soft, #29434d);
+  margin: 0 0 10px;
+}
+
+.card-item-desc {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--muted, #66777b);
+  margin: 0 0 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  overflow: clip;
+}
+
+.card-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.card-actions-row button,
+.card-actions-row .button {
+  min-height: 42px;
+  font-size: 0.88rem;
+  border-radius: 10px;
+}
+
+.card-actions-row .active-btn {
+  border-color: var(--gold, #d5aa45) !important;
+  color: #8e6819 !important;
+  background: rgba(213, 170, 69, 0.1) !important;
+}
+
+/* -------------------------------------------------------------
+   Admin Experiences Management
+   ------------------------------------------------------------- */
+.experiences-manager {
+  padding: clamp(16px, 3vw, 32px);
+  min-width: 0;
+}
+
+.experience-form {
+  display: grid;
+  gap: 16px;
+  margin-block: 24px;
+  max-width: 720px;
+}
+
+.experience-form label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.experience-form input,
+.experience-form select,
+.experience-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.experience-form button,
+.experience-actions button {
+  min-height: 44px;
+  white-space: normal;
+}
+
+.experience-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/* -------------------------------------------------------------
+   Mobile & Tablet Responsiveness
+   ------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .experiences-hero {
+    padding-block: 28px 20px;
+  }
+
+  .experiences-hero-title {
+    font-size: 1.85rem;
+    line-height: 1.25;
+  }
+
+  .experiences-features-strip {
+    gap: 8px;
+  }
+
+  .feature-item {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .spotlight-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .spotlight-close-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .experience-viewer-stage {
+    height: 320px;
+  }
+
+  .experience-viewer-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .toolbar-actions {
+    justify-content: space-between;
+  }
+
+  .viewer-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 6px;
+    font-size: 0.74rem;
+  }
+
+  .spotlight-actions-group .button {
+    width: 100%;
+  }
+
+  .gallery-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .card-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card-actions-row button,
+  .card-actions-row .button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 
 :root {
   --ink: #172c35;

@@ -139,16 +139,20 @@ export function AdminExperiences() {
       <div className="experiences-grid">
         {items.map((item) => (
           <article className="experience-card" key={item.id}>
-            {item.product?.posterUrl && <Image src={item.product.posterUrl} width={480} height={320} alt={item.product.name} style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 12 }} />}
-            <span className="badge">{item.status === "published" ? "Đã xuất bản" : "Bản nháp"}</span>
-            <h3>{item.title}</h3>
-            <p>{item.product ? `${item.product.name} · ${item.product.artisan}` : "Sản phẩm 3D"}</p>
-            <p>{item.description}</p>
+            {item.product?.posterUrl && (
+              <div className="experience-card-media" style={{ aspectRatio: "16 / 10", position: "relative", width: "100%", borderRadius: 12, overflow: "hidden", background: "#f5f0e6" }}>
+                <Image src={item.product.posterUrl} fill alt={item.product.name} style={{ objectFit: "cover" }} />
+              </div>
+            )}
+            <span className="badge" style={{ marginTop: 12, width: "fit-content" }}>{item.status === "published" ? "Đã xuất bản" : "Bản nháp"}</span>
+            <h3 style={{ marginBlock: "8px 4px" }}>{item.title}</h3>
+            <p style={{ margin: 0, fontWeight: 500, color: "var(--muted)" }}>{item.product ? `${item.product.name} · ${item.product.artisan}` : "Sản phẩm 3D"}</p>
+            {item.description && <p style={{ marginBlock: 8 }}>{item.description}</p>}
             <div className="experience-actions">
               <button className="button secondary" type="button" onClick={() => setPreview(preview === item.id ? null : item.id)}>{preview === item.id ? "Đóng xem trước" : "Xem trước"}</button>
               <button className="button" type="button" disabled={busy || (item.status === "draft" && !reviewed.includes(item.id))} onClick={() => void changeStatus(item)}>{item.status === "published" ? "Ẩn trải nghiệm" : "Xuất bản"}</button>
             </div>
-            {item.status === "draft" && !reviewed.includes(item.id) && <small>Mở xem trước để kiểm tra mô hình trước khi xuất bản.</small>}
+            {item.status === "draft" && !reviewed.includes(item.id) && <small style={{ color: "var(--muted)" }}>Mở xem trước để kiểm tra mô hình trước khi xuất bản.</small>}
             {preview === item.id && <ExperienceViewer key={item.id} id={item.id} title={item.title} onReady={markReady} />}
           </article>
         ))}
