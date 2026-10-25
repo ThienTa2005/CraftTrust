@@ -138,10 +138,12 @@ Mỗi khi sửa code worker, chạy lại `model-worker:prepare-cloud` từ repo
 | --- | --- |
 | Không có log worker | Đúng project, đúng Production, daemon một instance, quota còn không |
 | `PGRST125: Invalid path specified in request URL` | Kiểm tra `SUPABASE_URL` của worker: phải là URL gốc project, không có `/rest/v1`, tên bảng hay đường dẫn dashboard. Lưu biến Production rồi **deploy lại worker**. Code mới tự bỏ hậu tố `/rest/v1`, `/auth/v1`, `/storage/v1` khi khởi động. |
-| `PGRST202` | RPC trong database production và schema cache |
+| `PGRST202` | API chưa thấy RPC đúng chữ ký. Chạy lại `supabase/diagnostics/model-worker-readiness.sql`; nếu thiếu các RPC worker/cột theo dõi, chạy `supabase/repairs/restore-model-worker-rpcs.sql` trong SQL Editor của đúng project. File chỉ khôi phục phần hàng đợi từ migration `202610250004`, cấp quyền cho `service_role` và reload schema; không chạy dữ liệu demo. Nếu RPC đã có đủ, thử `NOTIFY pgrst, 'reload schema';` rồi xem log mới. |
 | `Invalid API key` / `401` | Secret key phải thuộc cùng project với URL |
+| `invalid choice: 'ceramic-cpu'` | Chạy `supabase/migrations/202610250006_model_job_engine_compatibility.sql` trong SQL Editor: sửa default của job mới thành `auto`, đổi tên engine của job cũ còn queued sang `ceramic`. Bấm Tạo lại 3D cho job đã failed. Code generator mới cũng nhận tên cũ; đóng gói/deploy worker để áp dụng tương thích này. |
 | Worker chạy nhưng không nhận sản phẩm | Web và worker có đang dùng hai Supabase project khác nhau không |
 | Thiếu bảng/bucket | Kết quả file kiểm tra schema và migrations liên quan |
+| `table:product_model_assets = false` | Chạy `supabase/repairs/restore-model-assets.sql` trong SQL Editor của đúng project. File khôi phục migration quản trị mô hình: bảng, quyền xem, RPC duyệt và bảo vệ trạng thái xuất bản; đồng thời chuyển ảnh legacy sang URL proxy và đặt `product-assets` riêng tư như migration gốc. Sau đó kiểm tra lại readiness; job đã `failed` cần tạo lại từ kênh người bán. |
 | `Killed` / OOM | Đo mức dùng RAM và thử ảnh nhỏ hơn; không hứa 2 GiB đủ mọi ảnh |
 | Hết quota Hobby | Worker sẽ ngừng cho đến khi quota được khôi phục; không bấm tạo lại liên tục |
 

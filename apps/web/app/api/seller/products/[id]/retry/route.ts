@@ -67,7 +67,7 @@ export async function POST(
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   const { error: jobError } = await auth.supabase
     .from("model_jobs")
-    .insert({ product_id: id, status: "queued", attempt });
+    .insert({ product_id: id, status: "queued", attempt, engine: "auto" });
   if (jobError) {
     await auth.supabase
       .from("products")

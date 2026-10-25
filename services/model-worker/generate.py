@@ -978,7 +978,7 @@ def run_pipeline(
     return report
 
 
-if __name__ == "__main__":
+def parse_arguments(argv=None):
     parser = argparse.ArgumentParser(description="Hanoi CraftTrust Hybrid 3D Engine")
     parser.add_argument("--image", required=True, help="Front photograph")
     parser.add_argument("--back-image", default=None, help="Optional back photograph")
@@ -989,6 +989,8 @@ if __name__ == "__main__":
     parser.add_argument("--back-texture", choices=["mirror", "plain"], default="mirror")
     parser.add_argument(
         "--engine",
+        # Original model_jobs rows used this name before the CLI was renamed.
+        type=lambda value: "ceramic" if value == "ceramic-cpu" else value,
         choices=["auto", "ceramic", "multiview", "ai", "ai-trellis", "ai-hunyuan", "ai-triposr"],
         default="auto",
     )
@@ -1001,7 +1003,11 @@ if __name__ == "__main__":
         help="Digital passport trace URL encoded into base QR seal",
     )
 
-    args = parser.parse_args()
+    return parser.parse_args(argv)
+
+
+if __name__ == "__main__":
+    args = parse_arguments()
 
     run_pipeline(
         front_path=args.image,
