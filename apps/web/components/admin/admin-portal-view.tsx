@@ -6,9 +6,12 @@ import {
   AlertCircle,
   CheckCircle2,
   ClipboardCheck,
+  Coins,
   ExternalLink,
+  QrCode,
   Scale,
   Store,
+  TrendingUp,
   Truck,
 } from "lucide-react";
 import { AdminHeader } from "./admin-header";
@@ -190,32 +193,47 @@ export function AdminPortalView({
             <div className="admin-view-fade">
               {/* Real Database KPI Grid */}
               <div className="admin-metrics-grid">
-                <div className="admin-metric-card primary">
-                  <span className="metric-tag">TỔNG GMV TOÀN SÀN</span>
+                <div className="admin-metric-card">
+                  <div className="metric-header">
+                    <span className="metric-tag">TỔNG GMV TOÀN SÀN</span>
+                    <TrendingUp size={18} className="metric-trend up" />
+                  </div>
                   <strong className="metric-num">{formatVnd(stats.totalGmvVnd)}</strong>
                   <span className="metric-sub">{ordersList.length} đơn hàng thực tế từ cơ sở dữ liệu</span>
                 </div>
 
                 <div className="admin-metric-card">
-                  <span className="metric-tag">GIAN HÀNG NGHỆ NHÂN</span>
+                  <div className="metric-header">
+                    <span className="metric-tag">GIAN HÀNG NGHỆ NHÂN</span>
+                    <Store size={18} className="metric-icon" />
+                  </div>
                   <strong className="metric-num">{merchantsList.length} xưởng</strong>
                   <span className="metric-sub">Bát Tràng, Vạn Phúc, Chàng Sơn</span>
                 </div>
 
-                <div className="admin-metric-card warning">
-                  <span className="metric-tag">HỒ SƠ CHỜ THẨM ĐỊNH</span>
-                  <strong className="metric-num text-warning">{evidenceList.length} hồ sơ</strong>
-                  <span className="metric-sub">Cần Verifier thẩm định cấp hộ chiếu</span>
+                <div className="admin-metric-card">
+                  <div className="metric-header">
+                    <span className="metric-tag">HỒ SƠ CHỜ THẨM ĐỊNH</span>
+                    <ClipboardCheck size={18} className="metric-icon" />
+                  </div>
+                  <strong className="metric-num">{evidenceList.length} hồ sơ</strong>
+                  <span className="metric-sub">{evidenceList.length > 0 ? "Cần Verifier thẩm định cấp hộ chiếu" : "Đã hoàn tất thẩm định"}</span>
                 </div>
 
-                <div className="admin-metric-card gold">
-                  <span className="metric-tag">HỘ CHIẾU DI SẢN SỐ</span>
-                  <strong className="metric-num text-gold">{stats.totalPassports} hộ chiếu</strong>
+                <div className="admin-metric-card">
+                  <div className="metric-header">
+                    <span className="metric-tag">HỘ CHIẾU DI SẢN SỐ</span>
+                    <QrCode size={18} className="metric-icon" />
+                  </div>
+                  <strong className="metric-num">{stats.totalPassports} hộ chiếu</strong>
                   <span className="metric-sub">Đã cấp tem QR & mã số độc bản</span>
                 </div>
 
                 <div className="admin-metric-card">
-                  <span className="metric-tag">QUỸ BẢO TỒN NGHỀ (5% GMV)</span>
+                  <div className="metric-header">
+                    <span className="metric-tag">QUỸ BẢO TỒN NGHỀ (5% GMV)</span>
+                    <Coins size={18} className="metric-icon" />
+                  </div>
                   <strong className="metric-num">{formatVnd(Math.round(stats.totalGmvVnd * 0.05))}</strong>
                   <span className="metric-sub">Hỗ trợ đào tạo thợ trẻ làng nghề</span>
                 </div>

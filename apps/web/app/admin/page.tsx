@@ -13,7 +13,7 @@ export default async function AdminPage() {
           <div className="admin-unauthorized-icon">
             <Lock size={32} />
           </div>
-          <span className="eyebrow">Hanoi Craft-Trust · Cổng Quản Trị</span>
+          <span className="eyebrow">Hanoi CraftTrust · Cổng Quản Trị Hệ Thống</span>
           <h1>Khu Vực Quản Trị & Thẩm Định Di Sản</h1>
           <p>
             Cổng điều hành toàn sàn, kiểm định minh chứng xuất xứ làng nghề, kiểm duyệt mô hình 3D và cấp Hộ chiếu số chỉ dành cho thành viên Hội đồng Thẩm định (Verifier) và Quản trị viên (Admin).

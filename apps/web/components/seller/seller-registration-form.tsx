@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Store, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 
 interface Village {
   id: string;
@@ -82,10 +83,10 @@ export function SellerRegistrationForm({ villages }: SellerRegistrationFormProps
   return (
     <div className="seller-unauthorized-box" style={{ maxWidth: 600, textAlign: "left" }}>
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <div className="seller-unauthorized-icon">
-          <Store size={32} />
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <BrandLogo variant="compact" />
         </div>
-        <span className="eyebrow">Hanoi Craft-Trust · Đăng Ký Kênh Người Bán</span>
+        <span className="eyebrow">Hanoi CraftTrust · Đăng Ký Kênh Người Bán</span>
         <h2 style={{ margin: "8px 0 6px" }}>Mở Gian Hàng Làng Nghề</h2>
         <p style={{ color: "var(--muted)", fontSize: "0.95rem" }}>
           Đăng ký thông tin xưởng gốm sứ / thủ công mỹ nghệ của bạn để bắt đầu đăng bán và số hóa 3D/AR.

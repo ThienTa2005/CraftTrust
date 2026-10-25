@@ -6,6 +6,7 @@ import {
   Activity,
   Bell,
   ChevronDown,
+  ExternalLink,
   LogOut,
   Menu,
   Shield,
@@ -58,15 +59,27 @@ export function AdminHeader({
             <Menu size={20} />
           </button>
         )}
-        <Link href="/admin" className="admin-brand" aria-label="Cổng Quản Trị Hanoi CraftTrust">
+        <Link href="/admin" className="admin-brand" aria-label="CraftTrust Admin Portal">
           <BrandLogo variant="compact" />
           <div className="admin-brand-titles">
+            <span className="admin-brand-name">CraftTrust Admin Portal</span>
             <span className="admin-brand-sub">CỔNG QUẢN TRỊ HỆ THỐNG</span>
           </div>
         </Link>
       </div>
 
       <div className="admin-header-right">
+        {/* Switch to Buyer Marketplace */}
+        <Link
+          href="/marketplace"
+          target="_blank"
+          className="admin-link-btn"
+          title="Xem sàn mua sắm của khách hàng trong tab mới"
+        >
+          <ExternalLink size={14} />
+          <span>Xem Sàn Mua Sắm</span>
+        </Link>
+
         {/* Notification Bell */}
         <div className="admin-action-wrap">
           <button

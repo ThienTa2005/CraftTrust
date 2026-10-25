@@ -34,7 +34,7 @@ export default async function SellerPage() {
           <div className="seller-unauthorized-icon">
             <Lock size={32} />
           </div>
-          <span className="eyebrow">Hanoi Craft-Trust · Kênh Người Bán</span>
+          <span className="eyebrow">Hanoi CraftTrust · Kênh Người Bán</span>
           <h1>Khu Vực Quản Trị Của Nghệ Nhân</h1>
           <p>
             Đây là không gian quản lý kinh doanh, đơn hàng, sản phẩm và Studio 3D dành riêng cho các nghệ nhân và nhà bán hàng làng nghề đã được cấp quyền.

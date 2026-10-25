@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
+import { BrandLogo } from "@/components/brand-logo";
 import type { AppRole } from "@/lib/authz";
 
 interface SellerHeaderProps {
@@ -61,12 +62,10 @@ export function SellerHeader({
             <Menu size={20} />
           </button>
         )}
-        <Link href="/seller" className="seller-brand">
-          <div className="seller-brand-badge">
-            <Store size={20} />
-          </div>
+        <Link href="/seller" className="seller-brand" aria-label="CraftTrust Kênh Người Bán">
+          <BrandLogo variant="compact" />
           <div className="seller-brand-titles">
-            <span className="seller-brand-name">HANOI CRAFT-TRUST</span>
+            <span className="seller-brand-name">CraftTrust</span>
             <span className="seller-brand-sub">KÊNH NGƯỜI BÁN · SELLER CENTRE</span>
           </div>
         </Link>

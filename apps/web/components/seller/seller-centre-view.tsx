@@ -709,7 +709,7 @@ export function SellerCentreView({
                 <div className="shipping-guideline-box">
                   <Truck size={24} style={{ color: "var(--terracotta)" }} />
                   <div>
-                    <strong>Quy chuẩn bọc chống sốc 3 lớp Hanoi Craft-Trust</strong>
+                    <strong>Quy chuẩn bọc chống sốc 3 lớp Hanoi CraftTrust</strong>
                     <p>
                       Mọi sản phẩm gốm sứ gửi qua sàn bắt buộc bọc xốp khí nổ 3 lớp, chèn mút xốp đệm góc hộp carton 5 lớp để được bảo hiểm vỡ hỏng 100% từ sàn.
                     </p>

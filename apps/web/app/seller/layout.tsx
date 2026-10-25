@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Kênh Người Bán · Hanoi Craft-Trust Seller Centre",
+  title: "Kênh Người Bán · CraftTrust Seller Centre",
   description:
     "Không gian quản trị kinh doanh, quản lý sản phẩm, đơn hàng và Studio 3D/AR dành riêng cho nghệ nhân làng nghề.",
 };
