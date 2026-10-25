@@ -1360,11 +1360,6 @@ DROP POLICY IF EXISTS experiences_admin_insert ON public.experiences;
 CREATE POLICY experiences_admin_insert ON public.experiences
   FOR INSERT TO authenticated WITH CHECK (
     public.has_role('admin') AND uploaded_by = auth.uid() AND status = 'draft'
-    AND model_asset_id IS NOT NULL
-    AND EXISTS (
-      SELECT 1 FROM public.product_model_assets a
-      WHERE a.id = model_asset_id AND a.product_id = product_id AND a.status = 'published'
-    )
   );
 
 DROP POLICY IF EXISTS experiences_admin_update ON public.experiences;

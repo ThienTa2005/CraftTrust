@@ -37,8 +37,6 @@ drop policy if exists experiences_admin_insert on public.experiences;
 create policy experiences_admin_insert on public.experiences
   for insert to authenticated with check (
     public.has_role('admin') and uploaded_by = auth.uid() and status = 'draft'
-    and model_asset_id is not null
-    and exists (select 1 from public.product_model_assets a where a.id = model_asset_id and a.product_id = product_id and a.status = 'published')
   );
 drop policy if exists experiences_admin_update on public.experiences;
 create policy experiences_admin_update on public.experiences

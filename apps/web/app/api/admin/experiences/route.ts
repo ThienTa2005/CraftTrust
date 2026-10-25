@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthorizedUser } from "@/lib/authz";
+import { createServiceSupabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
@@ -95,9 +96,12 @@ export async function POST(request: Request) {
   if (!/^[0-9a-f-]{36}$/i.test(productId) || title.length < 3 || title.length > 140 || description.length > 3000) {
     return NextResponse.json({ error: "Chọn sản phẩm hợp lệ; tiêu đề cần 3–140 ký tự và mô tả tối đa 3000 ký tự." }, { status: 400 });
   }
-  const { data: asset, error: assetError } = await auth.supabase
+
+  const db = createServiceSupabase() ?? auth.supabase;
+
+  const { data: asset, error: assetError } = await db
     .from("product_model_assets")
-    .select("id,product_id,status")
+    .select("id,product_id,status,storage_path")
     .eq("product_id", productId)
     .eq("status", "published")
     .order("created_at", { ascending: false })
@@ -106,14 +110,43 @@ export async function POST(request: Request) {
   if (assetError || !asset) {
     return NextResponse.json({ error: "Sản phẩm chưa có mô hình 3D đã được duyệt và xuất bản." }, { status: 409 });
   }
+
   const id = crypto.randomUUID();
-  const { error } = await auth.supabase.from("experiences").insert({
-    id, title, description, product_id: productId, model_asset_id: asset.id,
-    uploaded_by: auth.user.id, status: "draft",
+  const modelPath = (asset as any)?.storage_path || `experiences/${id}/model.glb`;
+
+  // Insert with all fields (including model_path to satisfy legacy not-null constraint)
+  let { error } = await db.from("experiences").insert({
+    id,
+    title,
+    description,
+    product_id: productId,
+    model_asset_id: asset.id,
+    model_path: modelPath,
+    uploaded_by: auth.user.id,
+    status: "draft",
   });
+
+  // If deployed table has not yet applied 202610250007 migration (missing product_id or model_asset_id columns)
+  if (error && (error.code === "42703" || error.message?.includes("product_id") || error.message?.includes("model_asset_id"))) {
+    const legacyRes = await db.from("experiences").insert({
+      id,
+      title,
+      description,
+      model_path: modelPath,
+      uploaded_by: auth.user.id,
+      status: "draft",
+    });
+    error = legacyRes.error;
+  }
+
   if (error) {
     console.error("[admin/experiences] insert failed", error.code, error.message);
-    return NextResponse.json({ error: "Không lưu được trải nghiệm." }, { status: 500 });
+    const hint = error.code === "42P01"
+      ? "Bảng experiences chưa được tạo trên Supabase."
+      : error.code === "42501"
+      ? "Quyền RLS Supabase bị từ chối. Vui lòng kiểm tra quyền Admin hoặc chạy migration 202610250007."
+      : error.message;
+    return NextResponse.json({ error: `Không lưu được trải nghiệm: ${hint}` }, { status: 500 });
   }
   return NextResponse.json({ id }, { status: 201 });
 }
