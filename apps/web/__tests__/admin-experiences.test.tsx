@@ -13,13 +13,13 @@ vi.mock("@/components/experience-viewer", () => ({
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 it("requires a loaded preview before publishing, and supports hiding published content", async () => {
-  const item = { id: "model-id", title: "Gốm Việt", description: "Một tác phẩm", status: "draft" };
+  const item = { id: "model-id", title: "Gốm Việt", description: "Một tác phẩm", status: "draft", product: { id: "product-id", name: "Bình gốm", artisan: "Nghệ nhân An" } };
   const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
     if (init?.method === "PATCH") {
       item.status = JSON.parse(String(init.body)).status;
       return Response.json({ id: item.id, status: item.status });
     }
-    return Response.json({ experiences: [item] });
+    return Response.json({ experiences: [item], products: [] });
   });
   vi.stubGlobal("fetch", fetchMock);
   render(<AdminExperiences />);
@@ -35,18 +35,22 @@ it("requires a loaded preview before publishing, and supports hiding published c
   await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/admin/experiences/model-id", expect.objectContaining({ method: "PATCH", body: JSON.stringify({ status: "draft" }) })));
 });
 
-it("uploads models to the admin endpoint as drafts", async () => {
+it("creates a draft from an existing artisan product model", async () => {
+  const product = { id: "11111111-1111-4111-8111-111111111111", name: "Bình gốm", artisan: "Nghệ nhân An", modelAssetId: "asset-id" };
   const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
-    Response.json(init?.method === "POST" ? { id: "new-model" } : { experiences: [] }),
+    Response.json(init?.method === "POST" ? { id: "new-model" } : { experiences: [], products: [product] }),
   );
   vi.stubGlobal("fetch", fetchMock);
   render(<AdminExperiences />);
-  await screen.findByText("Chưa có trải nghiệm. Hãy tải lên mô hình đầu tiên.");
+  await screen.findByText("Chưa có trải nghiệm. Hãy chọn một sản phẩm 3D ở trên.");
+  fireEvent.change(screen.getByLabelText(/Sản phẩm 3D/), { target: { value: product.id } });
   fireEvent.change(screen.getByLabelText("Tiêu đề"), { target: { value: "Mô hình gốm" } });
-  fireEvent.change(screen.getByLabelText(/Mô hình GLB/), { target: { files: [new File(["glb"], "pot.glb")] } });
-  fireEvent.submit(screen.getByRole("button", { name: "Tải lên và lưu nháp" }).closest("form")!);
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/admin/experiences", expect.objectContaining({ method: "POST", body: expect.any(FormData) })));
-  expect(await screen.findByText(/Đã lưu bản nháp/)).toBeVisible();
+  fireEvent.submit(screen.getByRole("button", { name: "Tạo trải nghiệm từ sản phẩm" }).closest("form")!);
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/admin/experiences", expect.objectContaining({
+    method: "POST",
+    body: JSON.stringify({ productId: product.id, title: "Mô hình gốm", description: "" }),
+  })));
+  expect(await screen.findByText(/Đã tạo bản nháp/)).toBeVisible();
 });
 
 it("exposes the experience management menu only to admins", () => {

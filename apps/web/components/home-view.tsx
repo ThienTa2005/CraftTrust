@@ -261,7 +261,7 @@ export function HomeView({ products, demo, error }: HomeViewProps) {
                       >
                         {banner.cta} <ArrowRight size={18} />
                       </Link>
-                      <Link href="/passport/HCT-VN-BT-001" className="button secondary">
+                      <Link href="/trace/CT-BTG-NVA-2026-0085" className="button secondary">
                         <QrCode size={16} /> {locale === "vi" ? "Xem Hộ Chiếu Số" : "View Passport"}
                       </Link>
                     </div>

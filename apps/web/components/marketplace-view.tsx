@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { DataNotice } from "@/components/data-state";
 import { ProductCard } from "@/components/product-card";
@@ -11,14 +11,26 @@ export function MarketplaceView({
   products,
   demo,
   error,
+  initialFilter = "all",
+  initialSearch = "",
 }: {
   products: Product[];
   demo: boolean;
   error?: string | undefined;
+  initialFilter?: string;
+  initialSearch?: string;
 }) {
   const { locale, t } = useLanguage();
-  const [selectedFilter, setSelectedFilter] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState<string>(initialFilter);
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
+
+  useEffect(() => {
+    setSelectedFilter(initialFilter);
+  }, [initialFilter]);
+
+  useEffect(() => {
+    setSearchTerm(initialSearch);
+  }, [initialSearch]);
 
   const filters = useMemo(
     () => [

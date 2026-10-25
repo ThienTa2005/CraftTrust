@@ -1320,7 +1320,58 @@ ON CONFLICT (id) DO NOTHING;
 -- 7. Passport Records
 INSERT INTO public.passport_records(id, product_id, public_id, tier, status, issued_at)
 VALUES
-  ('70000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', '71000000-0000-0000-0000-000000000001', 'bronze', 'active', now())
-ON CONFLICT (id) DO NOTHING;
+  ('70000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001', '71000000-0000-0000-0000-000000000001', 'gold', 'active', now())
+ON CONFLICT (id) DO UPDATE SET tier = 'gold';
+
+-- 8. 3D/VR Curated Experiences
+CREATE TABLE IF NOT EXISTS public.experiences (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL CHECK (char_length(title) BETWEEN 3 AND 140),
+  description text NOT NULL DEFAULT '' CHECK (char_length(description) <= 3000),
+  model_path text UNIQUE,
+  product_id uuid REFERENCES public.products(id) ON DELETE CASCADE,
+  model_asset_id uuid REFERENCES public.product_model_assets(id) ON DELETE RESTRICT,
+  status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
+  uploaded_by uuid NOT NULL REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.experiences ADD COLUMN IF NOT EXISTS product_id uuid REFERENCES public.products(id) ON DELETE CASCADE;
+ALTER TABLE public.experiences ADD COLUMN IF NOT EXISTS model_asset_id uuid REFERENCES public.product_model_assets(id) ON DELETE RESTRICT;
+ALTER TABLE public.experiences ADD COLUMN IF NOT EXISTS model_path text;
+ALTER TABLE public.experiences ALTER COLUMN model_path DROP NOT NULL;
+ALTER TABLE public.experiences DROP CONSTRAINT IF EXISTS experience_has_model;
+ALTER TABLE public.experiences ADD CONSTRAINT experience_has_model
+  CHECK (model_asset_id IS NOT NULL OR model_path IS NOT NULL) NOT VALID;
+
+CREATE UNIQUE INDEX IF NOT EXISTS experiences_model_asset_unique
+  ON public.experiences(model_asset_id) WHERE model_asset_id IS NOT NULL;
+
+ALTER TABLE public.experiences ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS experiences_published_read ON public.experiences;
+CREATE POLICY experiences_published_read ON public.experiences
+  FOR SELECT TO anon, authenticated USING (status = 'published');
+
+DROP POLICY IF EXISTS experiences_admin_read ON public.experiences;
+CREATE POLICY experiences_admin_read ON public.experiences
+  FOR SELECT TO authenticated USING (public.has_role('admin'));
+
+DROP POLICY IF EXISTS experiences_admin_insert ON public.experiences;
+CREATE POLICY experiences_admin_insert ON public.experiences
+  FOR INSERT TO authenticated WITH CHECK (
+    public.has_role('admin') AND uploaded_by = auth.uid() AND status = 'draft'
+    AND model_asset_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM public.product_model_assets a
+      WHERE a.id = model_asset_id AND a.product_id = product_id AND a.status = 'published'
+    )
+  );
+
+DROP POLICY IF EXISTS experiences_admin_update ON public.experiences;
+CREATE POLICY experiences_admin_update ON public.experiences
+  FOR UPDATE TO authenticated USING (public.has_role('admin')) WITH CHECK (public.has_role('admin'));
+
+GRANT SELECT ON public.experiences TO anon, authenticated;
+GRANT INSERT, UPDATE ON public.experiences TO authenticated;
 
 NOTIFY pgrst, 'reload schema';

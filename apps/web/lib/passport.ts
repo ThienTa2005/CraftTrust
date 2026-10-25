@@ -316,7 +316,9 @@ export async function getPassport(
   identifier: string
 ): Promise<{ data: PassportView | null; demo: boolean; error?: string }> {
   const supabase = createPublicSupabase();
-  const cleanId = (identifier || "").trim();
+  const requestedId = (identifier || "").trim();
+  // Keep old bookmarked/demo links working while the public code is canonical.
+  const cleanId = requestedId === "HCT-VN-BT-001" ? "CT-BTG-NVA-2026-0085" : requestedId;
 
   const defaultDemoData: PassportView = {
     publicId: "71000000-0000-0000-0000-000000000085",
@@ -469,30 +471,82 @@ export async function getPassport(
     const { data: record, error: recordError } = await query.maybeSingle();
 
     if (recordError || !record) {
-      if (cleanId === "CT-BTG-NVA-2026-0085" || !cleanId) {
-        return { demo: true, data: defaultDemoData };
+      // Check demo products first
+      const demoMatch = demoProducts.find(
+        (p) =>
+          p.passportId === cleanId ||
+          p.passportId === requestedId ||
+          p.slug === cleanId ||
+          p.id === cleanId
+      );
+
+      if (demoMatch) {
+        return {
+          demo: true,
+          data: {
+            ...defaultDemoData,
+            publicId: `71000000-0000-0000-0000-${demoMatch.id.slice(-12)}`,
+            publicCode: demoMatch.passportId,
+            artifactId: `ART-${demoMatch.passportId}`,
+            tier: demoMatch.tier,
+            productName: demoMatch.name,
+            productId: demoMatch.id,
+            productSlug: demoMatch.slug,
+            artisan: `Nghệ nhân ${demoMatch.artisan}`,
+            village: `Làng gốm ${demoMatch.village} (Gia Lâm, Hà Nội)`,
+            priceVnd: demoMatch.priceVnd,
+            originalPriceVnd: Math.round(demoMatch.priceVnd * 1.3),
+            posterUrl: demoMatch.image,
+          },
+        };
       }
-      return { demo: false, data: null, error: recordError?.message || "Không tìm thấy hồ sơ Hộ chiếu di sản số." };
+
+      // If requestedId looks like a demo/legacy ID or generic lookup, provide fallback demo data
+      if (
+        cleanId === "CT-BTG-NVA-2026-0085" ||
+        requestedId.startsWith("HCT-") ||
+        requestedId.startsWith("CT-") ||
+        requestedId.startsWith("demo-") ||
+        !cleanId
+      ) {
+        return {
+          demo: true,
+          data: {
+            ...defaultDemoData,
+            publicCode: requestedId || defaultDemoData.publicCode,
+          },
+        };
+      }
+
+      // Fallback to defaultDemoData so visitors exploring the platform never hit a dead 404
+      return {
+        demo: true,
+        data: {
+          ...defaultDemoData,
+          publicCode: requestedId || defaultDemoData.publicCode,
+        },
+        error: "Mã định danh chưa được công bố chính thức; đang hiển thị bản mẫu Hộ chiếu Di sản Số Bát Tràng.",
+      };
     }
 
     const rawProd: any = Array.isArray(record.products) ? record.products[0] : record.products;
     const rawArtisan: any = Array.isArray(rawProd?.artisans) ? rawProd.artisans[0] : rawProd?.artisans;
     const rawVillage: any = Array.isArray(rawArtisan?.villages) ? rawArtisan.villages[0] : rawArtisan?.villages;
 
-    // Check for active published 3D model in product_model_assets
+    // Resolve the latest published 3D asset through the protected model route.
     let modelAssetUrl = rawProd?.model_url || defaultDemoData.modelUrl;
     try {
       const { data: asset } = await supabase
         .from("product_model_assets")
-        .select("model_url, poster_url")
+        .select("id")
         .eq("product_id", record.product_id)
-        .eq("is_active", true)
+        .eq("status", "published")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (asset?.model_url) {
-        modelAssetUrl = asset.model_url;
+      if (asset?.id) {
+        modelAssetUrl = `/api/models/${asset.id}`;
       }
     } catch {}
 

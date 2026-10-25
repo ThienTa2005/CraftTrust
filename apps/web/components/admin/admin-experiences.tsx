@@ -1,12 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ExperienceViewer } from "@/components/experience-viewer";
-import { MAX_EXPERIENCE_BYTES, type Experience } from "@/lib/experiences";
+import type { Experience, ExperienceProduct } from "@/lib/experiences";
 
 export function AdminExperiences() {
   const [items, setItems] = useState<Experience[]>([]);
+  const [products, setProducts] = useState<ExperienceProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +21,8 @@ export function AdminExperiences() {
     const response = await fetch("/api/admin/experiences", { cache: "no-store" });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error ?? "Không tải được trải nghiệm.");
-    setItems(result.experiences);
+    setItems(result.experiences ?? []);
+    setProducts(result.products ?? []);
   }, []);
 
   useEffect(() => {
@@ -27,28 +30,35 @@ export function AdminExperiences() {
       .finally(() => setLoading(false));
   }, [refresh]);
 
-  async function upload(event: FormEvent<HTMLFormElement>) {
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+
+  const handleSelectProduct = (productId: string) => {
+    setSelectedProductId(productId);
+  };
+
+  async function createExperience(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const file = data.get("model");
     setError(null);
     setNotice(null);
-    if (!(file instanceof File) || file.size > MAX_EXPERIENCE_BYTES) {
-      setError("Chọn file GLB tối đa 4 MB.");
-      return;
-    }
     setBusy(true);
     try {
-      const response = await fetch("/api/admin/experiences", { method: "POST", body: data });
+      const response = await fetch("/api/admin/experiences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: selectedProductId, title, description }),
+      });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Không tải được mô hình.");
-      form.reset();
+      if (!response.ok) throw new Error(result.error ?? "Không lưu được trải nghiệm.");
+      setSelectedProductId("");
+      setTitle("");
+      setDescription("");
       await refresh();
       setPreview(result.id);
-      setNotice("Đã lưu bản nháp. Kiểm tra mô hình trước khi xuất bản lên trang Trải nghiệm 3D/VR.");
+      setNotice("Đã tạo bản nháp từ mô hình 3D của nghệ nhân. Hãy xem trước trước khi xuất bản.");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Không tải được mô hình.");
+      setError(cause instanceof Error ? cause.message : "Không lưu được trải nghiệm.");
     } finally { setBusy(false); }
   }
 
@@ -72,24 +82,67 @@ export function AdminExperiences() {
 
   return (
     <section className="admin-card experiences-manager">
-      <h2>Quản lý Trải nghiệm 3D/VR</h2>
-      <p>Admin đăng mô hình cho trang trải nghiệm. Nghệ nhân vẫn tải ảnh và tạo 3D cho sản phẩm tại Kênh người bán.</p>
-      <Link href="/experiences" className="button secondary">Mở trang trải nghiệm</Link>
-      <form className="experience-form" onSubmit={upload}>
-        <label>Tiêu đề<input name="title" required minLength={3} maxLength={140} /></label>
-        <label>Mô tả<textarea name="description" rows={3} maxLength={3000} /></label>
-        <label>Mô hình GLB (tối đa 4 MB)<input name="model" type="file" accept=".glb,model/gltf-binary" required /></label>
-        <p>File GLB cần chứa đầy đủ texture. Lưu nháp, xem trước rồi xuất bản khi mô hình hiển thị đúng.</p>
-        <button className="button" type="submit" disabled={busy}>{busy ? "Đang xử lý…" : "Tải lên và lưu nháp"}</button>
+      <div className="admin-card-header">
+        <div>
+          <h2>Quản lý Trải nghiệm 3D/VR</h2>
+          <p className="card-sub">Chọn sản phẩm đã có mô hình 3D được duyệt của nghệ nhân để đưa vào trải nghiệm tương tác 3D/VR công khai.</p>
+        </div>
+        <Link href="/experiences" className="button secondary">Mở trang trải nghiệm</Link>
+      </div>
+      <form className="experience-form" onSubmit={createExperience}>
+        <label>Sản phẩm 3D của nghệ nhân
+          <select
+            name="productId"
+            required
+            value={selectedProductId}
+            onChange={(e) => handleSelectProduct(e.target.value)}
+          >
+            <option value="" disabled>-- Nhấp để chọn sản phẩm đã có mô hình 3D --</option>
+            {products.map((product) => (
+              <option key={product.id} value={product.id}>
+                {product.name} · {product.artisan}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>Tiêu đề
+          <input
+            name="title"
+            required
+            minLength={3}
+            maxLength={140}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="VD: Bình gốm men lam Bát Tràng – Di sản Nguyễn Văn An"
+          />
+        </label>
+        <label>Mô tả
+          <textarea
+            name="description"
+            rows={3}
+            maxLength={3000}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Mô tả kỹ nghệ chế tác, câu chuyện tác phẩm và điểm nhấn không gian 3D..."
+          />
+        </label>
+        {!loading && products.length === 0 && !error && (
+          <p className="error-banner">Chưa có sản phẩm nào có mô hình 3D đã xuất bản. Hãy duyệt mô hình tại mục Kiểm Duyệt Sản Phẩm &amp; 3D trước.</p>
+        )}
+        <button className="button" type="submit" disabled={busy || !selectedProductId || products.length === 0}>
+          {busy ? "Đang xử lý…" : "Tạo trải nghiệm từ sản phẩm"}
+        </button>
       </form>
       {error && <p className="error-banner" role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
-      {loading ? <p role="status">Đang tải danh sách…</p> : !items.length && !error ? <p>Chưa có trải nghiệm. Hãy tải lên mô hình đầu tiên.</p> : null}
+      {loading ? <p className="admin-inline-loading" role="status">Đang tải danh sách…</p> : !items.length && !error ? <p>Chưa có trải nghiệm. Hãy chọn một sản phẩm 3D ở trên.</p> : null}
       <div className="experiences-grid">
         {items.map((item) => (
           <article className="experience-card" key={item.id}>
+            {item.product?.posterUrl && <Image src={item.product.posterUrl} width={480} height={320} alt={item.product.name} style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 12 }} />}
             <span className="badge">{item.status === "published" ? "Đã xuất bản" : "Bản nháp"}</span>
             <h3>{item.title}</h3>
+            <p>{item.product ? `${item.product.name} · ${item.product.artisan}` : "Sản phẩm 3D"}</p>
             <p>{item.description}</p>
             <div className="experience-actions">
               <button className="button secondary" type="button" onClick={() => setPreview(preview === item.id ? null : item.id)}>{preview === item.id ? "Đóng xem trước" : "Xem trước"}</button>

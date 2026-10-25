@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <BrandedLoader
       fullscreen
-      message="Đang tạo tác trải nghiệm di sản…"
+      message="Đang tải không gian di sản…"
       subtext="Mỗi lần mua một lần về làng"
     />
   );

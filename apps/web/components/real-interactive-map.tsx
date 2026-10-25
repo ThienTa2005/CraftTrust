@@ -1,23 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
   Compass,
   ExternalLink,
-  Filter,
   LocateFixed,
   MapPin,
   Navigation,
-  Phone,
-  Route,
   Search,
-  Sparkles,
 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { CRAFT_MAP_LOCATIONS, TOUR_ITINERARIES } from "@/lib/map-data";
-import type { CraftMapLocation, TourItinerary } from "@craft-trust/contracts";
+import type { CraftMapLocation } from "@craft-trust/contracts";
 
 export function RealInteractiveMap() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -29,8 +25,8 @@ export function RealInteractiveMap() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedTourId, setSelectedTourId] = useState<string | null>(null);
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
   const selectedLocation =
     CRAFT_MAP_LOCATIONS.find((loc) => loc.id === selectedLocationId) ??
@@ -41,7 +37,7 @@ export function RealInteractiveMap() {
     : null;
 
   // Filter locations by search, category, and selected tour
-  const filteredLocations = CRAFT_MAP_LOCATIONS.filter((loc) => {
+  const filteredLocations = useMemo(() => CRAFT_MAP_LOCATIONS.filter((loc) => {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchName = loc.nameVi.toLowerCase().includes(q) || loc.nameEn.toLowerCase().includes(q);
@@ -62,58 +58,7 @@ export function RealInteractiveMap() {
     if (selectedTour && !selectedTour.locationIds.includes(loc.id)) return false;
 
     return true;
-  });
-
-  // Initialize Leaflet map
-  useEffect(() => {
-    let isMounted = true;
-
-    async function initMap() {
-      if (!mapContainerRef.current || mapInstanceRef.current) return;
-
-      const L = await import("leaflet");
-
-      // Center roughly around Hanoi metropolitan area (lat 20.95, lng 105.80)
-      const map = L.map(mapContainerRef.current, {
-        center: [20.95, 105.80],
-        zoom: 11,
-        zoomControl: true,
-        scrollWheelZoom: true,
-      });
-
-      // CartoDB Voyager tiles: clean, readable, high-contrast cartography
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: "abcd",
-        maxZoom: 19,
-      }).addTo(map);
-
-      mapInstanceRef.current = map;
-
-      // Add markers
-      renderMarkers(L, map);
-    }
-
-    void initMap();
-
-    return () => {
-      isMounted = false;
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, []);
-
-  // Update markers when filteredLocations or selectedLocationId changes
-  useEffect(() => {
-    async function update() {
-      if (!mapInstanceRef.current) return;
-      const L = await import("leaflet");
-      renderMarkers(L, mapInstanceRef.current);
-    }
-    void update();
-  }, [filteredLocations, selectedLocationId, selectedTourId]);
+  }), [searchQuery, selectedCategory, selectedTour]);
 
   function getPinEmoji(loc: CraftMapLocation) {
     if (loc.id === "loc-bat-trang") return "🏺";
@@ -126,7 +71,7 @@ export function RealInteractiveMap() {
     return "📍";
   }
 
-  function renderMarkers(L: any, map: any) {
+  const renderMarkers = useCallback((L: any, map: any) => {
     // Clear existing markers
     Object.values(markersRef.current).forEach((m) => m.remove());
     markersRef.current = {};
@@ -196,7 +141,49 @@ export function RealInteractiveMap() {
         }).addTo(map);
       }
     }
-  }
+  }, [filteredLocations, selectedLocationId, selectedTour]);
+
+  // Initialize Leaflet only once. Markers are rendered after the map reports
+  // that it is ready, so filtering never destroys/recreates the map.
+  useEffect(() => {
+    async function initMap() {
+      if (!mapContainerRef.current || mapInstanceRef.current) return;
+
+      const L = await import("leaflet");
+      const map = L.map(mapContainerRef.current, {
+        center: [20.95, 105.80],
+        zoom: 11,
+        zoomControl: true,
+        scrollWheelZoom: true,
+      });
+
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+      setMapReady(true);
+    }
+
+    void initMap();
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    async function update() {
+      if (!mapReady || !mapInstanceRef.current) return;
+      const L = await import("leaflet");
+      renderMarkers(L, mapInstanceRef.current);
+    }
+    void update();
+  }, [mapReady, renderMarkers]);
 
   // Handle fly to location
   const handleSelectLocation = (id: string) => {
@@ -219,7 +206,6 @@ export function RealInteractiveMap() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
-        setUserCoords({ lat: latitude, lng: longitude });
         setLocating(false);
 
         if (mapInstanceRef.current) {

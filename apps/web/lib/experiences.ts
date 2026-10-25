@@ -7,6 +7,18 @@ export type Experience = {
   description: string;
   status: "draft" | "published";
   created_at: string;
+  product_id?: string;
+  model_asset_id?: string;
+  product?: ExperienceProduct | null;
+};
+
+export type ExperienceProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  posterUrl?: string;
+  artisan: string;
+  modelAssetId: string;
 };
 
 // Require a self-contained GLB: no remote textures or sibling resource files.

@@ -9,10 +9,8 @@ import {
   Menu,
   QrCode,
   Search,
-  ShieldCheck,
   ShoppingBag,
   Sparkles,
-  Store,
   UserRound,
   X,
   Glasses,
@@ -139,24 +137,6 @@ export function BuyerHeader() {
       <div className="buyer-topbar">
         <div className="buyer-topbar-container">
           <div className="buyer-topbar-left">
-            <Link
-              href="/seller"
-              className="buyer-topbar-link highlight"
-              title="Chuyển sang không gian quản lý của Nghệ nhân & Nhà bán hàng"
-            >
-              <Store size={14} />
-              <span>{locale === "vi" ? "Kênh Người Bán" : "Seller Centre"}</span>
-            </Link>
-            <span className="buyer-topbar-sep">|</span>
-            <Link
-              href="/admin"
-              className="buyer-topbar-link"
-              title="Cổng quản trị, kiểm duyệt minh chứng & thẩm định di sản"
-            >
-              <ShieldCheck size={14} />
-              <span>{locale === "vi" ? "Cổng Quản Trị" : "Admin Portal"}</span>
-            </Link>
-            <span className="buyer-topbar-sep">|</span>
             <button
               type="button"
               className="buyer-topbar-link button-link"
@@ -225,24 +205,22 @@ export function BuyerHeader() {
                     >
                       {locale === "vi" ? "Kho Voucher & Điểm thưởng" : "Rewards & Vouchers"}
                     </Link>
-                    {isSeller && (
-                      <Link
-                        href="/seller"
-                        className="buyer-menu-item highlight-seller"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <Store size={14} />
-                        <strong>{locale === "vi" ? "Vào Kênh Người Bán" : "Go to Seller Centre"}</strong>
-                      </Link>
-                    )}
                     {isAdmin && (
                       <Link
                         href="/admin"
                         className="buyer-menu-item highlight-admin"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        <ShieldCheck size={14} />
-                        <strong>{locale === "vi" ? "Vào Cổng Quản Trị" : "Go to Admin Portal"}</strong>
+                        {locale === "vi" ? "⚙️ Cổng Quản Trị Hệ Thống" : "⚙️ Admin Portal"}
+                      </Link>
+                    )}
+                    {isSeller && (
+                      <Link
+                        href="/seller"
+                        className="buyer-menu-item highlight-seller"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        {locale === "vi" ? "🏺 Kênh Người Bán & Nghệ Nhân" : "🏺 Seller Portal"}
                       </Link>
                     )}
                     <button
@@ -475,22 +453,12 @@ export function BuyerHeader() {
             <Link href="/orders" onClick={() => setMobileOpen(false)}>
               {locale === "vi" ? "Đơn mua của tôi" : "My Orders"}
             </Link>
-            <Link href="/passport/HCT-VN-BT-001" onClick={() => setMobileOpen(false)}>
+            <Link href="/trace/CT-BTG-NVA-2026-0085" onClick={() => setMobileOpen(false)}>
               {locale === "vi" ? "Hộ chiếu số di sản" : "Digital Passport"}
             </Link>
             <Link href="/assistant" onClick={() => setMobileOpen(false)}>
               {locale === "vi" ? "Trợ lý nghệ nhân AI" : "Heritage AI Guide"}
             </Link>
-            <div className="buyer-mobile-drawer-roles">
-              <Link href="/seller" className="drawer-role-link seller" onClick={() => setMobileOpen(false)}>
-                <Store size={18} />
-                <span>{locale === "vi" ? "Vào Kênh Người Bán (Seller Centre)" : "Seller Centre"}</span>
-              </Link>
-              <Link href="/admin" className="drawer-role-link admin" onClick={() => setMobileOpen(false)}>
-                <ShieldCheck size={18} />
-                <span>{locale === "vi" ? "Vào Cổng Quản Trị (Admin Portal)" : "Admin Portal"}</span>
-              </Link>
-            </div>
           </div>
         </div>
       )}
@@ -522,7 +490,7 @@ export function BuyerHeader() {
                 type="text"
                 value={passportQuery}
                 onChange={(e) => setPassportQuery(e.target.value)}
-                placeholder="VD: HCT-VN-BT-001"
+                placeholder="VD: CT-BTG-NVA-2026-0085"
                 required
                 style={{
                   padding: "12px 14px",
@@ -537,7 +505,7 @@ export function BuyerHeader() {
                   type="button"
                   className="button secondary small"
                   onClick={() => {
-                    setPassportQuery("HCT-VN-BT-001");
+                    setPassportQuery("CT-BTG-NVA-2026-0085");
                   }}
                 >
                   {locale === "vi" ? "Mã gợi ý" : "Suggested ID"}

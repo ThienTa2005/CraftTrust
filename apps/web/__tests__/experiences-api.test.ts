@@ -18,18 +18,19 @@ import { POST as createSellerProduct } from "@/app/api/seller/products/route";
 
 const id = "11111111-1111-4111-8111-111111111111";
 const context = { params: Promise.resolve({ id }) };
-function uploadRequest() {
-  const form = new FormData();
-  form.set("title", "Gốm Việt");
-  form.set("model", new File([makeGlb()], "pot.glb"));
-  return new Request("http://localhost/api/admin/experiences", { method: "POST", body: form });
+function createRequest() {
+  return new Request("http://localhost/api/admin/experiences", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productId: id, title: "Gốm Việt", description: "Một tác phẩm" }),
+  });
 }
 
 beforeEach(() => {
   state.roles = ["admin"];
   state.signedIn = true;
   const query: any = { data: { id }, error: null };
-  for (const name of ["select", "eq", "order", "update"]) query[name] = vi.fn(() => query);
+  for (const name of ["select", "eq", "order", "limit", "update"]) query[name] = vi.fn(() => query);
   query.maybeSingle = vi.fn(async () => ({ data: { id: "artisan-id" }, error: null }));
   query.insert = vi.fn(async () => ({ error: null }));
   const bucket = { upload: vi.fn(async () => ({ error: null })), remove: vi.fn(async () => ({ error: null })), getPublicUrl: vi.fn(() => ({ data: { publicUrl: "https://example.invalid/image.png" } })) };
@@ -52,25 +53,24 @@ describe("admin-only experience management", () => {
   it.each<AppRole>(["customer", "artisan", "seller", "verifier"])("denies %s at every management endpoint", async (role) => {
     state.roles = [role];
     expect((await GET()).status).toBe(403);
-    expect((await POST(uploadRequest())).status).toBe(403);
+    expect((await POST(createRequest())).status).toBe(403);
     expect((await PATCH(new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ status: "published" }) }), context)).status).toBe(403);
     expect(state.database.from).not.toHaveBeenCalled();
-    expect(state.database.storage.from).not.toHaveBeenCalled();
   });
   it("requires login", async () => {
     state.signedIn = false;
-    expect((await POST(uploadRequest())).status).toBe(401);
+    expect((await POST(createRequest())).status).toBe(401);
   });
-  it("saves admin uploads as separate drafts without touching products or jobs", async () => {
-    expect((await POST(uploadRequest())).status).toBe(201);
-    expect(state.database.from).toHaveBeenCalledExactlyOnceWith("experiences");
-    expect(state.database.from().insert).toHaveBeenCalledWith(expect.objectContaining({ status: "draft", uploaded_by: "owner" }));
-    expect(state.database.storage.from).toHaveBeenCalledExactlyOnceWith("experience-models");
+  it("saves a selected published product model as an experience draft", async () => {
+    expect((await POST(createRequest())).status).toBe(201);
+    expect(state.database.from).toHaveBeenCalledWith("product_model_assets");
+    expect(state.database.from).toHaveBeenCalledWith("experiences");
+    expect(state.database.from().insert).toHaveBeenCalledWith(expect.objectContaining({ status: "draft", uploaded_by: "owner", product_id: id, model_asset_id: "artisan-id" }));
   });
-  it("removes the uploaded file if saving the draft fails", async () => {
+  it("reports a database error without uploading a duplicate GLB", async () => {
     state.database.from().insert.mockResolvedValue({ error: new Error("DB error") });
-    expect((await POST(uploadRequest())).status).toBe(500);
-    expect(state.database.storage.from().remove).toHaveBeenCalledOnce();
+    expect((await POST(createRequest())).status).toBe(500);
+    expect(state.database.storage.from).not.toHaveBeenCalled();
   });
   it("allows admins to publish and hide entries", async () => {
     for (const status of ["published", "draft"]) {

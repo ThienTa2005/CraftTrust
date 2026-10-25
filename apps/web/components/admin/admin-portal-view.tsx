@@ -7,14 +7,9 @@ import {
   CheckCircle2,
   ClipboardCheck,
   ExternalLink,
-  PackageCheck,
-  RotateCcw,
   Scale,
-  Sparkles,
   Store,
   Truck,
-  Users,
-  Box,
 } from "lucide-react";
 import { AdminHeader } from "./admin-header";
 import { AdminSidebar } from "./admin-sidebar";
@@ -523,7 +518,7 @@ export function AdminPortalView({
           )}
 
           {/* TAB 5: ĐƠN HÀNG TOÀN SÀN */}
-          {(activeTab === "platform-orders" || activeTab === "disputes" || activeTab === "platform-fees") && (
+          {activeTab === "platform-orders" && (
             <div className="admin-view-fade">
               <div className="admin-card">
                 <div className="admin-card-header">
@@ -636,7 +631,7 @@ export function AdminPortalView({
           )}
 
           {/* TAB 6: NHẬT KÝ KIỂM TOÁN (AUDIT TRAIL) */}
-          {(activeTab === "audit-logs" || activeTab === "system-settings") && (
+          {activeTab === "audit-logs" && (
             <div className="admin-view-fade">
               <div className="admin-card">
                 <div className="admin-card-header">

@@ -6,13 +6,9 @@ import {
   Activity,
   Bell,
   ChevronDown,
-  ExternalLink,
   LogOut,
   Menu,
-  Server,
   Shield,
-  ShieldCheck,
-  Store,
 } from "lucide-react";
 import { useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase-browser";
@@ -70,43 +66,7 @@ export function AdminHeader({
         </Link>
       </div>
 
-      <div className="admin-header-center">
-        <div className="admin-system-status">
-          <span className="status-pill online">
-            <span className="status-dot" /> Database: Active
-          </span>
-          <span className="status-pill" title="Chưa có kiểm tra kết nối trực tiếp tới dịch vụ tạo 3D">
-            <Activity size={13} /> 3D: Chưa xác minh kết nối
-          </span>
-          <span className="status-pill online">
-            <Server size={13} /> NFC Registry: Synced
-          </span>
-        </div>
-      </div>
-
       <div className="admin-header-right">
-        {/* Marketplace switcher */}
-        <Link
-          href="/marketplace"
-          target="_blank"
-          className="admin-link-btn"
-          title="Xem sàn mua sắm trong tab mới"
-        >
-          <ExternalLink size={14} />
-          <span>Sàn Người Mua</span>
-        </Link>
-
-        {/* Seller switcher */}
-        <Link
-          href="/seller"
-          target="_blank"
-          className="admin-link-btn highlight"
-          title="Truy cập Kênh Người Bán"
-        >
-          <Store size={14} />
-          <span>Kênh Người Bán</span>
-        </Link>
-
         {/* Notification Bell */}
         <div className="admin-action-wrap">
           <button

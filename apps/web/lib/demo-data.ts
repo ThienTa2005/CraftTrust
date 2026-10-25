@@ -94,7 +94,7 @@ export const demoProducts: ProductCard[] = [
     artisan: "Nguyễn Thu Hà",
     village: "Bát Tràng",
     villageEn: "Bat Trang",
-    passportId: "HCT-VN-BT-001",
+    passportId: "CT-BTG-NVA-2026-0085",
     tier: "gold",
   },
   {

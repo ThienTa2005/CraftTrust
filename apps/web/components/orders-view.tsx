@@ -280,7 +280,7 @@ export function OrdersView({
                               </div>
                             )}
                             <Link
-                              href="/passport/HCT-VN-BT-001"
+                              href="/trace/CT-BTG-NVA-2026-0085"
                               className="order-passport-link"
                             >
                               <QrCode size={13} />

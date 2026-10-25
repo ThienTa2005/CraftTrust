@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { Leaf } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/context";
 
 import { BrandLogo } from "@/components/brand-logo";
@@ -29,14 +28,8 @@ export function SiteFooter() {
             <Link href="/assistant">{t.footer.heritageGuide}</Link>
           </div>
           <div className="footer-col">
-            <strong>{t.footer.partners}</strong>
-            <Link href="/seller">{t.footer.sellerStudio}</Link>
-            <Link href="/admin">{t.footer.verificationDesk}</Link>
-            <Link href="/auth">{t.footer.account}</Link>
-          </div>
-          <div className="footer-col">
             <strong>{t.footer.trust}</strong>
-            <Link href="/passport/HCT-VN-BT-001">
+            <Link href="/trace/CT-BTG-NVA-2026-0085">
               {t.footer.digitalPassports}
             </Link>
             <Link href="/docs">{t.footer.evidencePolicy}</Link>

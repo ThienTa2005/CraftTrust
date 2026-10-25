@@ -1,17 +1,12 @@
 "use client";
 
 import {
-  BadgePercent,
-  BarChart4,
   ClipboardCheck,
   FileSearch,
   History,
   LayoutGrid,
   PackageSearch,
-  Scale,
-  Settings2,
   Store,
-  Users,
   Box,
   X,
 } from "lucide-react";
@@ -56,12 +51,6 @@ export function AdminSidebar({
           icon: LayoutGrid,
           badge: null,
         },
-        {
-          id: "analytics",
-          label: "Báo Cáo GMV Làng Nghề",
-          icon: BarChart4,
-          badge: null,
-        },
       ],
     },
     {
@@ -78,8 +67,7 @@ export function AdminSidebar({
           id: "products-audit",
           label: "Kiểm Duyệt Sản Phẩm & 3D",
           icon: PackageSearch,
-          badge: "2",
-          badgeType: "accent",
+          badge: null,
         },
       ],
     },
@@ -90,12 +78,6 @@ export function AdminSidebar({
           id: "merchants",
           label: "Gian Hàng & Nghệ Nhân",
           icon: Store,
-          badge: null,
-        },
-        {
-          id: "users",
-          label: "Người Mua & Tài Khoản",
-          icon: Users,
           badge: null,
         },
       ],
@@ -109,18 +91,6 @@ export function AdminSidebar({
           icon: FileSearch,
           badge: null,
         },
-        {
-          id: "disputes",
-          label: "Xử Lý Khiếu Nại Tranh Chấp",
-          icon: Scale,
-          badge: "0",
-        },
-        {
-          id: "platform-fees",
-          label: "Hoa Hồng & Quỹ Bảo Tồn",
-          icon: BadgePercent,
-          badge: "5%",
-        },
       ],
     },
     {
@@ -130,12 +100,6 @@ export function AdminSidebar({
           id: "audit-logs",
           label: "Nhật Ký Kiểm Toán (Audit)",
           icon: History,
-          badge: null,
-        },
-        {
-          id: "system-settings",
-          label: "Cấu Hình Hệ Thống",
-          icon: Settings2,
           badge: null,
         },
       ],

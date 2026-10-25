@@ -28,7 +28,7 @@ export function SiteHeader() {
           <Link href="/villages">{t.nav.villages}</Link>
           <Link href="/map">{t.nav.map}</Link>
           <Link href="/rewards">{t.nav.rewards}</Link>
-          <Link href="/passport/HCT-VN-BT-001">{t.nav.passport}</Link>
+          <Link href="/trace/CT-BTG-NVA-2026-0085">{t.nav.passport}</Link>
           <Link href="/assistant">{t.nav.assistant}</Link>
         </nav>
 
@@ -67,7 +67,7 @@ export function SiteHeader() {
             {t.nav.rewards}
           </Link>
           <Link
-            href="/passport/HCT-VN-BT-001"
+            href="/trace/CT-BTG-NVA-2026-0085"
             onClick={() => setMobileOpen(false)}
           >
             {t.nav.passport}
