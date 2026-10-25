@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronDown,
   Gift,
@@ -28,6 +28,21 @@ import { createBrowserSupabase } from "@/lib/supabase-browser";
 export function BuyerHeader() {
   const { locale } = useLanguage();
   const router = useRouter();
+  const pathname = usePathname();
+  const [currentTier, setCurrentTier] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setCurrentTier(params.get("tier"));
+    }
+  }, [pathname]);
+
+  const isAllProductsActive = pathname === "/marketplace" && currentTier !== "gold";
+  const isGoldActive = pathname === "/marketplace" && currentTier === "gold";
+  const isExperiencesActive = pathname.startsWith("/experiences");
+  const isMapActive = pathname.startsWith("/map");
+  const isRewardsActive = pathname.startsWith("/rewards");
 
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
@@ -403,22 +418,37 @@ export function BuyerHeader() {
       {/* 3. CATEGORIES NAVIGATION SUB-BAR */}
       <nav className="buyer-subnav" aria-label="Danh mục ngành hàng thủ công">
         <div className="buyer-subnav-container">
-          <Link href="/marketplace" className="buyer-subnav-item active-indicator">
+          <Link
+            href="/marketplace"
+            className={`buyer-subnav-item ${isAllProductsActive ? "active-indicator" : ""}`}
+          >
             <Layers size={16} />
             <span>{locale === "vi" ? "Tất cả sản phẩm" : "All Products"}</span>
           </Link>
-          <Link href="/marketplace?tier=gold" className="buyer-subnav-item highlight-tier">
+          <Link
+            href="/marketplace?tier=gold"
+            className={`buyer-subnav-item highlight-tier ${isGoldActive ? "active-indicator" : ""}`}
+          >
             <span>✨ {locale === "vi" ? "Hộ Chiếu Vàng (Gold)" : "Gold Passport"}</span>
           </Link>
-          <Link href="/experiences" className="buyer-subnav-item">
+          <Link
+            href="/experiences"
+            className={`buyer-subnav-item ${isExperiencesActive ? "active-indicator" : ""}`}
+          >
             <Glasses size={16} />
             <span>{locale === "vi" ? "Trải nghiệm 3D/VR" : "3D/VR Experiences"}</span>
           </Link>
-          <Link href="/map" className="buyer-subnav-item">
+          <Link
+            href="/map"
+            className={`buyer-subnav-item ${isMapActive ? "active-indicator" : ""}`}
+          >
             <MapPin size={16} />
             <span>{locale === "vi" ? "Bản đồ làng nghề" : "Craft Map"}</span>
           </Link>
-          <Link href="/rewards" className="buyer-subnav-item">
+          <Link
+            href="/rewards"
+            className={`buyer-subnav-item ${isRewardsActive ? "active-indicator" : ""}`}
+          >
             <Gift size={16} />
             <span>{locale === "vi" ? "Tích điểm đổi quà" : "Rewards"}</span>
           </Link>

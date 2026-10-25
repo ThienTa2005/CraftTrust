@@ -71,6 +71,8 @@ export function RealInteractiveMap() {
     return "📍";
   }
 
+  const inspectorCardRef = useRef<HTMLDivElement>(null);
+
   const renderMarkers = useCallback((L: any, map: any) => {
     // Clear existing markers
     Object.values(markersRef.current).forEach((m) => m.remove());
@@ -119,6 +121,9 @@ export function RealInteractiveMap() {
         .on("click", () => {
           setSelectedLocationId(loc.id);
           map.panTo([loc.coordinates.lat, loc.coordinates.lng], { animate: true });
+          if (typeof window !== "undefined" && window.innerWidth < 960 && inspectorCardRef.current) {
+            inspectorCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
         });
 
       markersRef.current[loc.id] = marker;
@@ -143,9 +148,12 @@ export function RealInteractiveMap() {
     }
   }, [filteredLocations, selectedLocationId, selectedTour]);
 
-  // Initialize Leaflet only once. Markers are rendered after the map reports
-  // that it is ready, so filtering never destroys/recreates the map.
+  // Initialize Leaflet only once with reliable subdomains, ResizeObserver and size invalidation.
   useEffect(() => {
+    let t1: any = null;
+    let t2: any = null;
+    let ro: ResizeObserver | null = null;
+
     async function initMap() {
       if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -157,18 +165,43 @@ export function RealInteractiveMap() {
         scrollWheelZoom: true,
       });
 
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
+        subdomains: ["a", "b", "c"],
       }).addTo(map);
 
       mapInstanceRef.current = map;
       setMapReady(true);
+
+      // Force size invalidation on init & after layout settles to prevent blank grey map
+      t1 = setTimeout(() => {
+        if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
+      }, 150);
+      t2 = setTimeout(() => {
+        if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
+      }, 600);
+
+      if (typeof ResizeObserver !== "undefined" && mapContainerRef.current) {
+        ro = new ResizeObserver(() => {
+          if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
+        });
+        ro.observe(mapContainerRef.current);
+      }
     }
 
     void initMap();
 
+    const handleWindowResize = () => {
+      if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
+    };
+    window.addEventListener("resize", handleWindowResize);
+
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener("resize", handleWindowResize);
+      ro?.disconnect();
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -181,6 +214,7 @@ export function RealInteractiveMap() {
       if (!mapReady || !mapInstanceRef.current) return;
       const L = await import("leaflet");
       renderMarkers(L, mapInstanceRef.current);
+      mapInstanceRef.current.invalidateSize();
     }
     void update();
   }, [mapReady, renderMarkers]);
@@ -193,6 +227,10 @@ export function RealInteractiveMap() {
       mapInstanceRef.current.flyTo([loc.coordinates.lat, loc.coordinates.lng], 14, {
         duration: 1.2,
       });
+      mapInstanceRef.current.invalidateSize();
+    }
+    if (typeof window !== "undefined" && window.innerWidth < 960 && inspectorCardRef.current) {
+      inspectorCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -332,27 +370,10 @@ export function RealInteractiveMap() {
       </div>
 
       {/* Main Map Viewport & Details Layout */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.55fr 1fr",
-          gap: 20,
-          alignItems: "stretch",
-        }}
-        className="craft-map-main-grid"
-      >
+      <div className="craft-map-main-grid">
         {/* Real Leaflet Map Container */}
-        <div
-          style={{
-            position: "relative",
-            minHeight: 600,
-            borderRadius: 20,
-            overflow: "hidden",
-            border: "1px solid var(--line)",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.06)",
-          }}
-        >
-          <div ref={mapContainerRef} style={{ width: "100%", height: "100%", minHeight: 600 }} />
+        <div className="craft-map-viewport-panel">
+          <div ref={mapContainerRef} style={{ width: "100%", height: "100%", minHeight: 380 }} />
 
           {/* Quick Legend Overlay */}
           <div
@@ -383,18 +404,7 @@ export function RealInteractiveMap() {
         </div>
 
         {/* Inspector & Location Detail Card */}
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 20,
-            border: "1px solid var(--line)",
-            padding: 22,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.04)",
-          }}
-        >
+        <div ref={inspectorCardRef} className="craft-map-inspector-card">
           <div>
             {/* Image Preview */}
             <div
@@ -461,74 +471,52 @@ export function RealInteractiveMap() {
             </div>
 
             {/* Verified Coordinate Details */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 8,
-                padding: "10px 12px",
-                border: "1px dashed var(--line)",
-                borderRadius: 10,
-                fontSize: "0.78rem",
-                color: "var(--muted)",
-                marginBottom: 16,
-              }}
-            >
-              <div>Tọa độ Vĩ độ: <strong>{selectedLocation.coordinates.lat}° N</strong></div>
-              <div>Tọa độ Kinh độ: <strong>{selectedLocation.coordinates.lng}° E</strong></div>
-              <div>Giờ mở cửa: <strong>{selectedLocation.openingHoursVi}</strong></div>
-              <div>Hotline hỗ trợ: <strong>{selectedLocation.contactHotline}</strong></div>
+            {/* Verified Coordinate Details */}
+            <div className="craft-map-coords-grid">
+              <div className="craft-coord-cell">📍 Vĩ độ: <strong>{selectedLocation.coordinates.lat}° N</strong></div>
+              <div className="craft-coord-cell">🧭 Kinh độ: <strong>{selectedLocation.coordinates.lng}° E</strong></div>
+              <div className="craft-coord-cell">🕒 Giờ mở cửa: <strong>{selectedLocation.openingHoursVi}</strong></div>
+              <div className="craft-coord-cell">📞 Hotline: <strong>{selectedLocation.contactHotline}</strong></div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: "grid", gap: 10 }}>
+          <div className="craft-map-action-panel">
             <a
               href={googleMapsDirectionsUrl}
               target="_blank"
               rel="noreferrer"
-              className="button"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                background: "#10223b",
-                color: "#fff",
-              }}
+              className="button primary craft-map-primary-cta"
             >
               <Navigation size={16} />
-              Chỉ đường Google Maps đến đây
+              <span>Chỉ đường Google Maps đến đây</span>
             </a>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="craft-map-action-grid">
               {selectedLocation.villageSlug ? (
                 <Link
                   href={`/villages/${selectedLocation.villageSlug}`}
                   className="button secondary"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                 >
                   <Compass size={15} />
-                  Xem Làng nghề
+                  <span>Xem Làng nghề</span>
                 </Link>
               ) : (
                 <Link
                   href="/marketplace"
                   className="button secondary"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                 >
                   <Compass size={15} />
-                  Xem tác phẩm
+                  <span>Xem tác phẩm</span>
                 </Link>
               )}
 
               <Link
                 href="/trace/CT-BTG-NVA-2026-0085"
                 className="button secondary"
-                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
               >
                 <ExternalLink size={15} />
-                Tra cứu Hộ chiếu
+                <span>Tra cứu Hộ chiếu</span>
               </Link>
             </div>
           </div>
