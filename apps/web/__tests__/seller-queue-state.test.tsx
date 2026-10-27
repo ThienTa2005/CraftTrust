@@ -39,3 +39,23 @@ it("shows the stage reported by the worker", async () => {
   expect(container.querySelectorAll(".seller-stepper-step.active")).toHaveLength(3);
   await waitFor(() => expect(fetch).toHaveBeenCalled());
 });
+
+it("shows actionable placeholder and create 3D button when model is not_requested without infinite spinner", async () => {
+  const notRequestedProduct: SellerProduct = {
+    ...product,
+    model_status: "not_requested",
+    model_url: null,
+    model_version: null,
+    model_job: null,
+  };
+  const { container } = render(<Seller3DStudio artisanName="Nghệ nhân" roles={["artisan"]} initialProducts={[notRequestedProduct]} />);
+
+  // Must show clear heading
+  expect(screen.getByText("Chưa tạo mô hình 3D")).toBeVisible();
+  // Must provide actionable button
+  expect(screen.getByRole("button", { name: /Tạo mô hình 3D bằng AI/i })).toBeVisible();
+  // Must NOT show infinite spinner in the placeholder
+  expect(container.querySelector(".seller-model-placeholder .seller-spin")).toBeNull();
+  await waitFor(() => expect(fetch).toHaveBeenCalled());
+});
+

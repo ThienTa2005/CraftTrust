@@ -274,11 +274,24 @@ export async function POST(request: Request) {
         productId,
         mode,
       );
-    } catch {
+    } catch (enqueueError) {
+      console.error("enqueuePixal3dJob failed during product creation:", enqueueError);
+      const raw = enqueueError instanceof Error ? enqueueError.message : String(enqueueError);
+      let errorMsg = "Đã lưu sản phẩm nhưng dịch vụ tạo 3D đang bận. Bạn có thể bấm 'Tạo mô hình 3D bằng AI' sau.";
+      if (raw.includes("GPU budget") || raw.includes("P0001")) {
+        errorMsg = "Đã lưu sản phẩm và ảnh nguồn. Chưa thể tạo 3D ngay do giới hạn ngân sách GPU ($1/ngày). Vui lòng bấm 'Tạo mô hình 3D bằng AI' sau.";
+      }
       // Product and source images are durable even while compute is disabled.
-      await auth.supabase.from("products").update({ model_status: "not_requested" }).eq("id", productId);
-      return NextResponse.json({ id: productId, slug, modelStatus: "not_requested",
-        dispatchError: "Đã lưu ảnh. Generation chưa được bật hoặc budget không đủ; có thể thử lại sau." }, { status: 201 });
+      await auth.supabase.from("products").update({
+        model_status: "not_requested",
+        model_error: errorMsg,
+      }).eq("id", productId);
+      return NextResponse.json({
+        id: productId,
+        slug,
+        modelStatus: "not_requested",
+        dispatchError: errorMsg,
+      }, { status: 201 });
     }
     const { jobId, dispatch } = queued;
 

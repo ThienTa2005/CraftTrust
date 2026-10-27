@@ -1124,7 +1124,7 @@ export function Seller3DStudio({
                     </div>
 
                     <ModelEvidencePanel productId={product.id} />
-                    {product.model_url || (product.model_status === "review" && product.model_version) ? (
+                    {(product.model_status === "ready" && product.model_url) || (product.model_status === "review" && (product.model_version || product.model_url)) ? (
                       <div className="seller-model-review">
                         <CraftModelViewer
                           src={product.model_status === "review" && product.model_version ? `/api/models/${product.model_version}` : product.model_url!}
@@ -1304,16 +1304,42 @@ export function Seller3DStudio({
                               </div>
                             </div>
                           </div>
+                        ) : product.model_status === "not_requested" ? (
+                          <div style={{ textAlign: "center", padding: "16px 8px" }}>
+                            <Box size={36} style={{ color: "var(--terracotta)", marginBottom: 8, display: "inline-block" }} />
+                            <strong style={{ display: "block", marginBottom: 4, color: "var(--ink)" }}>Chưa tạo mô hình 3D</strong>
+                            <span style={{ display: "block", fontSize: "0.85rem", color: "var(--muted)", maxWidth: 360, margin: "0 auto 12px" }}>
+                              {product.model_error || "Chưa có yêu cầu dựng mô hình. Nhấn nút bên dưới để AI bắt đầu tạo GLB từ ảnh sản phẩm."}
+                            </span>
+                            <button
+                              type="button"
+                              className="button terracotta small"
+                              disabled={isBusy}
+                              onClick={() => void runAction(product.id, "retry")}
+                            >
+                              {isBusy ? <LoaderCircle className="seller-spin" size={15} /> : <Sparkles size={15} />}
+                              Tạo mô hình 3D bằng AI
+                            </button>
+                          </div>
                         ) : (
-                          <>
+                          <div style={{ textAlign: "center", padding: "16px 8px" }}>
                             {product.model_status === "failed" ? (
-                              <TriangleAlert />
-                            ) : (
-                              <LoaderCircle className="seller-spin" />
-                            )}
-                            <strong>{status.label}</strong>
-                            <span>{status.detail}</span>
-                          </>
+                              <TriangleAlert size={32} style={{ color: "var(--crimson)", marginBottom: 8, display: "inline-block" }} />
+                            ) : null}
+                            <strong style={{ display: "block", marginBottom: 4 }}>{status.label}</strong>
+                            <span style={{ display: "block", fontSize: "0.85rem", color: "var(--muted)", maxWidth: 360, margin: "0 auto 12px" }}>
+                              {product.model_error || status.detail}
+                            </span>
+                            <button
+                              type="button"
+                              className="button secondary small"
+                              disabled={isBusy}
+                              onClick={() => void runAction(product.id, "retry")}
+                            >
+                              {isBusy ? <LoaderCircle className="seller-spin" size={14} /> : <RefreshCw size={14} />}
+                              Thử lại tạo 3D
+                            </button>
+                          </div>
                         )}
                       </div>
                     )}
@@ -1329,6 +1355,16 @@ export function Seller3DStudio({
                       >
                         <Pencil size={17} /> Sửa sản phẩm
                       </button>
+                      {product.model_status === "not_requested" ? (
+                        <button
+                          className="button terracotta"
+                          disabled={isBusy}
+                          onClick={() => void runAction(product.id, "retry")}
+                        >
+                          {isBusy ? <LoaderCircle className="seller-spin" size={17} /> : <Sparkles size={17} />}
+                          Tạo 3D bằng AI
+                        </button>
+                      ) : null}
                       {product.model_status === "review" ? (
                         <button
                           className="button"
@@ -1346,7 +1382,8 @@ export function Seller3DStudio({
                           disabled={isBusy}
                           onClick={() => void runAction(product.id, "retry")}
                         >
-                          <RefreshCw size={17} /> Tạo lại 3D
+                          {isBusy ? <LoaderCircle className="seller-spin" size={17} /> : <RefreshCw size={17} />}
+                          Tạo lại 3D
                         </button>
                       ) : null}
                       {product.model_status === "ready" ? (
