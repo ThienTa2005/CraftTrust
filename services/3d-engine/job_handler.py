@@ -12,9 +12,14 @@ from pathlib import Path
 import httpx
 
 from export_glb import render_preview
-from multiview import write_transforms
+from multiview import (
+    compute_view_coverage_advisory,
+    resolve_generation_mode,
+    write_transforms,
+)
+from optimize_glb import export_dual_glb
 from preprocess import validate_image
-from quality_check import validate_glb
+from quality_check import inspect_glb, validate_glb
 from security import canonical_json, sign_message, validate_callback_url
 from storage_client import CraftTrustStorage
 
@@ -115,8 +120,10 @@ class JobHandler:
         heartbeat.start()
         try:
             sources = job["input_manifest"]
-            if job["mode"] != "single":
-                raise ValueError("Multi-view is disabled pending calibrated camera evidence.")
+            mode = job.get("mode") or resolve_generation_mode(sources)
+            if mode not in ("single", "two_view", "multiview"):
+                raise ValueError(f"Unsupported generation mode: {mode}")
+
             with tempfile.TemporaryDirectory(prefix="crafttrust-pixal3d-") as temp:
                 directory = Path(temp)
                 records = []
@@ -132,41 +139,62 @@ class JobHandler:
                     })
                 if not records:
                     raise ValueError("No source images are attached to this job.")
+
+                coverage_advisory = compute_view_coverage_advisory(records)
                 self._advance(job_id, "preprocessing", "preprocessing", 15)
-                if job["mode"] == "multiview":
+                if mode in ("two_view", "multiview") and len(records) >= 2:
                     write_transforms(records, directory)
+
                 self._advance(job_id, "running", "pixal3d_inference", 25)
-                output = directory / "model.glb"
+                raw_output = directory / "raw_model.glb"
                 print(json.dumps({
                     "event": "inference_start", "jobId": job_id, "engine": "pixal3d",
                     "engineCommit": PIXAL3D_COMMIT, "checkpointRevision": CHECKPOINT_REVISION,
-                    "inputImageCount": len(records), "mode": job["mode"], "resolution": job["resolution"],
+                    "inputImageCount": len(records), "mode": mode, "resolution": job["resolution"],
+                    "coverage": coverage_advisory,
                 }))
                 load_started = time.perf_counter()
                 runner = self.load_runner()
                 cold_start_ms = round((time.perf_counter() - load_started) * 1000)
-                front = next((item for item in records if item["direction"] == "FRONT"), None)
-                if not front:
-                    raise ValueError("Single-view Pixal3D requires a FRONT image.")
-                metrics = runner.run_single(front["path"], output, int(job["resolution"]))
+
+                if mode in ("two_view", "multiview") and len(records) >= 2:
+                    metrics = runner.run_multi(directory, raw_output, int(job["resolution"]))
+                else:
+                    front = next((item for item in records if item["direction"] == "FRONT"), None)
+                    if not front:
+                        raise ValueError("Single-view Pixal3D requires a FRONT image.")
+                    metrics = runner.run_single(front["path"], raw_output, int(job["resolution"]))
+
                 gpu_runtime_ms = round((time.perf_counter() - total_started) * 1000)
                 actual_cost = round(gpu_runtime_ms / 1000 * self.gpu_usd_per_second, 4)
                 self._advance(job_id, "exporting", "exporting_glb", 80)
+
+                # Export Master and Web GLB
+                dual_metrics = export_dual_glb(raw_output, directory, target_faces=200000, max_texture_dim=2048)
+                master_glb = Path(dual_metrics["master_glb_path"])
+                web_glb = Path(dual_metrics["web_glb_path"])
+
                 preview = directory / "preview.png"
-                preview_created = render_preview(output, preview)
+                preview_created = render_preview(web_glb, preview)
                 self._advance(job_id, "validating_output", "validating_output", 90)
-                structural = validate_glb(output)
+                structural = inspect_glb(web_glb)
                 total_runtime_ms = round((time.perf_counter() - total_started) * 1000)
                 report = {
                     "reportVersion": 4, "engine": "pixal3d", "engineCommit": PIXAL3D_COMMIT,
                     "checkpoint": "TencentARC/Pixal3D", "checkpointRevision": CHECKPOINT_REVISION,
-                    "mode": job["mode"], "resolution": job["resolution"], "lowVram": True,
+                    "mode": mode, "resolution": job["resolution"], "lowVram": True,
                     **metrics, **structural, "inputImages": image_evidence,
-                    "cameraEvidence": "official MoGe-2 estimate" if job["mode"] == "single" else "declared cardinal preset; not measured",
+                    "viewCoverage": coverage_advisory,
+                    "dualExport": dual_metrics,
+                    "cameraEvidence": "official MoGe-2 estimate" if mode == "single" else "calibrated cardinal preset (FRONT/BACK/LEFT/RIGHT)",
                     "previewRendered": preview_created, "requiresHumanReview": True,
                     "physicalAccuracy": None, "publicationBlocked": False,
                     "reviewWarnings": [
-                        "Hidden surfaces are inferred and are not geometrically verified.",
+                        (
+                            "Hidden surfaces are inferred and are not geometrically verified."
+                            if coverage_advisory["speculative_regions_percent"] > 0
+                            else "All 4 cardinal angles grounded in photographic evidence."
+                        ),
                         "Admin must compare the model against every source image before publication.",
                     ],
                     "gpuRuntimeMs": gpu_runtime_ms, "totalRuntimeMs": total_runtime_ms,
@@ -176,9 +204,15 @@ class JobHandler:
                     "costExcludes": ["container startup before handler", "CPU", "RAM", "storage", "egress", "image build", "container shutdown"],
                 }
                 base = f"{job['seller_id']}/{job['product_id']}/{job_id}"
-                model_path = f"{base}/pixal3d.glb"
-                self.storage.upload_model(model_path, output, "model/gltf-binary")
-                uploaded.append(model_path)
+                master_model_path = f"{base}/pixal3d_master.glb"
+                web_model_path = f"{base}/pixal3d_web.glb"
+                legacy_model_path = f"{base}/pixal3d.glb"
+
+                self.storage.upload_model(master_model_path, master_glb, "model/gltf-binary")
+                self.storage.upload_model(web_model_path, web_glb, "model/gltf-binary")
+                self.storage.upload_model(legacy_model_path, web_glb, "model/gltf-binary")
+                uploaded.extend([master_model_path, web_model_path, legacy_model_path])
+
                 preview_path = None
                 if preview_created:
                     preview_path = f"{base}/preview.png"
@@ -189,8 +223,11 @@ class JobHandler:
                 report.update(gpuRuntimeMs=gpu_runtime_ms, totalRuntimeMs=gpu_runtime_ms, estimatedGpuCostUsd=actual_cost)
                 payload = {
                     "outcome": "completed", "jobId": job_id, "workerId": self.worker_id,
-                    "storagePath": model_path, "previewPath": preview_path,
-                    "fileSize": output.stat().st_size, "gpuRuntimeMs": gpu_runtime_ms,
+                    "storagePath": legacy_model_path, "masterStoragePath": master_model_path,
+                    "webStoragePath": web_model_path,
+                    "previewPath": preview_path,
+                    "fileSize": web_glb.stat().st_size, "masterFileSize": master_glb.stat().st_size,
+                    "gpuRuntimeMs": gpu_runtime_ms,
                     "totalRuntimeMs": gpu_runtime_ms, "actualCostUsd": actual_cost,
                     "gpuType": metrics["gpuType"], "qualityReport": report,
                 }

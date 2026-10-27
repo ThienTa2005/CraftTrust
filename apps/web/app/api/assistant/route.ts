@@ -100,8 +100,7 @@ export async function POST(request: Request) {
   const supabase = createPublicSupabase();
 
   let contextProduct: any = null;
-  let contextVillage: any = null;
-  let sources: Source[] = [];
+  const sources: Source[] = [];
 
   // 1. Contextual Product Resolution
   if (parsed.data.productId && supabase) {

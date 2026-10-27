@@ -33,6 +33,7 @@ EXPECTED_VERSIONS: dict[str, set[str]] = {
     "utils3d": {"0.0.2"},
     "diffusers": {"0.37.1"},
     "transformers": {"4.57.3"},
+    "safetensors": {"0.7.0"},
     "huggingface-hub": {"0.36.0"},
     "trimesh": {"4.10.1"},
     "click": {"8.3.1"},
@@ -44,6 +45,7 @@ EXPECTED_VERSIONS: dict[str, set[str]] = {
     "matplotlib": {"3.10.7"},
     "requests": {"2.32.5"},
     "tqdm": {"4.67.1"},
+    "fast-simplification": {"0.2.0"},
 }
 
 MODULES = (
@@ -61,7 +63,9 @@ MODULES = (
     "utils3d",
     "diffusers",
     "transformers",
+    "safetensors",
     "huggingface_hub",
+    "fast_simplification",
 )
 
 EXPECTED_GIT_REVISIONS = {
@@ -282,10 +286,19 @@ def verify_pip_check() -> list[str]:
     return lines
 
 
+def verify_glb_postprocessing_modules() -> None:
+    import fast_simplification
+    if not hasattr(fast_simplification, "simplify"):
+        raise RuntimeError("fast_simplification is missing 'simplify'")
+    if not hasattr(fast_simplification, "replay_simplification"):
+        raise RuntimeError("fast_simplification is missing 'replay_simplification'")
+
+
 def main() -> None:
     verify_versions()
     resolutions = verify_moge_requirements()
     verify_module_discovery()
+    verify_glb_postprocessing_modules()
     verify_direct_urls()
     verify_git_checkouts()
     verify_file_hashes()

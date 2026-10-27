@@ -187,6 +187,13 @@ gpu_image = (
         "NATTEN_CUDA_ARCH=8.9 NATTEN_N_WORKERS=4 python -m pip install natten==0.21.0 --no-build-isolation --no-deps",
         "python -m pip install https://github.com/LDYang694/Storages/releases/download/20260430/utils3d-0.0.2-py3-none-any.whl --no-deps",
     )
+    # Pixal3D's pinned flow checkpoint contains a C64 rope_phases tensor.
+    # safetensors 0.7.0 is the first release with complex64 support. Keep this
+    # late in the image graph so the existing CUDA extension layers stay cached.
+    .pip_install("safetensors==0.7.0")
+    # fast-simplification provides C++ quadric decimation and topological edge collapse replay
+    # for GLB decimation without UV seam tearing. Keep late in graph to preserve CUDA cache.
+    .pip_install("fast-simplification==0.2.0")
     .add_local_file(
         ENGINE_DIR / "image_dependency_audit.py",
         remote_path="/opt/crafttrust-build/image_dependency_audit.py",
@@ -200,6 +207,8 @@ gpu_image = (
 
 def _download_pinned_model_snapshots(snapshot_download):
     from model_artifacts import (
+        BIREFNET_EXPECTED_SIZES,
+        DINOV3_EXPECTED_SIZES,
         resolve_moge_checkpoint,
         validate_pixal3d_snapshot,
         validate_transformers_snapshot,
@@ -209,22 +218,40 @@ def _download_pinned_model_snapshots(snapshot_download):
         repo_id="TencentARC/Pixal3D",
         revision=CHECKPOINT_REVISION,
         cache_dir=f"{MODEL_CACHE}/huggingface",
+        allow_patterns=[
+            "pipeline.json",
+            "pipeline_mv.json",
+            "ckpts/*.json",
+            "ckpts/*.safetensors",
+        ],
+        ignore_patterns=None,
     )))
     moge_checkpoint = resolve_moge_checkpoint(Path(snapshot_download(
         repo_id="Ruicheng/moge-2-vitl",
         revision=MOGE_MODEL_REVISION,
         cache_dir=f"{MODEL_CACHE}/huggingface",
+        allow_patterns=["model.pt"],
+        ignore_patterns=None,
     )))
     local_dino = validate_transformers_snapshot(Path(snapshot_download(
         repo_id="camenduru/dinov3-vitl16-pretrain-lvd1689m",
         revision=DINO_MODEL_REVISION,
         cache_dir=f"{MODEL_CACHE}/huggingface",
-    )), "DINOV3")
+        allow_patterns=["config.json", "model.safetensors"],
+        ignore_patterns=None,
+    )), "DINOV3", expected_sizes=DINOV3_EXPECTED_SIZES)
     local_birefnet = validate_transformers_snapshot(Path(snapshot_download(
         repo_id="ZhengPeng7/BiRefNet",
         revision=BIREFNET_MODEL_REVISION,
         cache_dir=f"{MODEL_CACHE}/huggingface",
-    )), "BIREFNET", require_remote_code=True)
+        allow_patterns=[
+            "config.json",
+            "model.safetensors",
+            "BiRefNet_config.py",
+            "birefnet.py",
+        ],
+        ignore_patterns=None,
+    )), "BIREFNET", require_remote_code=True, expected_sizes=BIREFNET_EXPECTED_SIZES)
     return local_model, moge_checkpoint, local_dino, local_birefnet
 
 
@@ -361,10 +388,23 @@ def supabase_preflight():
     """CPU-only, read-only DNS/auth/schema check; never invokes an RPC."""
     from storage_client import CraftTrustStorage
 
-    return CraftTrustStorage.from_environment().preflight(
+    storage = CraftTrustStorage.from_environment()
+    result = storage.preflight(
         REQUIRED_SUPABASE_RPCS,
         REQUIRED_SUPABASE_TABLES,
     )
+    try:
+        result["computeLimits"] = storage.rows("model_compute_limits", "select=*")
+    except Exception as exc:
+        result["computeLimitsError"] = str(exc)
+    try:
+        result["activeJobs"] = storage.rows(
+            "model_jobs",
+            "select=id,status,created_at,engine,mode&status=in.(queued,dispatched,validating,preprocessing,running,exporting,validating_output)&limit=10",
+        )
+    except Exception as exc:
+        result["activeJobsError"] = str(exc)
+    return result
 
 
 @app.local_entrypoint()
@@ -380,6 +420,90 @@ def smoke(job_id: str):
     from storage_client import CraftTrustStorage
     storage = CraftTrustStorage.from_environment()
     print(dispatch_one(storage, Pixal3DWorker().process.spawn, str(uuid.UUID(job_id))))
+
+
+@app.function(
+    image=gpu_image,
+    volumes={MODEL_CACHE: model_volume},
+    timeout=900,
+    cpu=2,
+    memory=4096,
+    min_containers=0,
+    max_containers=1,
+    retries=0,
+)
+def model_cache_preflight():
+    """CPU-only validation of the pinned snapshots already held in the model volume."""
+    from importlib.metadata import version
+
+    from huggingface_hub import snapshot_download
+    from model_artifacts import PIXAL3D_EXPECTED_SIZES
+
+    _download_pinned_model_snapshots(snapshot_download)
+    model_volume.commit()
+    return {
+        "status": "PASS",
+        "checkpointRevision": CHECKPOINT_REVISION,
+        "pixal3dArtifactCount": len(PIXAL3D_EXPECTED_SIZES),
+        "safetensorsVersion": version("safetensors"),
+        "gpuAllocated": False,
+        "inferenceRun": False,
+    }
+
+
+@app.local_entrypoint()
+def check_models():
+    """Operator-invoked CPU-only cache check; does not initialize an AI pipeline."""
+    print(json.dumps(model_cache_preflight.remote(), indent=2, sort_keys=True))
+
+
+@app.function(
+    image=gpu_image,
+    timeout=120,
+    cpu=2,
+    memory=4096,
+    min_containers=0,
+    max_containers=1,
+    retries=0,
+)
+def glb_postprocessing_preflight() -> dict:
+    """CPU-only validation of GLB post-processing dependencies on the exact Modal GPU image."""
+    import importlib.metadata as metadata
+
+    import fast_simplification
+    if not hasattr(fast_simplification, "simplify"):
+        raise AttributeError("fast_simplification missing 'simplify'")
+    if not hasattr(fast_simplification, "replay_simplification"):
+        raise AttributeError("fast_simplification missing 'replay_simplification'")
+
+    import optimize_glb
+    from optimize_glb import export_dual_glb, optimize_glb_for_web
+    import export_glb
+    from export_glb import render_cardinal_previews, render_preview
+    import quality_check
+    from quality_check import inspect_glb
+    import multiview
+    from multiview import write_transforms, compute_view_coverage_advisory
+
+    return {
+        "status": "PASS",
+        "fastSimplificationVersion": metadata.version("fast-simplification"),
+        "hasSimplify": hasattr(fast_simplification, "simplify"),
+        "hasReplaySimplification": hasattr(fast_simplification, "replay_simplification"),
+        "optimizeGlbLoaded": True,
+        "exportDualGlbLoaded": True,
+        "exportGlbLoaded": True,
+        "qualityCheckLoaded": True,
+        "multiviewLoaded": True,
+        "gpuAllocated": False,
+        "inferenceRun": False,
+    }
+
+
+@app.local_entrypoint()
+def check_dependencies():
+    """Operator-invoked CPU-only dependency verification on the exact GPU image."""
+    print(json.dumps(glb_postprocessing_preflight.remote(), indent=2, sort_keys=True))
 
 
 @app.function(

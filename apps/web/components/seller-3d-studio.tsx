@@ -39,6 +39,10 @@ import { CraftModelViewer } from "@/components/model-viewer";
 import type { AppRole } from "@/lib/authz";
 import { formatVnd } from "@/lib/format";
 import { modelStages, type ModelJobSummary } from "@/lib/model-job-status";
+import {
+  autoAssignViews,
+  type CameraDirection,
+} from "@/lib/model-source-views";
 
 type ImageAudit = {
   width: number;
@@ -224,10 +228,13 @@ export function Seller3DStudio({
     }
   };
 
+  const enable3To4Images = process.env.NEXT_PUBLIC_ENABLE_3TO4_IMAGES === "true";
+
   const handleBatchFileSelect = async (selected: File[]) => {
+    const maxAllowed = enable3To4Images ? 4 : 2;
     const nextSlots: (File | null)[] = [null, null, null, null];
     const nextAudits: (ImageAudit | null)[] = [null, null, null, null];
-    for (let i = 0; i < Math.min(4, selected.length); i++) {
+    for (let i = 0; i < Math.min(maxAllowed, selected.length); i++) {
       const file = selected[i];
       if (file) {
         nextSlots[i] = file;
@@ -323,10 +330,18 @@ export function Seller3DStudio({
     const data = new FormData(form);
     data.delete("images");
     filesToSubmit.forEach((file) => data.append("images", file));
-    data.set("sourceViews", JSON.stringify(slotFiles.flatMap((file, index) => file ? [{
-      direction: data.get(`camera-direction-${index}`),
-      azimuth: data.get(`camera-azimuth-${index}`) ? Number(data.get(`camera-azimuth-${index}`)) : null,
-    }] : [])));
+    const defaultViews = autoAssignViews(filesToSubmit.length);
+    const sourceViewsPayload = filesToSubmit.map((_, index) => {
+      const userDir = data.get(`camera-direction-${index}`);
+      const userAz = data.get(`camera-azimuth-${index}`);
+      const fallback = defaultViews[index] ?? { direction: "FRONT", azimuth: 0 };
+      return {
+        direction: userDir ? String(userDir) : fallback.direction,
+        azimuth: userAz ? Number(userAz) : fallback.azimuth,
+      };
+    });
+    data.set("sourceViews", JSON.stringify(sourceViewsPayload));
+    data.set("engine", filesToSubmit.length >= 2 ? "pixal3d-multiview" : "pixal3d");
     data.set(
       "dimensionsVerified",
       data.get("dimensionsVerified") ? "true" : "false",
@@ -401,10 +416,18 @@ export function Seller3DStudio({
     const data = new FormData(event.currentTarget);
     data.delete("images");
     editFiles.forEach((file) => data.append("images", file));
-    data.set("sourceViews", JSON.stringify(editFiles.map((_, index) => ({
-      direction: data.get(`edit-camera-direction-${index}`),
-      azimuth: data.get(`edit-camera-azimuth-${index}`) ? Number(data.get(`edit-camera-azimuth-${index}`)) : null,
-    }))));
+    const defaultEditViews = autoAssignViews(editFiles.length);
+    const editSourceViews = editFiles.map((_, index) => {
+      const userDir = data.get(`edit-camera-direction-${index}`);
+      const userAz = data.get(`edit-camera-azimuth-${index}`);
+      const fallback = defaultEditViews[index] ?? { direction: "FRONT", azimuth: 0 };
+      return {
+        direction: userDir ? String(userDir) : fallback.direction,
+        azimuth: userAz ? Number(userAz) : fallback.azimuth,
+      };
+    });
+    data.set("sourceViews", JSON.stringify(editSourceViews));
+    data.set("engine", editFiles.length >= 2 ? "pixal3d-multiview" : "pixal3d");
     data.set(
       "dimensionsVerified",
       data.get("dimensionsVerified") ? "true" : "false",
@@ -624,50 +647,151 @@ export function Seller3DStudio({
             <div className="seller-upload-panel">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                 <strong style={{ fontSize: "0.95rem", color: "var(--ink)" }}>
-                  Bộ 4 góc chụp bảo tồn di sản gốm sứ
+                  {enable3To4Images
+                    ? "Bộ 4 góc chụp bảo tồn di sản gốm sứ"
+                    : "Bộ 2 góc chụp (Mặt trước + Mặt sau)"}
                 </strong>
                 <label style={{ fontSize: "0.8rem", color: "var(--leaf)", cursor: "pointer", fontWeight: 600 }}>
                   <ImagePlus size={15} style={{ verticalAlign: "middle", marginRight: 4 }} />
-                  Chọn nhanh 1–4 ảnh
+                  {enable3To4Images ? "Chọn nhanh 1–4 ảnh" : "Chọn nhanh 1–2 ảnh"}
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     multiple
                     style={{ display: "none" }}
-                    onChange={(e) => void handleBatchFileSelect(Array.from(e.target.files ?? []).slice(0, 4))}
+                    onChange={(e) => void handleBatchFileSelect(Array.from(e.target.files ?? []).slice(0, enable3To4Images ? 4 : 2))}
                   />
                 </label>
+              </div>
+
+              {/* Dynamic Generation Mode Indicator */}
+              <div
+                style={{
+                  background:
+                    slotFiles.filter(Boolean).length >= 3
+                      ? "rgba(46, 125, 50, 0.08)"
+                      : slotFiles.filter(Boolean).length === 2
+                      ? "rgba(25, 118, 210, 0.08)"
+                      : "rgba(230, 81, 0, 0.08)",
+                  border: `1px solid ${
+                    slotFiles.filter(Boolean).length >= 3
+                      ? "rgba(46, 125, 50, 0.3)"
+                      : slotFiles.filter(Boolean).length === 2
+                      ? "rgba(25, 118, 210, 0.3)"
+                      : "rgba(230, 81, 0, 0.3)"
+                  }`,
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  marginBottom: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  fontSize: "0.82rem",
+                }}
+              >
+                <div>
+                  <strong style={{ display: "block", marginBottom: 2 }}>
+                    {slotFiles.filter(Boolean).length >= 3
+                      ? `✨ Chế độ Đa góc nhìn (Multi-view: ${slotFiles.filter(Boolean).length} ảnh)`
+                      : slotFiles.filter(Boolean).length === 2
+                      ? "⚡ Chế độ 2 góc nhìn (Two-view: Trước + Sau)"
+                      : "📷 Chế độ Đơn ảnh (Single-view: 1 ảnh)"}
+                  </strong>
+                  <span style={{ color: "var(--muted)", fontSize: "0.76rem" }}>
+                    {slotFiles.filter(Boolean).length >= 3
+                      ? "Dựng 3D dựa trên 3–4 ảnh thực tế; các hướng thân chính được neo bằng ảnh chụp thật. Vùng đỉnh/đáy và khe lõm vẫn do AI suy đoán."
+                      : slotFiles.filter(Boolean).length === 2
+                      ? "Mặt trước (0°) và mặt sau (180°) dùng ảnh thật trực tiếp; hai bên hông và góc đỉnh vẫn có yếu tố nội suy từ mô hình AI."
+                      : "Dựng hình từ ảnh chính diện (0°); toàn bộ mặt sau, hai bên hông và góc đỉnh do mô hình AI suy đoán hoàn toàn."}
+                  </span>
+                </div>
+                <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      fontSize: "0.82rem",
+                      color:
+                        slotFiles.filter(Boolean).length >= 3
+                          ? "#2e7d32"
+                          : slotFiles.filter(Boolean).length === 2
+                          ? "#1976d2"
+                          : "#e65100",
+                    }}
+                  >
+                    Hướng thân có ảnh: {slotFiles.filter(Boolean).length}/4 hướng cardinal
+                  </span>
+                  <div style={{ fontSize: "0.7rem", color: "var(--muted)" }}>
+                    (Ước tính belt ngang 4 góc)
+                  </div>
+                </div>
+              </div>
+
+              {/* Photography Guidelines & Pose Warning Box */}
+              <div
+                style={{
+                  background: "#fdf8ea",
+                  border: "1px solid #f9e2ae",
+                  borderRadius: 8,
+                  padding: "10px 14px",
+                  marginBottom: 14,
+                  fontSize: "0.78rem",
+                  color: "#6b5100",
+                  lineHeight: 1.5,
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>📷 Hướng dẫn chụp ảnh chuẩn 4 hướng & Lưu ý góc pose:</span>
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  <li>
+                    <strong>Góc chụp:</strong> Đặt sản phẩm cố định, chụp xoay quanh sản phẩm cách nhau xấp xỉ 90° (Trước 0° • Phải 90° • Sau 180° • Trái 270°).
+                  </li>
+                  <li>
+                    <strong>Cảnh báo pose ước lượng:</strong> Pipeline đang gán góc camera theo 4 hướng cardinal ước lượng. Nếu góc chụp lệch nhiều khỏi 90°, hình học có thể bị biến dạng.
+                  </li>
+                  <li>
+                    <strong>Vùng suy đoán còn lại:</strong> Ngay cả khi tải đủ 4 ảnh, vùng miệng/lòng, đáy và các nếp lõm sâu vẫn được nội suy từ 3D diffusion prior.
+                  </li>
+                </ul>
               </div>
 
               <div className="seller-angle-grid">
                 {[
                   {
                     idx: 0,
-                    title: "1. Mặt trước (Chính diện)",
+                    title: "1. Mặt trước (Chính diện - 0°)",
                     badge: "Bắt buộc",
+                    role: "FRONT",
                     isOptional: false,
                     desc: "Xác định trục đối xứng và biên dạng chính",
+                    isDisabled: false,
                   },
                   {
                     idx: 1,
-                    title: "2. Mặt sau (Đối diện)",
+                    title: "2. Mặt sau (Đối diện - 180°)",
                     badge: "Khuyên dùng",
+                    role: "BACK",
                     isOptional: true,
-                    desc: "Thêm texture mặt sau; hai bên vẫn thiếu dữ liệu",
+                    desc: "Khử suy đoán mặt sau, dùng texture thật",
+                    isDisabled: false,
                   },
                   {
                     idx: 2,
-                    title: "3. Góc nghiêng 45°",
-                    badge: "Bổ sung",
+                    title: "3. Cạnh trái (Góc 270°)",
+                    badge: enable3To4Images ? "Bổ sung" : "Sắp ra mắt (Beta)",
+                    role: "LEFT",
                     isOptional: true,
-                    desc: "Đối chiếu vai gốm & hoa văn tiếp giáp",
+                    desc: enable3To4Images ? "Bổ sung thân gốm & quai trái" : "Chế độ 3–4 ảnh đang hiệu chuẩn GPU; hiện tối ưu 1–2 ảnh.",
+                    isDisabled: !enable3To4Images,
                   },
                   {
                     idx: 3,
-                    title: "4. Miệng / Đáy / Chi tiết",
-                    badge: "Chi tiết",
+                    title: "4. Cạnh phải (Góc 90°)",
+                    badge: enable3To4Images ? "Chi tiết" : "Sắp ra mắt (Beta)",
+                    role: "RIGHT",
                     isOptional: true,
-                    desc: "Kiểm tra độ loe vành miệng & chân đế gốm",
+                    desc: enable3To4Images ? "Bổ sung thân gốm & quai phải" : "Chế độ 3–4 ảnh đang hiệu chuẩn GPU; hiện tối ưu 1–2 ảnh.",
+                    isDisabled: !enable3To4Images,
                   },
                 ].map((slot) => {
                   const file = slotFiles[slot.idx];
@@ -676,7 +800,8 @@ export function Seller3DStudio({
                   return (
                     <div
                       key={slot.idx}
-                      className={`seller-slot-item ${file ? "filled" : ""}`}
+                      className={`seller-slot-item ${file ? "filled" : ""} ${slot.isDisabled ? "disabled" : ""}`}
+                      style={slot.isDisabled ? { opacity: 0.65, background: "rgba(0,0,0,0.02)" } : undefined}
                     >
                       <div className="seller-slot-header">
                         <span>{slot.title}</span>
@@ -715,6 +840,27 @@ export function Seller3DStudio({
                             <X size={14} />
                           </button>
                         </div>
+                      ) : slot.isDisabled ? (
+                        <div
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 4,
+                            padding: "16px 8px",
+                            textAlign: "center",
+                          }}
+                        >
+                          <Camera size={26} style={{ color: "var(--muted)", opacity: 0.4 }} />
+                          <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--muted)" }}>
+                            Tạm khóa trên Production
+                          </span>
+                          <span style={{ fontSize: "0.7rem", color: "var(--muted)" }}>
+                            {slot.desc}
+                          </span>
+                        </div>
                       ) : (
                         <label
                           style={{
@@ -748,7 +894,13 @@ export function Seller3DStudio({
                         </label>
                       )}
 
-                      {file && <ModelCameraFields index={slot.idx} name={file.name} />}
+                      {file && (
+                        <ModelCameraFields
+                          index={slot.idx}
+                          name={file.name}
+                          initialDirection={slot.role as CameraDirection}
+                        />
+                      )}
                       {audit ? (
                         <div
                           className={`seller-quality-pill ${audit.quality}`}
@@ -851,9 +1003,16 @@ export function Seller3DStudio({
               </label>
               <label className="seller-field">
                 <span><Sliders size={15} /> Công nghệ tái dựng (Engine)</span>
-                <select name="engine" defaultValue="pixal3d">
-                  <option value="pixal3d">Pixal3D Cloud – Tạo nhanh từ ảnh FRONT</option>
-                  <option value="pixal3d-multiview" disabled>Multi-view – chờ tích hợp camera đã hiệu chuẩn</option>
+                <select
+                  name="engine"
+                  value={slotFiles.filter(Boolean).length >= 2 ? "pixal3d-multiview" : "pixal3d"}
+                  onChange={() => {}}
+                >
+                  <option value="pixal3d">Pixal3D Single-View – Tự động nội suy từ ảnh FRONT (1 ảnh)</option>
+                  <option value="pixal3d-multiview">Pixal3D Two-View – Trước & Sau (2 ảnh - Khuyên dùng)</option>
+                  {enable3To4Images && (
+                    <option value="pixal3d-cardinal-4view">Pixal3D 4-View – 4 góc chụp Cardinal</option>
+                  )}
                 </select>
               </label>
               <label className="seller-field">

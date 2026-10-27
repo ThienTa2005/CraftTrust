@@ -4,6 +4,7 @@ node_modules/
 .sites-runtime/
 .turbo/
 .next/
+.vercel/
 dist/
 build/
 .expo/
@@ -15,6 +16,7 @@ venv/
 coverage/
 playwright-report/
 test-results/
+test_results/
 outputs/
 *.log
 .DS_Store
@@ -26,3 +28,5 @@ __pycache__/
 .pytest_cache/
 .pytest-*/
 pytest_tmp*/
+.vercel
+.env*

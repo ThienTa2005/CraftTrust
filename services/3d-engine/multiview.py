@@ -3,8 +3,111 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
+from typing import Any
 
-CARDINAL = {"FRONT": 0.0, "RIGHT": 90.0, "BACK": 180.0, "LEFT": 270.0}
+CARDINAL: dict[str, float] = {
+    "FRONT": 0.0,
+    "RIGHT": 90.0,
+    "BACK": 180.0,
+    "LEFT": 270.0,
+}
+
+ROLE_ORDER: tuple[str, ...] = ("FRONT", "BACK", "LEFT", "RIGHT")
+
+
+def auto_assign_cardinal_roles(count: int) -> list[str]:
+    """Auto-assign cardinal roles based on upload sequence (1 to 4 images)."""
+    if count < 1 or count > 4:
+        raise ValueError(f"Input image count ({count}) must be between 1 and 4.")
+    if count == 1:
+        return ["FRONT"]
+    if count == 2:
+        return ["FRONT", "BACK"]
+    if count == 3:
+        return ["FRONT", "BACK", "LEFT"]
+    return ["FRONT", "BACK", "LEFT", "RIGHT"]
+
+
+def resolve_generation_mode(records: list[dict[str, Any]]) -> str:
+    """Resolve generation mode from input records: 'single', 'two_view', or 'multiview'."""
+    count = len(records)
+    if count <= 1:
+        return "single"
+    directions = {str(r.get("direction", "")).upper() for r in records}
+    if count == 2 and "FRONT" in directions and "BACK" in directions:
+        return "two_view"
+    return "multiview"
+
+
+def compute_view_coverage_advisory(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Calculate verified coverage vs speculative geometry and texture regions."""
+    directions = {str(r.get("direction", "")).upper() for r in records}
+    front_ok = "FRONT" in directions
+    back_ok = "BACK" in directions
+    left_ok = "LEFT" in directions
+    right_ok = "RIGHT" in directions
+
+    photo_supported_views = [d for d in ("FRONT", "BACK", "LEFT", "RIGHT") if d in directions]
+    supported_count = len(photo_supported_views)
+    # Heuristic cardinal sector coverage (horizontal belt only)
+    cardinal_ratio = round(supported_count / 4.0, 2)
+    unsupported_cardinal_percent = round(max(0.0, (4 - supported_count) * 25.0), 1)
+    mode = resolve_generation_mode(records)
+
+    coverage_formula = "cardinal_coverage_ratio = supported_cardinal_views / 4.0"
+    coverage_limitations = (
+        "Chỉ đo độ che phủ trên 4 hướng chính (0°, 90°, 180°, 270°). "
+        "Ngay cả khi có 4 ảnh, vùng đỉnh miệng, đáy và góc lõm khuất sâu vẫn do diffusion prior sinh ra, "
+        "không triệt tiêu hoàn toàn vùng suy đoán."
+    )
+
+    if mode == "single":
+        strategy = (
+            "Pixal3D single-view flow: chỉ góc nhìn mặt trước (0°) được hỗ trợ bởi ảnh chụp thật; "
+            "toàn bộ hình học và hoa văn mặt sau/hai hông do mô hình AI suy đoán hoàn toàn."
+        )
+        quality_advisory = "Chỉ có ảnh thật mặt trước (1/4 hướng). Mặt sau và hông hoàn toàn suy đoán."
+    elif mode == "two_view":
+        strategy = (
+            "Pixal3D two-view flow: mặt trước (0°) và mặt sau (180°) được hỗ trợ trực tiếp bằng ảnh thật; "
+            "giúp định hình đúng họa tiết lưng và giảm sai lệch hình khối, hai hông và đỉnh vẫn suy đoán."
+        )
+        quality_advisory = "Có ảnh thật mặt trước và mặt sau (2/4 hướng). Hai bên hông vẫn suy đoán."
+    elif supported_count == 3:
+        strategy = (
+            "Pixal3D 3-view flow: 3 hướng cardinal được hỗ trợ bởi ảnh thật; "
+            "còn 1 hướng hông cùng vùng đỉnh/đáy do mô hình AI suy đoán."
+        )
+        quality_advisory = "Có ảnh thật 3 hướng cardinal (3/4 hướng). Còn 1 hướng hông suy đoán."
+    else:
+        strategy = (
+            "Pixal3D 4-view multi-view flow: 4 hướng thân chính (0°, 90°, 180°, 270°) đều có ảnh thật đối chiếu; "
+            "vùng đỉnh miệng, đáy và các góc lõm phức tạp vẫn do mô hình AI hoàn thiện theo prior 3D."
+        )
+        quality_advisory = "Hỗ trợ ảnh thật 4 hướng thân chính (4/4). Đỉnh/đáy và góc lõm vẫn do AI suy đoán."
+
+    return {
+        "mode": mode,
+        "inputImageCount": len(records),
+        "supported_views": photo_supported_views,
+        "front_supported": front_ok,
+        "back_supported": back_ok,
+        "left_supported": left_ok,
+        "right_supported": right_ok,
+        "supported_cardinal_count": supported_count,
+        "cardinal_coverage_ratio": cardinal_ratio,
+        "speculative_regions_percent": unsupported_cardinal_percent,
+        "confidence_score": cardinal_ratio,
+        "coverage_formula": coverage_formula,
+        "coverage_limitations": coverage_limitations,
+        "pose_estimation_type": "approximate-cardinal-assumption",
+        "pose_estimation_warning": (
+            "Góc camera được gán xấp xỉ theo 4 hướng chính (0°, 90°, 180°, 270°). "
+            "Nếu người bán chụp lệch góc đáng kể, mô hình có thể bị biến dạng."
+        ),
+        "engine_actual_strategy": strategy,
+        "quality_advisory": quality_advisory,
+    }
 
 
 def camera_to_world(azimuth_degrees: float, distance: float = 3.1192) -> list[list[float]]:
@@ -27,36 +130,47 @@ def camera_to_world(azimuth_degrees: float, distance: float = 3.1192) -> list[li
     return [[0.0 if abs(value) < 1e-12 else value for value in row] for row in result]
 
 
-def write_transforms(records: list[dict], directory: Path) -> Path:
+def write_transforms(records: list[dict[str, Any]], directory: Path) -> Path:
+    """Generate calibrated camera transform manifest for Pixal3D multi-view inference."""
     if not 2 <= len(records) <= 4:
         raise ValueError("Pixal3D multi-view requires 2-4 calibrated views.")
-    directions = [str(record.get("direction", "")) for record in records]
+    directions = [str(record.get("direction", "")).upper() for record in records]
     if "FRONT" not in directions or len(set(directions)) != len(directions):
         raise ValueError("Multi-view requires one FRONT view and unique directions.")
     if any(direction not in CARDINAL for direction in directions):
         raise ValueError("Only the calibrated FRONT/RIGHT/BACK/LEFT preset is accepted.")
-    ordered = sorted(records, key=lambda item: (item["direction"] != "FRONT", item["ordinal"]))
+
+    # Canonical order: FRONT first, then other cardinal angles in order
+    ordered = sorted(records, key=lambda item: (item["direction"] != "FRONT", item.get("ordinal", 0)))
     frames = []
     for index, record in enumerate(ordered):
-        direction = record["direction"]
-        declared = float(record["azimuth"])
+        direction = record["direction"].upper()
+        declared = float(record.get("azimuth", CARDINAL[direction]))
         if abs(declared - CARDINAL[direction]) > 0.01:
             raise ValueError(f"{direction} azimuth does not match the calibrated preset.")
-        target = directory / f"view{index:02d}_azim{int(declared):03d}{record['path'].suffix.lower()}"
-        record["path"].replace(target)
-        record["path"] = target
+        target = directory / f"view{index:02d}_azim{int(declared):03d}{Path(record['path']).suffix.lower()}"
+        if Path(record["path"]) != target:
+            Path(record["path"]).replace(target)
+            record["path"] = target
         frames.append({
             "file_path": target.name,
             "name": f"azim{int(declared):03d}",
+            "direction": direction,
             "camera_angle_x": math.radians(20.0),
             "transform_matrix": camera_to_world(declared),
         })
+
+    advisory = compute_view_coverage_advisory(records)
+
     output = directory / "transforms.json"
     output.write_text(json.dumps({
         "camera_angle_x": math.radians(20.0),
         "mesh_scale": 1.0,
         "cameraPreset": "crafttrust-cardinal-orbit-v1",
-        "poseConfidence": "declared-preset-not-measured",
+        "poseEstimationType": "approximate-cardinal-assumption",
+        "poseConfidence": "calibrated-cardinal-preset-approximate",
+        "photographyGuideline": "Photos must be taken ~90 degrees apart around the object at uniform elevation.",
+        "viewCoverage": advisory,
         "frames": frames,
     }, indent=2), encoding="utf-8")
     return output

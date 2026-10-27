@@ -107,8 +107,6 @@ export async function PATCH(
   try {
     sourceViews = parseSourceViews(form.get("sourceViews"), images.length);
     engine = parseRequestedEngine(form.get("engine"));
-    if (engine === "pixal3d-multiview" && images.length && sourceViews.filter(v => v.azimuth !== null).length < 2)
-      throw new Error("Pixal3D Multi-view cần ít nhất hai ảnh có camera pose hợp lệ.");
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Góc chụp không hợp lệ.");
   }
@@ -169,10 +167,6 @@ export async function PATCH(
     return NextResponse.json({ ok: true, regenerated: false });
   }
 
-  const { data: oldSources } = await auth.supabase
-    .from("product_source_assets")
-    .select("storage_path")
-    .eq("product_id", id);
   const { data: oldMedia } = await auth.supabase
     .from("product_media")
     .select("url")
@@ -263,10 +257,11 @@ export async function PATCH(
     if (updateError) throw updateError;
     let queued;
     try {
+      const mode = (engine === "pixal3d-multiview" || sourceViews.filter(v => v.azimuth !== null).length >= 2) ? "multiview" : "single";
       queued = await enqueuePixal3dJob(
-      auth.supabase,
-      id,
-      engine === "pixal3d-multiview" ? "multiview" : "single",
+        auth.supabase,
+        id,
+        mode,
       );
     } catch {
       await auth.supabase.from("products").update({ model_status: "not_requested", model_version: null }).eq("id", id);

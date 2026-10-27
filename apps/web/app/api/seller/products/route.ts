@@ -140,8 +140,6 @@ export async function POST(request: Request) {
   try {
     sourceViews = parseSourceViews(form.get("sourceViews"), images.length);
     engine = parseRequestedEngine(form.get("engine"));
-    if (engine === "pixal3d-multiview" && sourceViews.filter(v => v.azimuth !== null).length < 2)
-      throw new Error("Pixal3D Multi-view cần ít nhất hai ảnh có camera pose hợp lệ.");
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Góc chụp không hợp lệ.");
   }
@@ -270,10 +268,11 @@ export async function POST(request: Request) {
     if (posterError) throw posterError;
     let queued;
     try {
+      const mode = (engine === "pixal3d-multiview" || sourceViews.filter(v => v.azimuth !== null).length >= 2) ? "multiview" : "single";
       queued = await enqueuePixal3dJob(
-      auth.supabase,
-      productId,
-      engine === "pixal3d-multiview" ? "multiview" : "single",
+        auth.supabase,
+        productId,
+        mode,
       );
     } catch {
       // Product and source images are durable even while compute is disabled.

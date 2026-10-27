@@ -1,0 +1,9 @@
+services/3d-engine/.venv/
+services/3d-engine/__pycache__/
+services/model-worker/.venv/
+services/model-worker/__pycache__/
+test_results/
+test-results/
+outputs/
+coverage/
+.pytest_cache/

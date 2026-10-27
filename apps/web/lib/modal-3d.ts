@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceSupabase } from "@/lib/supabase";
 import { signModelMessage } from "@/lib/model-callback-auth";
 
-type PixalMode = "single" | "multiview";
+export type PixalMode = "single" | "two_view" | "multiview";
 
 function modalConfiguration() {
   const rawEndpoint = process.env.MODAL_3D_ENDPOINT?.trim();

@@ -68,6 +68,7 @@ export function RealInteractiveMap() {
   const markersRef = useRef<Record<string, any>>({});
   const polylineRef = useRef<any>(null);
   const tileTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mountTileLayerRef = useRef<(providerIndex: number) => void>(() => {});
   const inspectorCardRef = useRef<HTMLDivElement>(null);
 
   const [currentProviderIndex, setCurrentProviderIndex] = useState<number>(0);
@@ -213,7 +214,7 @@ export function RealInteractiveMap() {
           setTileNotice(
             `Máy chủ ${provider.shortLabel} phản hồi chậm, đang chuyển sang ${nextProv?.shortLabel ?? "dự phòng"}...`
           );
-          mountTileLayer(nextIndex);
+          mountTileLayerRef.current(nextIndex);
         } else {
           setTileLoading(false);
           setTileLoadError(true);
@@ -230,7 +231,7 @@ export function RealInteractiveMap() {
           setTileNotice(
             `Hết thời gian chờ máy chủ ${provider.shortLabel}, đang kết nối ${nextProv?.shortLabel ?? "dự phòng"}...`
           );
-          mountTileLayer(nextIndex);
+          mountTileLayerRef.current(nextIndex);
         } else {
           setTileLoading(false);
           setTileLoadError(true);
@@ -241,6 +242,10 @@ export function RealInteractiveMap() {
     newLayer.addTo(map);
     tileLayerRef.current = newLayer;
   }, []);
+
+  useEffect(() => {
+    mountTileLayerRef.current = mountTileLayer;
+  }, [mountTileLayer]);
 
   // Render map markers and tour routes
   const renderMarkers = useCallback((L: any, map: any) => {

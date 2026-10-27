@@ -59,6 +59,132 @@ def test_scheduled_rpc_contract_is_defined_and_granted_by_one_migration():
         assert f"grant execute on function public.{name}({signature}) to service_role" in sql
 
 
+def test_model_downloads_are_pinned_and_allowlisted_without_ignore_rules():
+    source = (ENGINE / "modal_app.py").read_text(encoding="utf-8")
+    assert 'CHECKPOINT_REVISION = "b0cb2e1b794cab9aa0ac38a95d794a4d9337437f"' in source
+    assert "revision=CHECKPOINT_REVISION" in source
+    assert source.count("revision=") >= 4
+    for pattern in (
+        '"pipeline.json"',
+        '"pipeline_mv.json"',
+        '"ckpts/*.json"',
+        '"ckpts/*.safetensors"',
+        '"model.pt"',
+        '"config.json"',
+        '"model.safetensors"',
+        '"BiRefNet_config.py"',
+        '"birefnet.py"',
+    ):
+        assert pattern in source
+    assert source.count("allow_patterns=") == 4
+    assert source.count("ignore_patterns=None") == 4
+
+
+def test_safetensors_complex64_support_is_pinned_after_native_build_layers():
+    source = (ENGINE / "modal_app.py").read_text(encoding="utf-8")
+    pin = '.pip_install("safetensors==0.7.0")'
+    assert pin in source
+    assert source.index(pin) > source.index("natten==0.21.0")
+
+    audit = (ENGINE / "image_dependency_audit.py").read_text(encoding="utf-8")
+    assert '"safetensors": {"0.7.0"}' in audit
+
+
+def test_fast_simplification_pinned_and_audited():
+    source = (ENGINE / "modal_app.py").read_text(encoding="utf-8")
+    pin = '.pip_install("fast-simplification==0.2.0")'
+    assert pin in source
+    assert source.index(pin) > source.index("natten==0.21.0")
+    assert source.index(pin) > source.index("safetensors==0.7.0")
+
+    audit = (ENGINE / "image_dependency_audit.py").read_text(encoding="utf-8")
+    assert '"fast-simplification": {"0.2.0"}' in audit
+    assert '"fast_simplification"' in audit
+
+
+def test_glb_postprocessing_preflight_is_cpu_only():
+    source = (ENGINE / "modal_app.py").read_text(encoding="utf-8")
+    tree = ast.parse(source, filename="modal_app.py")
+
+    target_fn = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "glb_postprocessing_preflight"
+        ),
+        None,
+    )
+    assert target_fn is not None, "glb_postprocessing_preflight function not found"
+
+    app_function_call = next(
+        (
+            dec
+            for dec in target_fn.decorator_list
+            if isinstance(dec, ast.Call)
+            and isinstance(dec.func, ast.Attribute)
+            and dec.func.attr == "function"
+            and isinstance(dec.func.value, ast.Name)
+            and dec.func.value.id == "app"
+        ),
+        None,
+    )
+    assert app_function_call is not None, "@app.function decorator not found on glb_postprocessing_preflight"
+
+    keyword_map = {kw.arg: kw.value for kw in app_function_call.keywords if kw.arg is not None}
+    assert "gpu" not in keyword_map, "glb_postprocessing_preflight must be CPU-only and not define gpu="
+    assert (
+        "image" in keyword_map
+        and isinstance(keyword_map["image"], ast.Name)
+        and keyword_map["image"].id == "gpu_image"
+    )
+
+
+def test_model_cache_preflight_is_cpu_only_and_does_not_initialize_inference():
+    source = (ENGINE / "modal_app.py").read_text(encoding="utf-8")
+    tree = ast.parse(source, filename="modal_app.py")
+
+    target_fn = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "model_cache_preflight"
+        ),
+        None,
+    )
+    assert target_fn is not None, "model_cache_preflight function not found"
+
+    app_function_call = next(
+        (
+            dec
+            for dec in target_fn.decorator_list
+            if isinstance(dec, ast.Call)
+            and isinstance(dec.func, ast.Attribute)
+            and dec.func.attr == "function"
+            and isinstance(dec.func.value, ast.Name)
+            and dec.func.value.id == "app"
+        ),
+        None,
+    )
+    assert app_function_call is not None, "@app.function decorator not found on model_cache_preflight"
+
+    keyword_map = {kw.arg: kw.value for kw in app_function_call.keywords if kw.arg is not None}
+    assert "gpu" not in keyword_map, "model_cache_preflight must be CPU-only and not define gpu="
+    assert (
+        "image" in keyword_map
+        and isinstance(keyword_map["image"], ast.Name)
+        and keyword_map["image"].id == "gpu_image"
+    )
+    assert "volumes" in keyword_map
+
+    fn_source = ast.get_source_segment(source, target_fn) or ""
+    assert "_download_pinned_model_snapshots" in fn_source
+    assert "model_volume.commit()" in fn_source
+    assert "Pixal3DRunner" not in fn_source
+    assert "runner.load" not in fn_source
+    assert "Pixal3DWorker" not in fn_source
+    assert "spawn" not in fn_source
+
+
 def test_every_git_install_and_clone_is_pinned():
     source = (ENGINE / "modal_app.py").read_text(encoding="utf-8")
     direct_urls = re.findall(r"git\+https://[^\s\"']+", source)
@@ -129,7 +255,7 @@ def test_cpu_image_audit_never_imports_gpu_packages():
 
 def test_gpu_workers_are_explicitly_scale_to_zero_and_bounded():
     source = (ENGINE / "modal_app.py").read_text(encoding="utf-8")
-    assert source.count("min_containers=0") == 2
-    assert source.count("max_containers=1") >= 2
-    assert source.count("retries=0") >= 2
+    assert source.count("min_containers=0") >= 3
+    assert source.count("max_containers=1") >= 3
+    assert source.count("retries=0") >= 3
     assert "@app.local_entrypoint()\ndef smoke_gpu" in source
