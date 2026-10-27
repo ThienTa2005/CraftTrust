@@ -1,0 +1,47 @@
+[
+  {
+    "target_faces": 989620,
+    "actual_faces": 989620,
+    "actual_vertices": 677895,
+    "boundary_edges": 350076,
+    "non_manifold_edges": 0,
+    "invalid_normals": 30,
+    "render_path": "artifacts_debug\\comparison_results\\progressive\\render_989620.png"
+  },
+  {
+    "target_faces": 750000,
+    "actual_faces": 750000,
+    "actual_vertices": 526665,
+    "boundary_edges": 285429,
+    "non_manifold_edges": 19,
+    "invalid_normals": 29,
+    "render_path": "artifacts_debug\\comparison_results\\progressive\\render_750000.png"
+  },
+  {
+    "target_faces": 500000,
+    "actual_faces": 500000,
+    "actual_vertices": 359387,
+    "boundary_edges": 202524,
+    "non_manifold_edges": 54,
+    "invalid_normals": 93,
+    "render_path": "artifacts_debug\\comparison_results\\progressive\\render_500000.png"
+  },
+  {
+    "target_faces": 350000,
+    "actual_faces": 350000,
+    "actual_vertices": 253290,
+    "boundary_edges": 144166,
+    "non_manifold_edges": 65,
+    "invalid_normals": 146,
+    "render_path": "artifacts_debug\\comparison_results\\progressive\\render_350000.png"
+  },
+  {
+    "target_faces": 200000,
+    "actual_faces": 199999,
+    "actual_vertices": 149289,
+    "boundary_edges": 88839,
+    "non_manifold_edges": 45,
+    "invalid_normals": 163,
+    "render_path": "artifacts_debug\\comparison_results\\progressive\\render_200000.png"
+  }
+]

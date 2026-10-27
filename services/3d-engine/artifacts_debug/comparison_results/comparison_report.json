@@ -1,0 +1,74 @@
+{
+  "job_id": "dc2dfaf7-3b63-43f8-8a20-c1c7c722edeb",
+  "product_id": "f57d000c-789c-45ad-b40c-50775260dd90",
+  "source_image": "source-0.jpg",
+  "master_stats": {
+    "label": "Master GLB",
+    "vertex_count": 677895,
+    "face_count": 989620,
+    "connected_components": 22536,
+    "boundary_edges": 350076,
+    "is_watertight": false,
+    "degenerate_area_faces": 0,
+    "duplicate_idx_faces": 0,
+    "non_manifold_edges": 0,
+    "invalid_normals": 0,
+    "uv_stats": {
+      "uv_min": [
+        0.0,
+        0.00041979551315307617
+      ],
+      "uv_max": [
+        0.9995808601379395,
+        1.0
+      ],
+      "out_of_range_coords": 0,
+      "uv_degenerate_faces": 1724,
+      "uv_inverted_faces": 500788,
+      "seam_tears_estimated": 0
+    }
+  },
+  "web_stats": {
+    "label": "Web GLB (Current Production 200k)",
+    "vertex_count": 149289,
+    "face_count": 199999,
+    "connected_components": 9094,
+    "boundary_edges": 88839,
+    "is_watertight": false,
+    "degenerate_area_faces": 0,
+    "duplicate_idx_faces": 0,
+    "non_manifold_edges": 45,
+    "invalid_normals": 157,
+    "uv_stats": {
+      "uv_min": [
+        0.0,
+        0.00041979551315307617
+      ],
+      "uv_max": [
+        0.9995808601379395,
+        1.0
+      ],
+      "out_of_range_coords": 0,
+      "uv_degenerate_faces": 1609,
+      "uv_inverted_faces": 100441,
+      "seam_tears_estimated": 0
+    }
+  },
+  "surface_deviation": {
+    "mean_surface_deviation": 0.002042884494218865,
+    "rms_surface_deviation": 0.0022575807113698193,
+    "max_surface_deviation": 0.008063663602038073
+  },
+  "master_renders": {
+    "FRONT": "C:\\Users\\Admin\\Downloads\\CraftTrust\\services\\3d-engine\\artifacts_debug\\comparison_results\\master_FRONT.png",
+    "RIGHT": "C:\\Users\\Admin\\Downloads\\CraftTrust\\services\\3d-engine\\artifacts_debug\\comparison_results\\master_RIGHT.png",
+    "BACK": "C:\\Users\\Admin\\Downloads\\CraftTrust\\services\\3d-engine\\artifacts_debug\\comparison_results\\master_BACK.png",
+    "LEFT": "C:\\Users\\Admin\\Downloads\\CraftTrust\\services\\3d-engine\\artifacts_debug\\comparison_results\\master_LEFT.png"
+  },
+  "web_renders": {
+    "FRONT": "C:\\Users\\Admin\\Downloads\\CraftTrust\\services\\3d-engine\\artifacts_debug\\comparison_results\\web_current_FRONT.png",
+    "RIGHT": "C:\\Users\\Admin\\Downloads\\CraftTrust\\services\\3d-engine\\artifacts_debug\\comparison_results\\web_current_RIGHT.png",
+    "BACK": "C:\\Users\\Admin\\Downloads\\CraftTrust\\services\\3d-engine\\artifacts_debug\\comparison_results\\web_current_BACK.png",
+    "LEFT": "C:\\Users\\Admin\\Downloads\\CraftTrust\\services\\3d-engine\\artifacts_debug\\comparison_results\\web_current_LEFT.png"
+  }
+}
