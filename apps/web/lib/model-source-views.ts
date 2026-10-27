@@ -24,8 +24,8 @@ export function parseSourceViews(value: FormDataEntryValue | null, count: number
 }
 
 export function parseRequestedEngine(value: FormDataEntryValue | null) {
-  const engine = typeof value === "string" ? value : "auto";
-  if (!["auto", "ceramic", "multiview"].includes(engine))
-    throw new Error("Engine này chưa có hạ tầng inference được kiểm chứng. Hãy chọn Ceramic hoặc Limited Multi-view.");
+  const engine = typeof value === "string" ? value : "pixal3d";
+  if (!["pixal3d", "pixal3d-multiview"].includes(engine))
+    throw new Error("Chỉ Pixal3D Cloud được phép tạo job mới.");
   return engine;
 }

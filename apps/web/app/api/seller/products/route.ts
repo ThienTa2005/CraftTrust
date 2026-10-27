@@ -2,6 +2,7 @@ import { parseSourceViews, parseRequestedEngine, type CameraView } from "@/lib/m
 import { NextResponse } from "next/server";
 import { getAuthorizedUser } from "@/lib/authz";
 import { summarizeModelJobs } from "@/lib/model-job-status";
+import { enqueuePixal3dJob } from "@/lib/modal-3d";
 
 export const runtime = "nodejs";
 
@@ -90,7 +91,7 @@ export async function GET() {
   const { data, error } = await auth.supabase
     .from("products")
     .select(
-      "id,slug,name,description,price_vnd,stock_quantity,status,poster_url,model_url,ar_url,height_cm,width_cm,dimensions_verified,shape_mode,back_texture,model_status,model_report,model_error,created_at,model_jobs(id,status,created_at,current_step)",
+      "id,slug,name,description,price_vnd,stock_quantity,status,poster_url,model_url,model_version,ar_url,height_cm,width_cm,dimensions_verified,shape_mode,back_texture,model_status,model_report,model_error,created_at,model_jobs(id,status,created_at,current_step,progress,error_code,estimated_cost_usd,gpu_runtime_ms)",
     )
     .eq("artisan_id", artisan.id)
     .order("created_at", { ascending: false });
@@ -98,6 +99,7 @@ export async function GET() {
   return NextResponse.json({
     products: (data ?? []).map(({ model_jobs, ...product }) => ({
       ...product,
+      modelHistory: model_jobs ?? [],
       ...summarizeModelJobs(model_jobs ?? []),
     })),
   });
@@ -138,8 +140,8 @@ export async function POST(request: Request) {
   try {
     sourceViews = parseSourceViews(form.get("sourceViews"), images.length);
     engine = parseRequestedEngine(form.get("engine"));
-    if (engine === "multiview" && images.length && sourceViews.filter(v => v.azimuth !== null).length < 2)
-      throw new Error("Limited Multi-view cần ít nhất hai ảnh chụp ngang thân.");
+    if (engine === "pixal3d-multiview" && sourceViews.filter(v => v.azimuth !== null).length < 2)
+      throw new Error("Pixal3D Multi-view cần ít nhất hai ảnh có camera pose hợp lệ.");
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Góc chụp không hợp lệ.");
   }
@@ -266,18 +268,29 @@ export async function POST(request: Request) {
       .update({ poster_url: posterUrl })
       .eq("id", productId);
     if (posterError) throw posterError;
-    const { error: jobError } = await auth.supabase
-      .from("model_jobs")
-      .insert({
-        product_id: productId,
-        status: "queued",
-        attempt: 1,
-        engine,
-      });
-    if (jobError) throw jobError;
+    let queued;
+    try {
+      queued = await enqueuePixal3dJob(
+      auth.supabase,
+      productId,
+      engine === "pixal3d-multiview" ? "multiview" : "single",
+      );
+    } catch {
+      // Product and source images are durable even while compute is disabled.
+      await auth.supabase.from("products").update({ model_status: "not_requested" }).eq("id", productId);
+      return NextResponse.json({ id: productId, slug, modelStatus: "not_requested",
+        dispatchError: "Đã lưu ảnh. Generation chưa được bật hoặc budget không đủ; có thể thử lại sau." }, { status: 201 });
+    }
+    const { jobId, dispatch } = queued;
 
     return NextResponse.json(
-      { id: productId, slug, modelStatus: "queued" },
+      {
+        id: productId,
+        slug,
+        jobId,
+        modelStatus: "queued",
+        dispatchError: dispatch.ok ? undefined : dispatch.error,
+      },
       { status: 201 },
     );
   } catch (error) {

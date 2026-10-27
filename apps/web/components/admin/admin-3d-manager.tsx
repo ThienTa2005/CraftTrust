@@ -1,4 +1,5 @@
 "use client";
+import { ModelEvidencePanel } from "@/components/model-evidence-panel";
 
 import { useEffect, useState, useRef, useTransition } from "react";
 import Image from "next/image";
@@ -661,6 +662,7 @@ export function Admin3DManager() {
                 )}
               </div>
 
+              <ModelEvidencePanel key={selectedProduct.id} productId={selectedProduct.id} />
               {activeAsset?.quality_report && <div className="studio-message" role="status">
                 <strong>{vi ? "Kiểm định mô hình: cần xem xét" : "Model validation: review required"}</strong>
                 <p>{vi ? "Chưa đủ dữ liệu để xác định độ chính xác 3D." : "Insufficient evidence to determine physical 3D accuracy."}</p>

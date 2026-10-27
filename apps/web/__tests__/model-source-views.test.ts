@@ -7,8 +7,9 @@ describe('source camera metadata',()=>{
  it('rejects missing custom angle, duplicates and mismatched count',()=>{
   for(const entries of [[{direction:'FRONT'},{direction:'CUSTOM'}],[{direction:'FRONT'},{direction:'FRONT'}],[]]) expect(()=>parseSourceViews(JSON.stringify(entries),2)).toThrow();
  });
- it('rejects unavailable AI and unknown engine before uploads',()=>{
-  for(const engine of ['ai','ai-trellis','high-fidelity','typo']) expect(()=>parseRequestedEngine(engine)).toThrow();
-  expect(parseRequestedEngine('multiview')).toBe('multiview');
+ it('only permits the cloud Pixal3D engines for new jobs',()=>{
+  for(const engine of ['auto','ceramic','multiview','ai-trellis','high-fidelity','typo']) expect(()=>parseRequestedEngine(engine)).toThrow();
+  expect(parseRequestedEngine('pixal3d')).toBe('pixal3d');
+  expect(parseRequestedEngine('pixal3d-multiview')).toBe('pixal3d-multiview');
  });
 });

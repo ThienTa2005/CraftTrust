@@ -1,6 +1,7 @@
 import { parseSourceViews, parseRequestedEngine, type CameraView } from "@/lib/model-source-views";
 import { NextResponse } from "next/server";
 import { getAuthorizedUser } from "@/lib/authz";
+import { enqueuePixal3dJob } from "@/lib/modal-3d";
 
 export const runtime = "nodejs";
 
@@ -73,6 +74,8 @@ async function authorizeProduct(id: string) {
     .maybeSingle();
   if (error) return { response: jsonError(error.message, 500) };
   if (!product) return { response: jsonError("Không tìm thấy sản phẩm.", 404) };
+  const { data: allowed } = await auth.supabase.rpc("can_manage_product", { p_product_id: id });
+  if (allowed !== true) return { response: jsonError("Không có quyền sửa sản phẩm.", 403) };
   return { auth, product };
 }
 
@@ -104,8 +107,8 @@ export async function PATCH(
   try {
     sourceViews = parseSourceViews(form.get("sourceViews"), images.length);
     engine = parseRequestedEngine(form.get("engine"));
-    if (engine === "multiview" && images.length && sourceViews.filter(v => v.azimuth !== null).length < 2)
-      throw new Error("Limited Multi-view cần ít nhất hai ảnh chụp ngang thân.");
+    if (engine === "pixal3d-multiview" && images.length && sourceViews.filter(v => v.azimuth !== null).length < 2)
+      throw new Error("Pixal3D Multi-view cần ít nhất hai ảnh có camera pose hợp lệ.");
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Góc chụp không hợp lệ.");
   }
@@ -244,11 +247,6 @@ export async function PATCH(
       .insert(mediaRows);
     if (mediaInsertError) throw mediaInsertError;
 
-    const { count } = await auth.supabase
-      .from("model_jobs")
-      .select("id", { count: "exact", head: true })
-      .eq("product_id", id);
-    const attempt = Math.min((count ?? 0) + 1, 10);
     const { error: updateError } = await auth.supabase
       .from("products")
       .update({
@@ -263,17 +261,22 @@ export async function PATCH(
       })
       .eq("id", id);
     if (updateError) throw updateError;
-    const { error: jobError } = await auth.supabase
-      .from("model_jobs")
-      .insert({
-        product_id: id,
-        status: "queued",
-        attempt,
-        engine,
-      });
-    if (jobError) throw jobError;
+    let queued;
+    try {
+      queued = await enqueuePixal3dJob(
+      auth.supabase,
+      id,
+      engine === "pixal3d-multiview" ? "multiview" : "single",
+      );
+    } catch {
+      await auth.supabase.from("products").update({ model_status: "not_requested", model_version: null }).eq("id", id);
+      return NextResponse.json({ ok: true, regenerated: false, modelStatus: "not_requested",
+        dispatchError: "Đã lưu ảnh. Generation chưa bật hoặc budget không đủ; hãy thử lại sau." });
+    }
+    const { jobId, dispatch } = queued;
 
-    const oldSourcePaths = (oldSources ?? []).map((row) => row.storage_path);
+    // Preserve prior source objects: immutable job manifests reference them.
+    const oldSourcePaths: string[] = [];
     const oldPublicPaths = (oldMedia ?? [])
       .map((row) => publicStoragePath(row.url))
       .filter((path): path is string => Boolean(path));
@@ -285,7 +288,13 @@ export async function PATCH(
         ? auth.supabase.storage.from("product-assets").remove(oldPublicPaths)
         : Promise.resolve(),
     ]);
-    return NextResponse.json({ ok: true, regenerated: true });
+    return NextResponse.json({
+      ok: dispatch.ok,
+      regenerated: true,
+      jobId,
+      modelStatus: dispatch.ok ? "queued" : "failed",
+      dispatchError: dispatch.ok ? undefined : dispatch.error,
+    });
   } catch (error) {
     await Promise.all([
       newSourcePaths.length

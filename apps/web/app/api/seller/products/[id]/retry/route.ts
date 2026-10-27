@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthorizedUser } from "@/lib/authz";
+import { enqueuePixal3dJob } from "@/lib/modal-3d";
 
 export async function POST(
   _request: Request,
@@ -47,33 +48,23 @@ export async function POST(
     }
   }
 
-  const { count } = await auth.supabase
-    .from("model_jobs")
+  const { error: sourceError } = await auth.supabase
+    .from("product_source_assets")
     .select("id", { count: "exact", head: true })
     .eq("product_id", id);
-  const attempt = Math.min((count ?? 0) + 1, 10);
-  const { error: updateError } = await auth.supabase
-    .from("products")
-    .update({
-      status: "draft",
-      model_status: "queued",
-      model_error: null,
-      model_report: null,
-      model_url: null,
-      ar_url: null,
-    })
-    .eq("id", id);
-  if (updateError)
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
-  const { error: jobError } = await auth.supabase
-    .from("model_jobs")
-    .insert({ product_id: id, status: "queued", attempt, engine: "auto" });
-  if (jobError) {
-    await auth.supabase
-      .from("products")
-      .update({ model_status: "failed", model_error: jobError.message })
-      .eq("id", id);
-    return NextResponse.json({ error: jobError.message }, { status: 500 });
+  if (sourceError) return NextResponse.json({ error: sourceError.message }, { status: 500 });
+  try {
+    const { jobId, dispatch } = await enqueuePixal3dJob(
+      auth.supabase,
+      id,
+      "single",
+      _request.headers.get("idempotency-key") ?? undefined,
+    );
+    return NextResponse.json(dispatch.ok
+      ? { ok: true, jobId }
+      : { ok: false, jobId, error: dispatch.error }, { status: dispatch.ok ? 200 : 502 });
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : "Không thể tạo lại job Pixal3D.";
+    return NextResponse.json({ error: message }, { status: 409 });
   }
-  return NextResponse.json({ ok: true });
 }

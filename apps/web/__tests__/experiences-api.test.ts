@@ -34,7 +34,13 @@ beforeEach(() => {
   query.maybeSingle = vi.fn(async () => ({ data: { id: "artisan-id" }, error: null }));
   query.insert = vi.fn(async () => ({ error: null }));
   const bucket = { upload: vi.fn(async () => ({ error: null })), remove: vi.fn(async () => ({ error: null })), getPublicUrl: vi.fn(() => ({ data: { publicUrl: "https://example.invalid/image.png" } })) };
-  state.database = { from: vi.fn(() => query), storage: { from: vi.fn(() => bucket) } };
+  state.database = {
+    from: vi.fn(() => query),
+    rpc: vi.fn(async (name: string) => name === "enqueue_pixal3d_job"
+      ? { data: { id: "22222222-2222-4222-8222-222222222222" }, error: null }
+      : { data: true, error: null }),
+    storage: { from: vi.fn(() => bucket) },
+  };
 });
 
 describe("GLB validation", () => {
@@ -87,14 +93,14 @@ describe("admin-only experience management", () => {
 it.each<AppRole>(["artisan", "seller"])("preserves %s photo uploads and product 3D jobs", async (role) => {
   state.roles = [role];
   const form = new FormData();
-  Object.entries({ name: "Bình gốm Việt", description: "Bình gốm thủ công của nghệ nhân Bát Tràng", priceVnd: "100000", stockQuantity: "2", heightCm: "20", widthCm: "10", engine: "auto" }).forEach(([key, value]) => form.set(key, value));
+  Object.entries({ name: "Bình gốm Việt", description: "Bình gốm thủ công của nghệ nhân Bát Tràng", priceVnd: "100000", stockQuantity: "2", heightCm: "20", widthCm: "10", engine: "pixal3d" }).forEach(([key, value]) => form.set(key, value));
   const png = new Uint8Array(256);
   png.set([0x89, 0x50, 0x4e, 0x47]);
   form.set("images", new File([png], "pot.png", { type: "image/png" }));
   form.set("sourceViews", JSON.stringify([{ direction: "FRONT" }]));
   expect((await createSellerProduct(new Request("http://localhost/api/seller/products", { method: "POST", body: form }))).status).toBe(201);
-  expect(state.database.from).toHaveBeenCalledWith("model_jobs");
-  expect(state.database.from().insert).toHaveBeenCalledWith(expect.objectContaining({ status: "queued", engine: "auto" }));
+  expect(state.database.rpc).toHaveBeenCalledWith("enqueue_pixal3d_job", expect.objectContaining({ p_mode: "single", p_resolution: 1024 }));
+  expect(state.database.from).not.toHaveBeenCalledWith("model_jobs");
   expect(state.database.from).not.toHaveBeenCalledWith("experiences");
   expect(state.database.storage.from).toHaveBeenCalledWith("product-source");
   expect(state.database.from().insert).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ camera_direction: "FRONT", camera_azimuth: 0 })]));

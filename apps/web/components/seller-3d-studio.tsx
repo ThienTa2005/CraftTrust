@@ -1,4 +1,5 @@
 "use client";
+import { ModelEvidencePanel } from "@/components/model-evidence-panel";
 
 import {
   useCallback,
@@ -103,6 +104,7 @@ export type SellerProduct = {
   status: "draft" | "active" | "archived";
   poster_url: string | null;
   model_url: string | null;
+  model_version?: string | null;
   ar_url: string | null;
   height_cm: number | null;
   width_cm: number | null;
@@ -337,7 +339,7 @@ export function Seller3DStudio({
         method: "POST",
         body: data,
       });
-      const result = (await response.json()) as { error?: string };
+      const result = (await response.json()) as { error?: string; dispatchError?: string };
       if (!response.ok)
         throw new Error(result.error ?? "Không thể gửi yêu cầu tạo 3D.");
       form.reset();
@@ -346,7 +348,7 @@ export function Seller3DStudio({
       setSlotAudits([null, null, null, null]);
       setNotice({
         kind: "success",
-        text: "Đã lưu sản phẩm và đưa vào hàng đợi tạo 3D. Bạn có thể tiếp tục làm việc.",
+        text: result.dispatchError ?? "Đã lưu sản phẩm và đưa vào hàng đợi tạo 3D. Bạn có thể tiếp tục làm việc.",
       });
       await refreshProducts(true);
     } catch (error) {
@@ -849,11 +851,9 @@ export function Seller3DStudio({
               </label>
               <label className="seller-field">
                 <span><Sliders size={15} /> Công nghệ tái dựng (Engine)</span>
-                <select name="engine" defaultValue="auto">
-                  <option value="auto">Ceramic CPU với texture theo các góc đã khai báo</option>
-                  <option value="multiview">Limited Multi-view (2–4 ảnh, thân tròn xoay suy diễn)</option>
-                  <option value="ceramic">Ceramic Engine (Biên dạng tròn xoay toán học)</option>
-                  <option value="ai" disabled>AI Image-to-3D (chưa có hạ tầng inference)</option>
+                <select name="engine" defaultValue="pixal3d">
+                  <option value="pixal3d">Pixal3D Cloud – Tạo nhanh từ ảnh FRONT</option>
+                  <option value="pixal3d-multiview" disabled>Multi-view – chờ tích hợp camera đã hiệu chuẩn</option>
                 </select>
               </label>
               <label className="seller-field">
@@ -964,10 +964,11 @@ export function Seller3DStudio({
                       </div>
                     </div>
 
-                    {product.model_url ? (
+                    <ModelEvidencePanel productId={product.id} />
+                    {product.model_url || (product.model_status === "review" && product.model_version) ? (
                       <div className="seller-model-review">
                         <CraftModelViewer
-                          src={product.model_url}
+                          src={product.model_status === "review" && product.model_version ? `/api/models/${product.model_version}` : product.model_url!}
                           poster={
                             product.poster_url ?? "/placeholder-product.svg"
                           }

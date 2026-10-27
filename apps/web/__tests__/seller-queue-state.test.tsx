@@ -35,7 +35,7 @@ it("explains a delayed queue without asking the seller to upload again", async (
 });
 
 it("shows the stage reported by the worker", async () => {
-  const { container } = render(<Seller3DStudio artisanName="Nghệ nhân" roles={["artisan"]} initialProducts={[{ ...product, model_status: "processing", model_job: { ...product.model_job!, status: "processing", current_step: "validating" } }]} />);
+  const { container } = render(<Seller3DStudio artisanName="Nghệ nhân" roles={["artisan"]} initialProducts={[{ ...product, model_status: "processing", model_job: { ...product.model_job!, status: "running", current_step: "pixal3d_inference" } }]} />);
   expect(container.querySelectorAll(".seller-stepper-step.active")).toHaveLength(3);
   await waitFor(() => expect(fetch).toHaveBeenCalled());
 });

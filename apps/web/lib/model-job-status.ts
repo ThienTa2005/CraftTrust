@@ -17,8 +17,9 @@ export function summarizeModelJobs(jobs: ModelJobSummary[], now = Date.now()) {
 }
 
 export const modelStages = [
-  { step: "preprocessing", label: "Chuẩn bị ảnh" },
-  { step: "reconstructing", label: "Dựng mô hình" },
-  { step: "validating", label: "Kiểm tra GLB" },
-  { step: "uploading", label: "Lưu mô hình" },
+  { step: "validating", label: "Kiểm tra ảnh" },
+  { step: "preprocessing", label: "Chuẩn bị Pixal3D" },
+  { step: "pixal3d_inference", label: "AI dựng hình & PBR" },
+  { step: "exporting_glb", label: "Xuất GLB" },
+  { step: "validating_output", label: "Kiểm định đầu ra" },
 ];
