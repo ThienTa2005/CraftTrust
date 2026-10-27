@@ -23,3 +23,6 @@ supabase/.temp/
 __pycache__/
 *.pyc
 *.tsbuildinfo
+.pytest_cache/
+.pytest-*/
+pytest_tmp*/
