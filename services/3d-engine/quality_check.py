@@ -144,13 +144,13 @@ def inspect_glb(source: Path | str | bytes) -> dict[str, Any]:
         advisories.append("UNTEXTURED: Material has no texture image map.")
     if not is_watertight:
         advisories.append("NON_WATERTIGHT: Mesh geometry contains open boundaries or holes.")
-    if faces > 300000:
-        advisories.append("HIGH_POLY_COUNT: Face count exceeds 300,000; decimation recommended for web.")
+    if faces > 450000:
+        advisories.append("HIGH_POLY_COUNT: Face count exceeds 450,000; decimation recommended for web.")
     if len(data) > 15 * 1024 * 1024:
         advisories.append("LARGE_FILE_SIZE: GLB exceeds 15 MB; web viewer performance may degrade on mobile.")
 
     file_size_mb = round(len(data) / (1024 * 1024), 2)
-    web_viewer_ready = len(data) <= 15 * 1024 * 1024 and faces <= 250000 and has_texture
+    web_viewer_ready = len(data) <= 15 * 1024 * 1024 and faces <= 450000 and has_texture
 
     return {
         "glbValid": True,

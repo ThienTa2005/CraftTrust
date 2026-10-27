@@ -30,12 +30,12 @@ def _resize_texture(image: Any, max_dim: int = 2048) -> Image.Image | None:
 def optimize_glb_for_web(
     input_glb: Path | str | bytes,
     output_web_glb: Path | str | None = None,
-    target_faces: int = 200000,
+    target_faces: int = 350000,
     max_texture_dim: int = 2048,
 ) -> tuple[bytes, dict[str, Any]]:
-    """Decimate mesh to target face count (150k-250k), preserve UVs and PBR materials, and compress textures.
+    """Decimate mesh adaptively with preserve_border=True, preserve UVs/PBR materials, and compress textures.
 
-    Produces a lightweight Web GLB ready for 60fps mobile and desktop rendering.
+    Produces a lightweight Web GLB ready for 60fps mobile and desktop rendering without surface tearing.
     """
     if isinstance(input_glb, bytes):
         raw_master = input_glb
@@ -75,7 +75,7 @@ def optimize_glb_for_web(
 
             try:
                 new_points, new_triangles, collapses = fast_simplification.simplify(
-                    points, triangles, target_count=sub_target, return_collapses=True
+                    points, triangles, target_count=sub_target, preserve_border=True, agg=5.0, return_collapses=True
                 )
                 if has_uv:
                     out_pts, out_tris, mapping = fast_simplification.replay_simplification(
@@ -87,9 +87,9 @@ def optimize_glb_for_web(
                 else:
                     new_uv = None
             except Exception:
-                # Robust fallback to standard simplify with spatial KDTree if replay encounters degenerate edge
+                # Robust fallback to standard simplify with preserve_border
                 new_points, new_triangles = fast_simplification.simplify(
-                    points, triangles, target_count=sub_target
+                    points, triangles, target_count=sub_target, preserve_border=True, agg=5.0
                 )
                 if has_uv:
                     tree = cKDTree(points)
@@ -135,11 +135,20 @@ def optimize_glb_for_web(
         else:
             new_visual = mesh.visual
 
+        # Quality Gate Check: verify non-manifold edges
+        edges_sorted = np.sort(new_triangles.reshape(-1, 3)[:, [0, 1, 1, 2, 2, 0]].reshape(-1, 2), axis=1)
+        _, edge_counts = np.unique(edges_sorted, axis=0, return_counts=True)
+        if int(np.sum(edge_counts > 2)) > 10:
+            # Revert geometry to preserve surface integrity
+            new_points = points
+            new_triangles = triangles
+            new_visual = mesh.visual
+
         decimated_mesh = trimesh.Trimesh(
             vertices=new_points,
             faces=new_triangles,
             visual=new_visual,
-            process=False,
+            process=True,
         )
         new_geometries[name] = decimated_mesh
 
@@ -178,7 +187,7 @@ def optimize_glb_for_web(
 def export_dual_glb(
     master_path: Path,
     output_dir: Path,
-    target_faces: int = 200000,
+    target_faces: int = 350000,
     max_texture_dim: int = 2048,
 ) -> dict[str, Any]:
     """Export both Master GLB (archival/admin) and Web GLB (optimized for buyer viewer)."""

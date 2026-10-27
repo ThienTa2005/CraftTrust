@@ -60,7 +60,7 @@ def test_export_dual_glb_on_real_output(tmp_path: Path):
     assert metrics["master_file_size"] > 30 * 1024 * 1024
     assert metrics["web_file_size"] < 15 * 1024 * 1024
     assert metrics["size_reduction_percent"] > 50.0
-    assert metrics["face_reduction_percent"] > 60.0
+    assert metrics["face_reduction_percent"] > 55.0
     assert metrics["web_has_texture"] is True
     assert metrics["web_has_uvs"] is True
     assert metrics["web_ready"] is True

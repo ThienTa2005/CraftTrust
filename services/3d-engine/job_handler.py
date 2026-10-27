@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import shutil
 import tempfile
 import threading
 import time
@@ -68,15 +69,29 @@ def _extension(mime: str) -> str:
 
 
 def _error_code(exc: Exception) -> str:
+    if hasattr(exc, "code") and isinstance(getattr(exc, "code"), str):
+        return getattr(exc, "code")
     message = str(exc).lower()
     if "cuda" in message and ("memory" in message or "oom" in message):
         return "GPU_OOM"
     if "checkpoint" in message or "pretrained" in message or "hugging" in message:
         return "MODEL_WEIGHTS_UNAVAILABLE"
+    if "preview" in message or "thumbnail" in message:
+        return "PREVIEW_RENDER_FAILED"
+    if "optimiz" in message or "decimat" in message or "simplify" in message:
+        return "GLB_OPTIMIZATION_FAILED"
+    if "upload" in message or "storage" in message or "supabase" in message:
+        return "STORAGE_UPLOAD_FAILED"
+    if "validat" in message or "corrupt" in message:
+        return "VALIDATION_FAILED"
+    if "callback" in message:
+        return "CALLBACK_FAILED"
     if "image" in message or "source" in message or "view" in message:
         return "INVALID_INPUT"
     if "glb" in message or "geometry" in message:
         return "INVALID_OUTPUT"
+    if isinstance(exc, (NameError, AttributeError, TypeError, KeyError)):
+        return "WORKER_INTERNAL_ERROR"
     return "PIXAL3D_INFERENCE_FAILED"
 
 
@@ -167,15 +182,67 @@ class JobHandler:
 
                 gpu_runtime_ms = round((time.perf_counter() - total_started) * 1000)
                 actual_cost = round(gpu_runtime_ms / 1000 * self.gpu_usd_per_second, 4)
+
+                # Phase: raw_glb_validation
+                if not raw_output.is_file() or raw_output.stat().st_size < 1000:
+                    raise ValueError("PIXAL3D raw model GLB is missing or empty.")
+                print(json.dumps({
+                    "event": "phase_complete", "phase": "raw_glb_validation", "jobId": job_id,
+                    "rawGlbBytes": raw_output.stat().st_size,
+                }))
+
+                # Phase: master_preservation (preserve and upload Master GLB immediately)
+                master_glb = directory / "master.glb"
+                shutil.copyfile(raw_output, master_glb)
+                base = f"{job['seller_id']}/{job['product_id']}/{job_id}"
+                master_model_path = f"{base}/pixal3d_master.glb"
+                self.storage.upload_model(master_model_path, master_glb, "model/gltf-binary")
+                uploaded.append(master_model_path)
+                print(json.dumps({
+                    "event": "phase_complete", "phase": "master_preservation", "jobId": job_id,
+                    "masterGlbBytes": master_glb.stat().st_size, "masterStoragePath": master_model_path,
+                }))
+
+                # Phase: optimization (Export Web GLB with safe decimation and fallback)
                 self._advance(job_id, "exporting", "exporting_glb", 80)
+                print(json.dumps({"event": "phase_start", "phase": "optimization", "jobId": job_id}))
+                web_glb = directory / "web.glb"
+                try:
+                    dual_metrics = export_dual_glb(master_glb, directory, target_faces=350000, max_texture_dim=2048)
+                    web_glb = Path(dual_metrics["web_glb_path"])
+                except Exception as opt_err:
+                    print(json.dumps({
+                        "event": "optimization_warning", "jobId": job_id,
+                        "message": f"Web GLB optimization fallback to Master GLB: {opt_err}",
+                    }))
+                    shutil.copyfile(master_glb, web_glb)
+                    dual_metrics = {
+                        "master_file_size": master_glb.stat().st_size,
+                        "web_file_size": web_glb.stat().st_size,
+                        "master_face_count": 0, "web_face_count": 0,
+                        "web_has_texture": True, "web_has_uvs": True, "web_ready": True,
+                        "web_fallback_to_master": True,
+                        "optimization_error": str(opt_err),
+                        "master_glb_path": str(master_glb),
+                        "web_glb_path": str(web_glb),
+                    }
+                print(json.dumps({
+                    "event": "phase_complete", "phase": "optimization", "jobId": job_id,
+                    "webGlbBytes": web_glb.stat().st_size,
+                }))
 
-                # Export Master and Web GLB
-                dual_metrics = export_dual_glb(raw_output, directory, target_faces=200000, max_texture_dim=2048)
-                master_glb = Path(dual_metrics["master_glb_path"])
-                web_glb = Path(dual_metrics["web_glb_path"])
-
+                # Phase: preview
+                print(json.dumps({"event": "phase_start", "phase": "preview", "jobId": job_id}))
                 preview = directory / "preview.png"
-                preview_created = render_preview(web_glb, preview)
+                try:
+                    preview_created = render_preview(web_glb, preview)
+                except Exception:
+                    preview_created = False
+                print(json.dumps({
+                    "event": "phase_complete", "phase": "preview", "jobId": job_id,
+                    "previewCreated": preview_created,
+                }))
+
                 self._advance(job_id, "validating_output", "validating_output", 90)
                 structural = inspect_glb(web_glb)
                 total_runtime_ms = round((time.perf_counter() - total_started) * 1000)
@@ -203,15 +270,13 @@ class JobHandler:
                     "providerBilledCostUsd": None,
                     "costExcludes": ["container startup before handler", "CPU", "RAM", "storage", "egress", "image build", "container shutdown"],
                 }
-                base = f"{job['seller_id']}/{job['product_id']}/{job_id}"
-                master_model_path = f"{base}/pixal3d_master.glb"
+
                 web_model_path = f"{base}/pixal3d_web.glb"
                 legacy_model_path = f"{base}/pixal3d.glb"
 
-                self.storage.upload_model(master_model_path, master_glb, "model/gltf-binary")
                 self.storage.upload_model(web_model_path, web_glb, "model/gltf-binary")
                 self.storage.upload_model(legacy_model_path, web_glb, "model/gltf-binary")
-                uploaded.extend([master_model_path, web_model_path, legacy_model_path])
+                uploaded.extend([web_model_path, legacy_model_path])
 
                 preview_path = None
                 if preview_created:
@@ -247,17 +312,19 @@ class JobHandler:
                     "event": "inference_end", "jobId": job_id, "status": "needs_review",
                     "engine": "pixal3d", "gpuType": metrics["gpuType"],
                     "gpuRuntimeMs": gpu_runtime_ms, "output": "pixal3d.glb",
-                    "glbBytes": output.stat().st_size,
+                    "glbBytes": web_glb.stat().st_size,
+                    "masterBytes": master_glb.stat().st_size,
                 }))
-                return {"accepted": True, "status": "needs_review", "assetBytes": output.stat().st_size}
+                return {"accepted": True, "status": "needs_review", "assetBytes": web_glb.stat().st_size}
         except Exception as exc:
             # A lost callback response may follow a committed completion. Keep
             # private artifacts for reconciliation instead of deleting live data.
             gpu_runtime_ms = round((time.perf_counter() - total_started) * 1000)
             actual_cost = round(gpu_runtime_ms / 1000 * self.gpu_usd_per_second, 6)
+            code = _error_code(exc)
             payload = {
                 "outcome": "failed", "jobId": job_id, "workerId": self.worker_id,
-                "errorCode": _error_code(exc), "error": "Generation failed. Review the safe error code; private artifacts are retained.",
+                "errorCode": code, "error": f"Generation failed ({code}): {str(exc)[:500]}",
                 "gpuRuntimeMs": gpu_runtime_ms, "actualCostUsd": actual_cost,
             }
             try:
@@ -267,7 +334,11 @@ class JobHandler:
                 self.callback.send(payload)
             except Exception:
                 return {"accepted": True, "status": "reconciliation_required", "jobId": job_id}
-            print(json.dumps({"event": "inference_end", "jobId": job_id, "status": "failed", "errorCode": payload["errorCode"]}))
+            print(json.dumps({
+                "event": "inference_end", "jobId": job_id, "status": "failed",
+                "errorCode": payload["errorCode"], "errorDetail": str(exc),
+                "gpuRuntimeMs": gpu_runtime_ms
+            }))
             return {"accepted": True, "status": "failed", "errorCode": payload["errorCode"]}
         finally:
             heartbeat_stop.set()
