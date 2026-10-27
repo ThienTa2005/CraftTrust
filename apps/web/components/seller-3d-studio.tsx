@@ -387,21 +387,39 @@ export function Seller3DStudio({
         `/api/seller/products/${productId}/${action}`,
         { method: "POST" },
       );
-      const result = (await response.json()) as { error?: string };
-      if (!response.ok)
-        throw new Error(result.error ?? "Thao tác không thành công.");
+      const result = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        jobId?: string;
+        alreadyActive?: boolean;
+        message?: string;
+        error?: string;
+      };
+      if (!response.ok) {
+        let errorMsg = "Thao tác không thành công.";
+        if (typeof result.error === "string" && result.error.trim() && result.error !== "[object Object]") {
+          errorMsg = result.error;
+        } else if (result.error && typeof result.error === "object" && (result.error as Record<string, unknown>).message) {
+          errorMsg = String((result.error as Record<string, unknown>).message);
+        }
+        throw new Error(errorMsg);
+      }
       setNotice({
         kind: "success",
         text:
-          action === "publish"
+          result.message ||
+          (action === "publish"
             ? "Đã đăng sản phẩm. Mô hình 3D chỉ hiển thị công khai sau khi admin phê duyệt."
-            : "Đã đưa sản phẩm trở lại hàng đợi tạo 3D.",
+            : "Đã đưa sản phẩm trở lại hàng đợi tạo 3D."),
       });
       await refreshProducts(true);
     } catch (error) {
+      let text = "Có lỗi xảy ra khi tạo mô hình 3D. Vui lòng thử lại.";
+      if (error instanceof Error && error.message && error.message !== "[object Object]") {
+        text = error.message;
+      }
       setNotice({
         kind: "error",
-        text: error instanceof Error ? error.message : "Có lỗi xảy ra.",
+        text,
       });
     } finally {
       setBusyProduct(null);

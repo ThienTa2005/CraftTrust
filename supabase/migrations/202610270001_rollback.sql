@@ -1,5 +1,5 @@
 -- Rollback Migration: 202610270001_rollback.sql
--- Description: Revert enqueue_pixal3d_job to enforce single-view only.
+-- Description: Revert enqueue_pixal3d_job to enforce single-view only with correct schema contracts.
 
 create or replace function public.enqueue_pixal3d_job(
   p_product_id uuid,
@@ -15,10 +15,10 @@ begin
   if auth.uid() is null or not public.can_manage_product(p_product_id) then
     raise exception 'product ownership required' using errcode='42501';
   end if;
-  if p_mode is null or p_idempotency_key is null or p_mode not in ('single','multiview') or p_resolution is distinct from 1024 then
+  if p_mode is null or p_idempotency_key is null or p_mode not in ('single','two_view','multiview') or p_resolution is distinct from 1024 then
     raise exception 'invalid Pixal3D mode or resolution';
   end if;
-  if p_mode='multiview' then
+  if p_mode in ('two_view', 'multiview') then
     raise exception 'Multi-view disabled until calibrated camera metadata and benchmark are available';
   end if;
 
@@ -33,7 +33,7 @@ begin
     if not exists(select 1 from public.model_jobs where id=v_job and product_id=p_product_id and mode=p_mode) then
       raise exception 'idempotency key belongs to another request';
     end if;
-    return jsonb_build_object('id',v_job,'idempotent',true);
+    return jsonb_build_object('id',v_job,'idempotent',true,'status','already_queued');
   end if;
 
   select count(*), jsonb_agg(jsonb_build_object(
@@ -47,45 +47,51 @@ begin
     raise exception 'a canonical FRONT image is required';
   end if;
 
-  if exists(select 1 from public.model_jobs where product_id=p_product_id and engine='pixal3d'
-    and status in ('queued','dispatched','validating','preprocessing','running','exporting','validating_output')) then
-    raise exception 'an active Pixal3D job already exists' using errcode='23505';
+  select id into v_job from public.model_jobs where product_id=p_product_id and engine='pixal3d'
+    and status in ('queued','dispatched','validating','preprocessing','running','exporting','validating_output')
+    order by created_at desc limit 1;
+  if v_job is not null then
+    return jsonb_build_object('id',v_job,'idempotent',true,'status','already_active');
   end if;
 
-  select * into v_limit from public.model_compute_limits where seller_id=v_owner;
-  if not found then
-    insert into public.model_compute_limits(seller_id) values (v_owner) returning * into v_limit;
-  end if;
-  if v_limit.is_blocked then
-    raise exception 'compute budget exceeded or administratively blocked' using errcode='EX001';
+  select * into v_limit from public.model_compute_limits where singleton=true for update;
+  if not found or not v_limit.enabled then
+    raise exception 'GPU budget is disabled (fail-closed)' using errcode='P0001';
   end if;
 
-  select coalesce(sum(estimated_cost_usd),0) into v_daily from public.model_jobs
-    where seller_id=v_owner and created_at >= (now() - interval '24 hours');
-  select coalesce(sum(estimated_cost_usd),0) into v_monthly from public.model_jobs
-    where seller_id=v_owner and created_at >= (now() - interval '30 days');
+  select coalesce(sum(case when status='finalized' then actual_usd else reserved_usd end),0)
+    into v_daily from public.model_budget_ledger where status='reserved' or (status='finalized' and created_at >= date_trunc('day',now()));
+  select coalesce(sum(case when status='finalized' then actual_usd else reserved_usd end),0)
+    into v_monthly from public.model_budget_ledger where status='reserved' or (status='finalized' and created_at >= date_trunc('month',now()));
 
-  if (v_daily + v_limit.max_job_cost_usd) > v_limit.daily_budget_usd
-     or (v_monthly + v_limit.max_job_cost_usd) > v_limit.monthly_budget_usd then
-    raise exception 'compute budget limit reached' using errcode='EX002';
+  if v_daily+v_limit.per_job_reservation_usd > v_limit.daily_limit_usd
+     or v_monthly+v_limit.per_job_reservation_usd > v_limit.monthly_limit_usd then
+    raise exception 'GPU budget exceeded' using errcode='P0001';
   end if;
 
-  select coalesce(max(attempt_number),0)+1 into v_attempt from public.model_jobs where product_id=p_product_id;
+  select count(*)+1 into v_attempt from public.model_jobs where product_id=p_product_id;
+  if v_attempt > 10 then raise exception 'maximum generation attempts reached'; end if;
 
   insert into public.model_jobs(
-    seller_id, product_id, engine, mode, resolution, low_vram,
-    input_manifest, status, current_step, progress,
-    estimated_cost_usd, attempt_number, idempotency_key
+    product_id, seller_id, status, engine, provider, mode, attempt, idempotency_key,
+    input_manifest, model_revision, resolution, reserved_cost_usd, current_step, progress
   ) values (
-    v_owner, p_product_id, 'pixal3d', p_mode, p_resolution, true,
-    v_manifest, 'queued', 'queued', 0,
-    v_limit.max_job_cost_usd, v_attempt, p_idempotency_key
+    p_product_id, v_owner, 'queued', 'pixal3d', 'modal', p_mode, v_attempt, p_idempotency_key,
+    v_manifest, 'f7cf38429b0bd264f1995f0f8743a88b1c728b94', p_resolution,
+    v_limit.per_job_reservation_usd, 'queued', 0
   ) returning id into v_job;
 
-  insert into public.model_outbox(job_id) values (v_job);
-  update public.products set model_status='queued', model_error=null, updated_at=now() where id=p_product_id;
+  insert into public.model_budget_ledger(job_id, reserved_usd, status)
+    values (v_job, v_limit.per_job_reservation_usd, 'reserved');
 
-  return jsonb_build_object('id',v_job,'attempt',v_attempt,'mode',p_mode,'status','queued');
+  insert into public.model_dispatch_outbox(job_id) values (v_job);
+
+  update public.products
+    set status='draft', model_status='queued', model_error=null, model_report=null,
+        model_url=null, model_version=null, ar_url=null, updated_at=now()
+    where id=p_product_id;
+
+  return jsonb_build_object('id',v_job,'attempt',v_attempt,'mode',p_mode,'status','queued','idempotent',false);
 end;
 $$;
 

@@ -2,6 +2,7 @@ import { parseSourceViews, parseRequestedEngine, type CameraView } from "@/lib/m
 import { NextResponse } from "next/server";
 import { getAuthorizedUser } from "@/lib/authz";
 import { enqueuePixal3dJob } from "@/lib/modal-3d";
+import { parseApiError } from "@/lib/error-utils";
 
 export const runtime = "nodejs";
 
@@ -263,10 +264,26 @@ export async function PATCH(
         id,
         mode,
       );
-    } catch {
-      await auth.supabase.from("products").update({ model_status: "not_requested", model_version: null }).eq("id", id);
-      return NextResponse.json({ ok: true, regenerated: false, modelStatus: "not_requested",
-        dispatchError: "Đã lưu ảnh. Generation chưa bật hoặc budget không đủ; hãy thử lại sau." });
+    } catch (cause) {
+      const parsed = parseApiError(cause);
+      console.error("[enqueuePixal3dJob failed during product edit]:", {
+        productId: id,
+        code: parsed.code,
+        message: parsed.rawMessage,
+        details: parsed.details,
+        hint: parsed.hint,
+      });
+      await auth.supabase.from("products").update({
+        model_status: "not_requested",
+        model_version: null,
+        model_error: parsed.message,
+      }).eq("id", id);
+      return NextResponse.json({
+        ok: true,
+        regenerated: false,
+        modelStatus: "not_requested",
+        dispatchError: parsed.message,
+      });
     }
     const { jobId, dispatch } = queued;
 

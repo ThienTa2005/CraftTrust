@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAuthorizedUser } from "@/lib/authz";
 import { summarizeModelJobs } from "@/lib/model-job-status";
 import { enqueuePixal3dJob } from "@/lib/modal-3d";
+import { parseApiError } from "@/lib/error-utils";
 
 export const runtime = "nodejs";
 
@@ -275,12 +276,15 @@ export async function POST(request: Request) {
         mode,
       );
     } catch (enqueueError) {
-      console.error("enqueuePixal3dJob failed during product creation:", enqueueError);
-      const raw = enqueueError instanceof Error ? enqueueError.message : String(enqueueError);
-      let errorMsg = "Đã lưu sản phẩm nhưng dịch vụ tạo 3D đang bận. Bạn có thể bấm 'Tạo mô hình 3D bằng AI' sau.";
-      if (raw.includes("GPU budget") || raw.includes("P0001")) {
-        errorMsg = "Đã lưu sản phẩm và ảnh nguồn. Chưa thể tạo 3D ngay do giới hạn ngân sách GPU ($1/ngày). Vui lòng bấm 'Tạo mô hình 3D bằng AI' sau.";
-      }
+      const parsed = parseApiError(enqueueError);
+      console.error("[enqueuePixal3dJob failed during product creation]:", {
+        productId,
+        code: parsed.code,
+        message: parsed.rawMessage,
+        details: parsed.details,
+        hint: parsed.hint,
+      });
+      const errorMsg = parsed.message;
       // Product and source images are durable even while compute is disabled.
       await auth.supabase.from("products").update({
         model_status: "not_requested",
