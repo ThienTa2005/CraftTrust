@@ -5,7 +5,7 @@ import { ShieldCheck } from "lucide-react";
 import { CraftModelViewer } from "@/components/model-viewer";
 
 const STAGING_MODEL = {
-  url: "/models/staging/test_1793160648_e666169a/web-1cf288a4.glb",
+  url: process.env.NEXT_PUBLIC_STAGING_GLB_URL,
   runId: "test_1793160648_e666169a",
   sha256: "1CF288A4C5F6D689A25B3CC415B7B6CE901BD0B8B1F4FD096828009A02727799",
   master: { bytes: 37_961_892, faces: 970_650, vertices: 657_688 },
@@ -119,18 +119,28 @@ export default function Preview3DPage() {
                 fontWeight: 600,
               }}
             >
-              {loadTimeMs === null
-                ? "Loading model…"
-                : `Loaded in ${loadTimeMs} ms`}
+              {!STAGING_MODEL.url
+                ? "Staging asset not configured"
+                : loadTimeMs === null
+                  ? "Loading model…"
+                  : `Loaded in ${loadTimeMs} ms`}
             </span>
           </div>
-          <CraftModelViewer
-            key={STAGING_MODEL.url}
-            src={STAGING_MODEL.url}
-            poster=""
-            onReady={handleModelReady}
-            dimensions={{ heightCm: 25, widthCm: 18 }}
-          />
+          {STAGING_MODEL.url ? (
+            <CraftModelViewer
+              key={STAGING_MODEL.url}
+              src={STAGING_MODEL.url}
+              poster=""
+              onReady={handleModelReady}
+              dimensions={{ heightCm: 25, widthCm: 18 }}
+            />
+          ) : (
+            <p className="studio-message">
+              Staging asset is not configured in this deployment. Set
+              NEXT_PUBLIC_STAGING_GLB_URL to an immutable, non-production test
+              object before running viewer QA.
+            </p>
+          )}
         </section>
 
         <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
