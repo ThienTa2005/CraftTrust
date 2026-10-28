@@ -15,9 +15,12 @@ it('blocks unreviewed generated models and legacy reports',async()=>{
  }
  expect(state.rpc).not.toHaveBeenCalled();
 });
-it('allows an admin to publish a structurally valid Pixal3D result after review',async()=>{
- state.asset={origin:'generated',quality_report:{reportVersion:4,engine:'pixal3d',glbValid:true,publicationBlocked:false}};
- expect((await PATCH(request())).status).toBe(200);
+it('allows an admin to publish structurally valid Pixal3D v4 and v5 results after review',async()=>{
+ for (const reportVersion of [4, 5]) {
+  state.asset={origin:'generated',quality_report:{reportVersion,engine:'pixal3d',glbValid:true,publicationBlocked:false}};
+  expect((await PATCH(request())).status).toBe(200);
+ }
+ expect(state.rpc).toHaveBeenCalledTimes(2);
  expect(state.rpc).toHaveBeenCalledWith('manage_product_model',expect.objectContaining({p_action:'publish'}));
 });
 it('preserves deliberate admin publication of manually corrected GLBs',async()=>{

@@ -26,6 +26,7 @@
     "typecheck": "corepack pnpm --recursive --if-present typecheck",
     "test": "corepack pnpm --recursive --if-present test",
     "test:e2e": "playwright test",
+    "test:staging-glb": "node scripts/measure-staging-glb.mjs",
     "check": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

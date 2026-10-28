@@ -246,7 +246,7 @@ def run_single_inference_test(
 
         # 4. Dual Export: Master and Web GLB
         exp_started = time.perf_counter()
-        dual_metrics = export_dual_glb(raw_glb, work_dir, target_faces=200000, max_texture_dim=2048)
+        dual_metrics = export_dual_glb(raw_glb, work_dir, target_faces=350000, max_texture_dim=4096)
         master_glb = Path(dual_metrics["master_glb_path"])
         web_glb = Path(dual_metrics["web_glb_path"])
 
@@ -314,7 +314,7 @@ def run_single_inference_test(
         ]
 
         metrics = {
-            "status": "PASS",
+            "status": "PASS" if dual_metrics.get("web_ready") and preview_rendered else "QUALITY_GATE_FAILED",
             "runId": run_id,
             "engine": "pixal3d",
             "mode": mode,

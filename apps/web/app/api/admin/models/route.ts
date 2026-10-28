@@ -8,7 +8,7 @@ export async function GET(request:Request) {
  const productId=new URL(request.url).searchParams.get("productId");
  let query=auth.supabase.from("product_model_assets").select("*").order("created_at",{ascending:false});
  if(productId) query=query.eq("product_id",productId);
- const {data,error}=await query.limit(200);
+ const {data}=await query.limit(200);
  return NextResponse.json({ assets: data ?? [] }, { status: 200 });
 }
 export async function POST(request:Request) {
@@ -37,7 +37,7 @@ export async function PATCH(request:Request) {
  if(body.action === "publish") {
   const {data:asset,error:assetError}=await auth.supabase.from("product_model_assets").select("origin,quality_report").eq("id",body.id).single();
   if(assetError) return NextResponse.json({error:assetError.message},{status:400});
-  if(asset.origin === "generated" && (asset.quality_report?.reportVersion !== 4 || asset.quality_report?.engine !== "pixal3d" || asset.quality_report?.glbValid !== true || asset.quality_report?.publicationBlocked !== false))
+  if(asset.origin === "generated" && (![4, 5].includes(asset.quality_report?.reportVersion) || asset.quality_report?.engine !== "pixal3d" || asset.quality_report?.glbValid !== true || asset.quality_report?.publicationBlocked !== false))
    return NextResponse.json({error:"Mô hình sinh tự động chưa đủ kiểm chứng để xuất bản. Xem báo cáo, bổ sung ảnh hoặc tải GLB đã sửa thủ công."},{status:409});
  }
  const settings=body.action==="configure"?modelConfigSchema.safeParse(body.settings):null;

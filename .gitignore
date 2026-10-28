@@ -17,6 +17,7 @@ coverage/
 playwright-report/
 test-results/
 test_results/
+apps/web/public/models/staging/
 outputs/
 *.log
 .DS_Store

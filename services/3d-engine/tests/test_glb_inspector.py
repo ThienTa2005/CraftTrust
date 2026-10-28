@@ -13,7 +13,7 @@ ENGINE_DIR = Path(__file__).resolve().parent.parent
 if str(ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(ENGINE_DIR))
 
-from quality_check import inspect_glb, validate_glb
+from quality_check import analyze_mesh_topology, inspect_glb, validate_glb
 
 
 def _create_sample_texture(format_name: str = "PNG") -> Image.Image:
@@ -149,3 +149,51 @@ def test_inspector_invalid_header_raises():
     """Corrupted header must raise ValueError."""
     with pytest.raises(ValueError, match="not a valid GLB binary"):
         inspect_glb(b"INVALID_HEADER_DATA_1234567890")
+
+
+def test_non_manifold_edges_block_web_ready():
+    vertices = np.array([
+        [0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [0.5, 1.0, 0.0],
+        [0.5, -1.0, 0.0],
+        [0.5, 0.0, 1.0],
+    ])
+    faces = np.array([[0, 1, 2], [1, 0, 3], [0, 1, 4]])
+    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+    mesh.visual = trimesh.visual.TextureVisuals(
+        uv=np.random.rand(len(vertices), 2),
+        material=trimesh.visual.material.PBRMaterial(
+            baseColorTexture=_create_sample_texture("WEBP")
+        ),
+    )
+    data = gltf.export_glb(trimesh.Scene(mesh), include_normals=True, extension_webp=True)
+    report = inspect_glb(data)
+    assert report["nonManifoldEdgeCount"] == 1
+    assert report["qualityAdvisory"]["topologyHealthy"] is False
+    assert report["qualityAdvisory"]["webViewerReady"] is False
+    assert any("NON_MANIFOLD_EDGES" in advisory for advisory in report["advisories"])
+
+
+def test_flat_layered_product_is_not_removed_without_background_texture_proof():
+    """A tray/tile/plinth can satisfy the vase-specific shape heuristic but is product geometry."""
+    body = trimesh.creation.icosphere(subdivisions=3, radius=0.8)
+    body.apply_translation([0.0, 0.0, 0.0])
+    lower_layer = trimesh.creation.box(extents=[3.0, 0.03, 3.0])
+    upper_layer = trimesh.creation.box(extents=[3.0, 0.03, 3.0])
+    for _ in range(3):
+        lower_layer = lower_layer.subdivide()
+        upper_layer = upper_layer.subdivide()
+    lower_layer.apply_translation([0.0, -1.05, 0.0])
+    upper_layer.apply_translation([0.0, -1.00, 0.0])
+    layered_product = trimesh.util.concatenate([body, lower_layer, upper_layer])
+
+    report = analyze_mesh_topology(layered_product)
+
+    assert report["flatArtifactCandidateCount"] >= 2
+    assert report["safeRemovableFlatComponentCount"] == 0
+    assert all(
+        candidate["safeToRemove"] is False
+        for candidate in report["flatArtifactCandidates"]
+        if candidate["kind"] == "OVERSIZED_BASE_SHEET"
+    )

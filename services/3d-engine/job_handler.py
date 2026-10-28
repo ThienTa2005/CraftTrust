@@ -208,7 +208,7 @@ class JobHandler:
                 print(json.dumps({"event": "phase_start", "phase": "optimization", "jobId": job_id}))
                 web_glb = directory / "web.glb"
                 try:
-                    dual_metrics = export_dual_glb(master_glb, directory, target_faces=350000, max_texture_dim=2048)
+                    dual_metrics = export_dual_glb(master_glb, directory, target_faces=350000, max_texture_dim=4096)
                     web_glb = Path(dual_metrics["web_glb_path"])
                 except Exception as opt_err:
                     print(json.dumps({
@@ -216,11 +216,17 @@ class JobHandler:
                         "message": f"Web GLB optimization fallback to Master GLB: {opt_err}",
                     }))
                     shutil.copyfile(master_glb, web_glb)
+                    fallback_inspection = inspect_glb(web_glb)
                     dual_metrics = {
                         "master_file_size": master_glb.stat().st_size,
                         "web_file_size": web_glb.stat().st_size,
-                        "master_face_count": 0, "web_face_count": 0,
-                        "web_has_texture": True, "web_has_uvs": True, "web_ready": True,
+                        "master_face_count": fallback_inspection["faceCount"],
+                        "web_face_count": fallback_inspection["faceCount"],
+                        "web_has_texture": fallback_inspection["hasTexture"],
+                        "web_has_uvs": fallback_inspection["hasUvs"],
+                        "web_has_normals": fallback_inspection["hasNormals"],
+                        "web_ready": False,
+                        "quality_rejection_reasons": ["OPTIMIZATION_FAILED_FALLBACK_IS_NOT_WEB_READY"],
                         "web_fallback_to_master": True,
                         "optimization_error": str(opt_err),
                         "master_glb_path": str(master_glb),
@@ -247,7 +253,7 @@ class JobHandler:
                 structural = inspect_glb(web_glb)
                 total_runtime_ms = round((time.perf_counter() - total_started) * 1000)
                 report = {
-                    "reportVersion": 4, "engine": "pixal3d", "engineCommit": PIXAL3D_COMMIT,
+                    "reportVersion": 5, "engine": "pixal3d", "engineCommit": PIXAL3D_COMMIT,
                     "checkpoint": "TencentARC/Pixal3D", "checkpointRevision": CHECKPOINT_REVISION,
                     "mode": mode, "resolution": job["resolution"], "lowVram": True,
                     **metrics, **structural, "inputImages": image_evidence,
@@ -255,7 +261,8 @@ class JobHandler:
                     "dualExport": dual_metrics,
                     "cameraEvidence": "official MoGe-2 estimate" if mode == "single" else "calibrated cardinal preset (FRONT/BACK/LEFT/RIGHT)",
                     "previewRendered": preview_created, "requiresHumanReview": True,
-                    "physicalAccuracy": None, "publicationBlocked": False,
+                    "physicalAccuracy": None,
+                    "publicationBlocked": not bool(dual_metrics.get("web_ready")) or not preview_created,
                     "reviewWarnings": [
                         (
                             "Hidden surfaces are inferred and are not geometrically verified."
